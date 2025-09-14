@@ -1,0 +1,12 @@
+name: Basic check
+on:
+  push:
+    branches: [ main ]   # roda em push no main (já conta como status check)
+  pull_request:
+    branches: [ main ]   # roda em PRs para o main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo Basic check OK
