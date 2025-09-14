@@ -1,4 +1,3 @@
-@
 name: Basic check
 on:
   push:
@@ -11,4 +10,3 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: echo Basic check OK
-@
