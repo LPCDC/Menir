@@ -1,9 +1,9 @@
 name: Basic check
 on:
   push:
-    branches: [ main ]   # roda em push no main (já conta como status check)
+    branches: [ main ]
   pull_request:
-    branches: [ main ]   # roda em PRs para o main
+    branches: [ main ]
 jobs:
   build:
     runs-on: ubuntu-latest
