@@ -1,0 +1,22 @@
+# Ignorar sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# Logs e caches
+*.log
+cache/
+temp/
+*.tmp
+*.bak
+
+# Grandes / binários
+*.zip
+*.tar
+*.gz
+*.sql
+*.mbox
+*.sqlite
