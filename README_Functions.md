@@ -17,5 +17,6 @@ Este pacote adiciona funções comprovadas ao Menir (compatível com Neo4j Aura)
    - `NEO4J_PASSWORD`
 3. Faça commit e push. O workflow `menir-ci.yml` aplicará o `setup.cypher` no Aura.
 4. Use os arquivos `.cypher` como exemplos de consultas prontas para cada função.
+meta: correct previous commit message — Menir Functions Pack (constraints, routing, explainable, auditing, CI)
 
 ---
