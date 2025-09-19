@@ -1,22 +1,70 @@
-# Ignorar sistema / editor
+# ======================
+# Python / Conda
+# ======================
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv*/
+env*/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.whl
+*.pkl
+*.yml
+*.yaml
+
+# ======================
+# Menir Artifacts
+# ======================
+/logs/              # logs estruturados
+/checkpoints/       # checkpoints automáticos
+/outputs/           # renders/saídas
+/tmp/               # temporários
+/cache/             # caches HF/Torch/Conda
+*.jsonl             # dumps sensíveis (Itau, Guarani, etc.)
+records.jsonl
+nodes.csv
+rels.csv
+manifest.json
+
+# ======================
+# Neo4j / Aura
+# ======================
+*.dump
+*.db
+*.sqlite
+neo4j.conf
+/apoc.conf
+/data/databases/
+/data/transactions/
+
+# ======================
+# Credenciais / Secrets
+# ======================
+.env
+*.env
+*.key
+*.pem
+*.crt
+*.pfx
+*.token
+*.secret
+
+# ======================
+# Sistema / IDE
+# ======================
 .DS_Store
 Thumbs.db
-.vscode/
+desktop.ini
 .idea/
-*.swp
-*.tmp
-
-# Logs e caches
+.vscode/
 *.log
-cache/
-temp/
-*.tmp
-*.bak
 
-# Grandes / binários
-*.zip
-*.tar
-*.gz
-*.sql
-*.mbox
-*.sqlite
+# ======================
+# Windows build junk
+# ======================
+*.bak
+*.tmp
+*.swp
