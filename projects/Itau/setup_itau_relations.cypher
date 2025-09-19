@@ -1,26 +1,24 @@
-// =============================================
-// Menir Judicial - Setup Itaú Relations
-// =============================================
+////////////////////////////////////////////////////////////////////////
+// Patch Relações Faltantes Itaú
+////////////////////////////////////////////////////////////////////////
 
-// Relaciona Partes e Documentos (pelo campo parte_id)
-LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/LPCDC/Menir/main/projects/Itau/itau_documentos.csv" AS row
-MATCH (p:Parte {id: row.parte_id})
-MATCH (d:Documento {id: row.doc_id})
-MERGE (p)-[:RELACIONADO_A]->(d);
+// Criar relacionamento REFERE_A para transações com documento existente
+MATCH (t:Transacao), (d:Documento)
+WHERE t.doc_id IS NOT NULL AND trim(t.doc_id) <> ""
+  AND t.doc_id = d.id
+  AND NOT (t)-[:REFERE_A]->(d)
+MERGE (t)-[:REFERE_A]->(d);
 
-// Relaciona Contas e Transações (pelo campo conta_id)
-LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/LPCDC/Menir/main/projects/Itau/itau_transacoes.csv" AS row
-MATCH (c:Conta {id: row.conta_id})
-MATCH (t:Transacao {id: row.transacao_id})
-MERGE (c)-[:REGISTRA]->(t);
+// Criar relacionamento ENVOLVENDO para transações com parte existente
+MATCH (t:Transacao), (p:Parte)
+WHERE t.parte_id IS NOT NULL AND trim(t.parte_id) <> ""
+  AND t.parte_id = p.id
+  AND NOT (t)-[:ENVOLVENDO]->(p)
+MERGE (t)-[:ENVOLVENDO]->(p);
 
-// Auditoria simples: checa se Partes têm Documentos
-MATCH (p:Parte)-[:RELACIONADO_A]->(d:Documento)
-RETURN p.nome AS Parte, collect(d.nome) AS Documentos
-LIMIT 10;
+// Validação pós patch
+MATCH (t:Transacao)-[:REFERE_A]->(d:Documento)
+RETURN t.id AS transacao_id, d.id AS documento_id LIMIT 10;
 
-// Auditoria simples: transações de maior valor
-MATCH (t:Transacao)
-RETURN t.id, t.valor
-ORDER BY t.valor DESC
-LIMIT 10;
+MATCH (t:Transacao)-[:ENVOLVENDO]->(p:Parte)
+RETURN t.id AS transacao_id, p.id AS parte_id LIMIT 10;
