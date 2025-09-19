@@ -1,0 +1,23 @@
+name: Gato Mia Dashboard
+
+on:
+  push:
+    paths:
+      - "projects/Gatomia/gatomia_dashboard.cypher"
+
+jobs:
+  run-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Gato Mia Dashboard Cypher
+        uses: neo4j/neo4j-action@v1
+        with:
+          database: neo4j
+          uri: ${{ secrets.NEO4J_URI }}
+          username: ${{ secrets.NEO4J_USER }}
+          password: ${{ secrets.NEO4J_PASSWORD }}
+          cypher: |
+            :use neo4j
+            :source projects/Gatomia/gatomia_dashboard.cypher
