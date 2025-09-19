@@ -1,35 +1,55 @@
 --- a/.github/workflows/gatomia_dashboard.yml
 +++ b/.github/workflows/gatomia_dashboard.yml
-@@ -38,15 +38,18 @@
-     jobs:
-       build-dashboard:
--        runs-on: ubuntu-latest
--        env:
--          NEO4J_URI: ${{ secrets.NEO4J_URI }}
--        # outras vars
--        steps:
--          - name: Checkout
--            uses: actions/checkout@v3
--          - name: Do something
--            run: echo "..."
--            env:
--              NEO4J_USER: ${{ secrets.NEO4J_USER }}
--          - run: echo "Extra run duplicado"   # erro aqui provavelmente
-+        runs-on: ubuntu-latest
-+        env:
-+          NEO4J_URI: ${{ secrets.NEO4J_URI }}
-+          NEO4J_USER: ${{ secrets.NEO4J_USER }}
-+          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
-+          COMMIT_ID: ${{ github.sha }}
-+          COMMIT_MSG: ${{ github.event.head_commit.message }}
-+          AUTHOR: ${{ github.event.pusher.name }}
-+        steps:
-+          - name: Checkout repository
-+            uses: actions/checkout@v3
-+          
-+          - name: Run dashboard script
-+            run: |
-+              echo "Iniciando Dashboard..."
-+              # comandos do dashboard aqui
-+          
-+          # outros steps separados, cada com seu `name:` e `run:` ou `uses:`
+@@ -1,10 +1,12 @@
+-name: Gatomia Dashboard
++name: Gatomia Dashboard
+
+ on:
+   push:
+     branches:
+       - main
++  workflow_dispatch:
+
+ jobs:
+   build-dashboard:
+     runs-on: ubuntu-latest
+@@ -15,25 +17,25 @@
+-    env:
+-      NEO4J_URI: ${{ secrets.NEO4J_URI }}
+-    env:     # <<< erro: env definido duas vezes
+-      NEO4J_USER: ${{ secrets.NEO4J_USER }}
+-    run: echo "..."
+-    run: echo "outra execução duplicada"   # <<< erro: run duplicado
++    env:
++      NEO4J_URI: ${{ secrets.NEO4J_URI }}
++      NEO4J_USER: ${{ secrets.NEO4J_USER }}
++      NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
++      COMMIT_ID: ${{ github.sha }}
++      COMMIT_MSG: ${{ github.event.head_commit.message }}
++      AUTHOR: ${{ github.event.pusher.name }}
+
+     steps:
+-      - name: Checkout
+-        uses: actions/checkout@v3
+-
+-      - run: echo "Step sem nome"   # <<< erro: run sem name
+-
+-      - name: Outro passo
+-        run: |
+-          echo "Algo"
+-
+-      env:
+-        COMMIT_ID: ${{ github.sha }}   # <<< erro: env inesperado aqui
++      - name: Checkout repository
++        uses: actions/checkout@v3
+
++      - name: Setup dependencies
++        run: |
++          echo "Instalando dependências..."
+
++      - name: Generate Dashboard
++        run: |
++          echo "Buscando dados gerais..."
++          echo "Commit ID: $COMMIT_ID"
+
++      # se tiver passo de push ou atualização de arquivos, insira aqui com nome
