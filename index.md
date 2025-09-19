@@ -1,17 +1,30 @@
-# Training U — Menu Geral
+﻿# Training U â€” Menu Geral
 
-## Projetos Ativos
-- [Training U — GPT-5 Controls](Training U gpt5_controls.md) — status: ATIVO
-- [Caso Itaú — Proposta 15220012](Itau_proposta15220012.md) — status: EM CURSO
-- [Renderizador — Família Otani](Renderizador_Otani.md) — status: ATIVO
-- [Guarani151_Locacao](Guarani151_Locacao.md) — status: ARQUIVADO
+## NÃºcleo
+- [Training U â€” GPT-5 Controls](projects/TrainingU/Training_U_gpt5_controls.md)
 
-## Seeds & Experimentos
-- [Tasks Menu Seed](2025-09-14__tasks_menu_seed.proposal.json)
-- [Research Seed](2025-09-14__menir_research_seed.proposal.json)
-- [Gmail Integration Options](2025-09-14__gmail_integration_options.proposal.json)
+## Projetos
+- [ItaÃº](projects/Itau/Itau.md)
+  - [Proposta 15220012](projects/Itau/Propostas/Proposta_15220012.md)
+  - [JurÃ­dico](projects/Itau/Processos/Juridico.md)
+  - [Extratos](projects/Itau/Processos/Extratos_Indexados.md)
+
+- [Renderizador](projects/Renderizador/Renderizador.md)
+  - [TÃ¢nia](projects/Renderizador/Tania/Tania.md)
+    - [FamÃ­lia Otani](projects/Renderizador/Tania/Familia_Otani/Familia_Otani.md)
+
+- [ImÃ³veis](projects/Imoveis/Imoveis.md)
+  - [Santos](projects/Imoveis/Santos/Santos.md)
+  - [SÃ£o Paulo](projects/Imoveis/SaoPaulo/SaoPaulo.md)
+    - [Guarani 151 LocaÃ§Ã£o](projects/Imoveis/SaoPaulo/Guarani151_Locacao.md)
+
+- [Textos](projects/Textos/Textos.md)
+  - [Subprojeto 1](projects/Textos/Subprojeto1/Subprojeto1.md)
+  - [Subprojeto 2](projects/Textos/Subprojeto2/Subprojeto2.md)
 
 ---
 
-> 📌 **ATUALIZE ESTE MENU TODA VEZ QUE CRIAR UM NOVO ARQUIVO DE PROJETO.**
-> ADICIONE O LINK NO BLOCO "PROJETOS ATIVOS" OU "SEEDS & EXPERIMENTOS".
+ðŸ“Œ **Regras:**
+- SEMPRE criar um .md por projeto/subprojeto.
+- ATUALIZAR este index.md quando abrir algo novo.
+- STATUS deve aparecer no cabeÃ§alho de cada .md.
