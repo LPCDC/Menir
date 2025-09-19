@@ -1,0 +1,24 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    # ou adapte se sua branch default tiver outro nome
+
+jobs:
+  check-contrib-guidelines:
+    name: Validar contribuições (check_contrib.sh)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Dar permissão de execução ao script
+        run: chmod +x scripts/check_contrib.sh
+
+      - name: Rodar script de validação
+        run: scripts/check_contrib.sh
+

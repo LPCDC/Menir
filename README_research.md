@@ -1,1 +1,0 @@
-# Menir Research — Readme
