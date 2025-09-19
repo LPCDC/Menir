@@ -51,4 +51,9 @@ Todos os triggers acionam o **painel-resumo unificado** (MarcoPolo/GatoMia).
 
 ---
 
+## Últimos Commits (sync GitHub → MENIR)
+- [2025-09-20] gatomia: rename MarcoPolo → Gatomi + add dashboard
+- [2025-09-20] reflexive: seed mínimo (constraints básicos)
+- [2025-09-19] proj:Itau fix setup_itau_relations
+
 ✅ Este checkpoint garante que o Menir retome exatamente deste ponto em qualquer nova janela.
