@@ -1,4 +1,0 @@
-threads:
-  - key: zep
-    title: Integração com ZEP
-    files: [research/01_zep_integration.md]
