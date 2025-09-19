@@ -12,18 +12,16 @@ env*/
 pip-wheel-metadata/
 *.whl
 *.pkl
-*.yml
-*.yaml
 
 # ======================
 # Menir Artifacts
 # ======================
-/logs/              # logs estruturados
-/checkpoints/       # checkpoints automáticos
-/outputs/           # renders/saídas
-/tmp/               # temporários
-/cache/             # caches HF/Torch/Conda
-*.jsonl             # dumps sensíveis (Itau, Guarani, etc.)
+/logs/
+/checkpoints/
+/outputs/
+/tmp/
+/cache/
+*.jsonl          # dumps sensíveis (Itau, Guarani, etc.)
 records.jsonl
 nodes.csv
 rels.csv
@@ -36,12 +34,12 @@ manifest.json
 *.db
 *.sqlite
 neo4j.conf
-/apoc.conf
+apoc.conf
 /data/databases/
 /data/transactions/
 
 # ======================
-# Credenciais / Secrets
+# Secrets / Credentials
 # ======================
 .env
 *.env
