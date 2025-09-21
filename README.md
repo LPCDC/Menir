@@ -2,7 +2,7 @@
 
 ## Controles de Proatividade & Parâmetros para GPT-5
 
-Este projeto está adaptado para usar o GPT-5 com controle fino de proatividade, uso de ferramentas, persistência, e critérios claros de parada. Aqui vão as diretrizes:
+Este projeto está ajustado para usar o GPT-5 com controle fino de proatividade, uso de ferramentas, persistência, e critérios claros de parada. Aqui vão as diretrizes:
 
 - **reasoning_effort** — defina `minimal`, `low`, `medium` (default) ou `high` conforme necessidade de profundidade; para tarefas simples use valores mais baixos.  
 - **verbosity** — controla o nível de detalhe da resposta final; valores possíveis: `low`, `medium`, `high`. Combine com `reasoning_effort` para ajustar qualidade vs. rapidez.  
@@ -14,4 +14,16 @@ Este projeto está adaptado para usar o GPT-5 com controle fino de proatividade,
 - **Segurança e ações críticas** — ações que alterem banco, façam deploy ou deletem dados exigem confirmação explícita do usuário.  
 
 ---
+## Recursos Ativos do Menir
 
+### SlowdownGuard v0.3
+Sugere salvar `checkpoint.md` e abrir novo chat quando a sessão fica lenta por **latência** ou **volume**.  
+- **Modo:** sugestão (nunca ações administrativas).  
+- **Política:** repetição educada 1x se ignorado (cooldown 5 mensagens).  
+- **Injeção:** avisos em topo/rodapé de respostas “pesadas” (ex.: buscas).  
+- **GATOMIA:** após o gatilho, mostra recursos ativos (SlowdownGuard, Checkpoint, Indexação leve).  
+- **Core:** registrado no Core do Projeto Itaú e ativado por padrão neste projeto.
+
+### Contexto de Projeto
+- **Projeto Itaú:** dossiê ativo (Proposta 15220012), com checkpoint salvo em 2025-09-21.  
+- **Estado Menir:** baseline 3.5, SlowdownGuard v0.3 ON (projeto Itaú), memória auditável.  
