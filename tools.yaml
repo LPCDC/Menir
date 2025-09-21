@@ -1,0 +1,58 @@
+# ---- SOURCES ----
+sources:
+  itau-neo4j:
+    kind: neo4j
+    uri: ${NEO4J_URI}         # ex: neo4j+s://<id>.databases.neo4j.io
+    user: ${NEO4J_USER}
+    password: ${NEO4J_PASSWORD}
+    database: neo4j
+
+# ---- TOOLS ----
+tools:
+  gatomia_status:
+    kind: neo4j-cypher
+    source: itau-neo4j
+    description: Status consolidado (Itaú, Guarani, Render, Core) — usa *documentos ativos*.
+    statement: |
+      // Projeto Itau
+      MATCH (t:Transacao) WITH count(t) AS total_trans
+      MATCH (d:Documento {status:'ativo'}) WITH total_trans, count(d) AS total_docs
+      MATCH (p:Parte)
+      RETURN 'Projeto Itau' AS projeto, total_trans AS transacoes, total_docs AS documentos, count(p) AS partes
+      UNION ALL
+      // Projeto Guarani
+      MATCH (g:Guarani)
+      RETURN 'Projeto Guarani' AS projeto, count(g) AS registros, null AS extra1, null AS extra2
+      UNION ALL
+      // Projeto Renderizador
+      MATCH (r:Render)
+      RETURN 'Projeto Renderizador' AS projeto, count(r) AS cenas, null AS extra1, null AS extra2
+      UNION ALL
+      // Core
+      MATCH (n)
+      RETURN 'Core' AS projeto, count(n) AS total_nodes, null AS extra1, null AS extra2
+
+  documentos_ativos_por_tipo:
+    kind: neo4j-cypher
+    source: itau-neo4j
+    description: Retorna documentos com status='ativo' por tipo (ex: 'legislacao').
+    statement: |
+      MATCH (d:Documento {status:'ativo'}) 
+      WHERE d.tipo = $tipo
+      RETURN d.nome AS nome, d.versao AS versao, d.link AS link
+    parameters:
+      - name: tipo
+        type: string
+        description: Tipo do documento (ex: 'legislacao')
+
+  schema_dump:
+    kind: neo4j-schema
+    source: itau-neo4j
+    description: Extrai o schema do grafo para auditoria.
+
+# ---- TOOLSETS (por projeto) ----
+toolsets:
+  gatomia:
+    - gatomia_status
+    - documentos_ativos_por_tipo
+    - schema_dump
