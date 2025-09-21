@@ -1,0 +1,15 @@
+{
+  "id": "string (uuid-or-sha256)",
+  "doc_type": "email|minuta|contrato|extrato|simulacao|anexo|outro",
+  "mime": "string",
+  "sha256": "string",
+  "tlsh": "string (optional)",
+  "source": "gmail|itau-portal|sharepoint|github|manual",
+  "created_at": "ISO-8601 string",
+  "uri": "string (path or URL)",
+  "project_slug": "string",
+  "status": "ativo|quarentena|inativo",
+  "message_id": "string (if email)",
+  "in_reply_to": "string (if email)",
+  "references": "string (raw header, if email)"
+}

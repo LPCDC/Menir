@@ -1,0 +1,34 @@
+{
+  "menir": {
+    "defaults": {
+      "auto_on_low_risk": true,
+      "ask_on_medium_high_risk": true
+    },
+    "features": {
+      "pdf_r2_cr2_pipeline": "ON",
+      "garfunkel_jsonl_export": "ON",
+      "eml_threading_rfc5322": "ON",
+      "xml_camt053_ingest": "ON",
+      "ofx_fallback_ingest": "ON",
+      "doc_autotype_heuristics": "ON",
+      "dedupe_sha256": "ON",
+      "dedupe_tlsh_ssdeep": "ON",
+      "quarantine_low_confidence": "ON",
+      "lgpd_minimization_gold": "ON",
+      "pii_redaction_preview": "ON",
+      "legal_citations_normalizer": "ON",
+      "finance_normalizer": "ON",
+      "cet_validator": "ON",
+      "sanity_reports": "ON",
+      "version_log_csv": "ON",
+      "retry_idempotent": "ON"
+    },
+    "thresholds": {
+      "quarantine_confidence_lt": 0.7
+    },
+    "locales": {
+      "timezone": "America/Sao_Paulo",
+      "currency": "BRL"
+    }
+  }
+}
