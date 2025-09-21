@@ -1,0 +1,22 @@
+{
+  "record_id": "string",
+  "doc_type": "string",
+  "text": "string",
+  "fields": {
+    "k": "v"
+  },
+  "tables": [
+    [
+      "row1col1",
+      "row1col2"
+    ]
+  ],
+  "links": [
+    "uri"
+  ],
+  "hashes": {
+    "sha256": "string",
+    "tlsh": "string"
+  },
+  "project_slug": "string"
+}

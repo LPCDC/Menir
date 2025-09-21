@@ -1,0 +1,10 @@
+{
+  "id": "string (e.g., FITID/EndToEndId)",
+  "data": "YYYY-MM-DD",
+  "valor": "number",
+  "moeda": "string (default BRL)",
+  "ref_banco": "string",
+  "descricao": "string",
+  "conta_id": "string",
+  "project_slug": "string"
+}
