@@ -1,6 +1,3 @@
-// constraints_modeloB.cypher
-// Versão correta das constraints de unicidade para Modelo B
-
 CREATE CONSTRAINT empresa_id_unique IF NOT EXISTS
 FOR (e:Empresa) REQUIRE e.id IS UNIQUE;
 
@@ -19,8 +16,8 @@ FOR (s:Servico) REQUIRE s.id IS UNIQUE;
 CREATE CONSTRAINT engajamento_id_unique IF NOT EXISTS
 FOR (eng:Engajamento) REQUIRE eng.id IS UNIQUE;
 
-CREATE CONSTRAINT prompttemplate_id_unique IF NOT EXISTS
-FOR (t:PromptTemplate) REQUIRE t.id IS UNIQUE;
+CREATE CONSTRAINT promptTemplate_id_unique IF NOT EXISTS
+FOR (pt:PromptTemplate) REQUIRE pt.id IS UNIQUE;
 
 CREATE CONSTRAINT menu_nome_unique IF NOT EXISTS
-FOR (menu:Menu) REQUIRE menu.nome IS UNIQUE;
+FOR (m:Menu) REQUIRE m.nome IS UNIQUE;
