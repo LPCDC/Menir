@@ -18,6 +18,29 @@ MENIR-CHECKLIST: Boas práticas de Cypher e modelo de Engajamento
 10. Confirmar resultados de scripts → rodar no ambiente de teste/dry-run antes de commit “produção”.
 
 ---
+CREATE CONSTRAINT empresa_id_unique IF NOT EXISTS
+FOR (e:Empresa) REQUIRE e.id IS UNIQUE;
+
+CREATE CONSTRAINT projeto_id_unique IF NOT EXISTS
+FOR (p:Projeto) REQUIRE p.id IS UNIQUE;
+
+CREATE CONSTRAINT cliente_id_unique IF NOT EXISTS
+FOR (c:Cliente) REQUIRE c.id IS UNIQUE;
+
+CREATE CONSTRAINT pessoa_id_unique IF NOT EXISTS
+FOR (pers:Pessoa) REQUIRE pers.id IS UNIQUE;
+
+CREATE CONSTRAINT servico_id_unique IF NOT EXISTS
+FOR (s:Servico) REQUIRE s.id IS UNIQUE;
+
+CREATE CONSTRAINT engajamento_id_unique IF NOT EXISTS
+FOR (eng:Engajamento) REQUIRE eng.id IS UNIQUE;
+
+CREATE CONSTRAINT prompttemplate_id_unique IF NOT EXISTS
+FOR (t:PromptTemplate) REQUIRE t.id IS UNIQUE;
+
+CREATE CONSTRAINT menu_nome_unique IF NOT EXISTS
+FOR (menu:Menu) REQUIRE menu.nome IS UNIQUE;
 
 Mantenha esse documento versionado dentro de:  
 `projects/Core/checklists/cypher_modeloB_boas_praticas.md`
