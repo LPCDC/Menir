@@ -1,4 +1,6 @@
+#!/usr/bin/env pwsh
 # PowerShell script: .githooks/post-commit
+
 $RepoRoot = git rev-parse --show-toplevel
 $CheckpointsDir = Join-Path $RepoRoot "checkpoints"
 $TS = Get-Date -Format "yyyy-MM-ddTHH-mm-ss"
