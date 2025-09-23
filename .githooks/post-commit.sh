@@ -1,10 +1,28 @@
-#!/usr/bin/env sh
+#!/bin/sh
 # .githooks/post-commit.sh
+# Hook Git pós-commit – roda no Bash
 
-echo "[HOOK] Post-commit rodando em $(date)" >> checkpoints/last_hook.log
+ts=$(date +"%Y-%m-%d_%H-%M-%S")
+hash=$(git rev-parse --short HEAD)
+author=$(git log -1 --pretty=format:'%an')
+msg=$(git log -1 --pretty=format:'%s')
+
+checkpointDir="checkpoints"
+logFile="$checkpointDir/last_hook.log"
+checkpointFile="$checkpointDir/${ts}_${hash}.diff"
+
+mkdir -p "$checkpointDir"
+
+echo "[HOOK] Commit $hash by $author → '$msg' em $ts" >> "$logFile"
 
 if git diff-tree --no-commit-id --name-only -r HEAD | grep -q '^cypher/'; then
-  echo "[HOOK] Mudança detectada em cypher → checkpoint" >> checkpoints/last_hook.log
-  mkdir -p checkpoints
-  git diff -U0 HEAD^ HEAD > "checkpoints/$(date +%Y-%m-%d_%H-%M-%S)_diff.patch"
+    git diff HEAD^ HEAD > "$checkpointFile"
+    echo "[HOOK] Checkpoint salvo: $checkpointFile" >> "$logFile"
+
+    cypher-shell -a "neo4j+s://085c38f7.databases.neo4j.io" \
+        -u "neo4j" \
+        -p "bvPp561reYBKtaNPwgPG4250tI9RFKcjNKkhoXG5dGc" \
+        -f "cypher/validate_claims_final.cypher" >> "$logFile" 2>&1
+else
+    echo "[HOOK] Sem mudanças em cypher/, sem checkpoint" >> "$logFile"
 fi
