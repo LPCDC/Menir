@@ -1,0 +1,9 @@
+Contrato 15220012 — Linha do Tempo (simulada, consolidada por e-mail)
+- 2025-09-25: Pré-aprovação concluída.
+- 2025-09-29: Assinatura da CCB nº 10199071102 (via e-Notariado).
+- 2025-10-03: Envio para registro (pendente de prenotação).
+- 2025-10-21: Certificação e-Notariado confirmada pelo cliente.
+- 2025-10-22: Orientações de Gerson (Registro Eletrônico).
+- 2025-10-23 08:12: “Contrato disponível para assinatura” (mensagem operacional).
+- 2025-10-23 12:03: Cliente confirma assinatura e cobra protocolo+CET.
+- 2025-10-23 14:00: TransBPO informa: aguardando boleto de prenotação; depois cartório; prazos 10+10 dias úteis; 72h após validação final.
