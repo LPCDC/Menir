@@ -1,0 +1,70 @@
+# ======================
+# Python / Conda
+# ======================
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv*/
+env*/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.whl
+*.pkl
+
+# ======================
+# Menir Artifacts
+# ======================
+/logs/
+/checkpoints/
+/outputs/
+/tmp/
+/cache/
+*.jsonl          # dumps sensíveis (Itau, Guarani, etc.)
+records.jsonl
+nodes.csv
+rels.csv
+manifest.json
+
+# ======================
+# Neo4j / Aura
+# ======================
+*.dump
+*.db
+*.sqlite
+neo4j.conf
+apoc.conf
+/data/databases/
+/data/transactions/
+
+# ======================
+# Secrets / Credentials
+# ======================
+.env
+*.env
+*.key
+*.pem
+*.crt
+*.pfx
+*.token
+*.secret
+
+# ======================
+# Sistema / IDE
+# ======================
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.log
+
+# ======================
+# Windows build junk
+# ======================
+*.bak
+*.tmp
+*.swp
+.env.local
+status/zk_log_digest.json

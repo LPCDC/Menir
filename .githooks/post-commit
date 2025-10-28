@@ -1,0 +1,15 @@
+#!/bin/sh
+echo "[HOOK] Post-commit rodando em $(date)" >> checkpoints/last_hook.log
+
+# checkpoint de diffs
+mkdir -p checkpoints
+git diff -U0 HEAD^ HEAD > "checkpoints/$(date +%Y-%m-%d_%H-%M-%S)_diff.patch"
+
+# log de episódio no Neo4j
+commit_hash=$(git rev-parse HEAD)
+cypher-shell -a "neo4j+s://085c38f7.databases.neo4j.io" \
+  -u neo4j \
+  -p "bvPp561reYBKtaNPwgPG4250tI9RFKcjNKkhoXG5dGc" \
+  -f cypher/episodes_log_success.cypher \
+  -P commit_hash="$commit_hash" \
+  -P project="$(basename $PWD)"

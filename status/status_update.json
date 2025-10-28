@@ -1,0 +1,32 @@
+﻿{
+  "boot_version": "v5.0",
+  "timestamp_brt": "2025-10-27T21:20:00-03:00",
+  "schema_change": {
+    "neo4j_labels_added": ["EventoBanco", "Transacao"],
+    "neo4j_rels_added": ["REFERE_A", "ENVOLVENDO"]
+  },
+  "open_tasks": [
+    "gerar Cypher incremental para novas Transacao ItaÃº",
+    "gerar timeline ItaÃº limpa para assembleia sem sobrenomes completos"
+  ],
+  "lgpd_consent": false,
+  "security_state": {
+    "token_github_rotated": false,
+    "push_policy": "manual_approval_required"
+  },
+  "slowdown_guard": {
+    "gpu_temp_c_max": 87,
+    "latency_ms_max": 5000,
+    "char_count": 90000
+  },
+  "zk_log_digest": [
+    {
+      "hash": "SHA256:PLACEHOLDER",
+      "action": "timeline_itau_generated",
+      "ts_brt": "2025-10-27T20:40:00-03:00"
+    }
+  ],
+  "next_deadline": "2025-10-29T19:30:00-03:00",
+  "assembly_context": "Condominio Tivoli retrofit terreo e sindico profissional",
+  "itau_context": "Linha do tempo bancaria e efeito patrimonial"
+}

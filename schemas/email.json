@@ -1,0 +1,26 @@
+{
+  "message_id": "string",
+  "in_reply_to": "string",
+  "references": "string",
+  "from": "string",
+  "to": [
+    "string"
+  ],
+  "cc": [
+    "string"
+  ],
+  "bcc": [
+    "string"
+  ],
+  "subject": "string",
+  "date": "ISO-8601 string",
+  "attachments": [
+    {
+      "filename": "string",
+      "sha256": "string",
+      "mime": "string",
+      "uri": "string",
+      "id": "string"
+    }
+  ]
+}
