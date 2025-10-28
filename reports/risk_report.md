@@ -1,19 +1,23 @@
-Set-Content -Path ".\reports\risk_report.md" -Encoding UTF8 -Value @"
-# Risk Report - Menir v5.0
+# Risk Report: Menir v5.0 Bootstrap GitHub (Auth Resolved)
 
-## vermelho (Critical)
-- **Banking Risk (Itaú)**: Early termination (Cl. 10) - 53% by 13/11/2025. Action: Escalate N3 if no protocol in 48h.
-- **Credential Leak**: Drive/Gmail placeholders - 80% exposure. Action: Rotate secrets.
+Data UTC de emissão: 2025-10-28
 
-## amarelo (Attention)
-- **Condo Assembly (Tivoli/Iberê)**: Stage2 delay - 40% rework. Action: Auto-ping Bia.
-- **Performance (GPU)**: RTX 4070 Ti >86°C - 25% throttle. Action: Alert on bootnow.
+Resumo
+- Bootstrap canônico concluído.
+- Commit final registrado: 6e6a14aae9eee222ea0561ca46ddebe460e670ba na branch release/menir-aio-v5.0-boot-local.
+- Arquivos canônicos sob controle de versão público: menir_state.json, lgpd_policy.md, output_contracts.md, push_runbook.md, audit/zk_audit.jsonl.
+- audit/zk_audit.jsonl ativo: timestamps UTC + commit hash para cada alteração.
+- GitHub Credential Manager autorizado. Push sem prompt.
+- LGPD enforcement ativo: nomes completos só Luiz e instituições. Terceiros mascarados.
+- SlowdownGuard declarado (char>80000 / latency>2500ms / gpu>86C), em política operacional. A ser acoplado como serviço contínuo.
+- Neo4j inicializado com grafo vitalício criptografado (menir_v5_core, banco_itau, tivoli, ibere, otani, EventoBanco, Transacao, Consent, bootnow_v5_active).
+- Foco operacional atual: Projeto Tivoli (retrofit condomínio Guarujá, Stage2 HandOff da Bia: .skp base, cenas before/after PNG, layers EXISTE/PROPOSTO, origem 0,0 fixa). Objetivo: material de assembleia e valorização patrimonial.
+- Caso Itaú: permanece aberto como linha probatória bancária (timeline de agência, primeiro negativo histórico, transações de cobrança). Será expandido via Open Banking + Cypher incremental e anexado ao grafo e ao zk_audit.jsonl.
 
-## verde (In Progress)
-- **Neo4j Indexing**: 47 nodes - 90% stable. Action: Incremental sync.
-- **GitHub Sync**: Push OK - 100% audit. Action: Hourly `run_all.sh`.
+Riscos abertos
+1. Ingestão automática Open Banking -> Neo4j -> zk_audit.jsonl ainda não automatizada.
+2. IPFS privado + blockchain privada ainda não está publicando os hashes.
+3. SlowdownGuard ainda não injeta eventos em audit/zk_audit.jsonl em tempo real.
 
-**Last Update**: 2025-10-27T17:30:00-03:00
-
-<!-- requires_push_agent: true -->
-"@
+Status final
+Sistema está operativo e auditável. Próxima frente concreta: consolidar Tivoli (Stage2 HandOff) no grafo e refletir no menir_state.json.
