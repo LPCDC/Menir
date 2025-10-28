@@ -1,3 +1,4 @@
+Set-Content -Path ".\reports\risk_report.md" -Encoding UTF8 -Value @"
 # Risk Report - Menir v5.0
 
 ## vermelho (Critical)
@@ -15,3 +16,4 @@
 **Last Update**: 2025-10-27T17:30:00-03:00
 
 <!-- requires_push_agent: true -->
+"@

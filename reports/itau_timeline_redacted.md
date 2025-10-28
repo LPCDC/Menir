@@ -1,3 +1,5 @@
+New-Item -ItemType Directory -Force -Path ".\reports" | Out-Null
+Set-Content -Path ".\reports\itau_timeline_redacted.md" -Encoding UTF8 -Value @"
 # Itaú Timeline - Redacted (LGPD Compliant)
 
 ## Key Events (Initials Only)
@@ -18,3 +20,4 @@
 **Last Update**: 2025-10-27T17:30:00-03:00
 
 <!-- requires_push_agent: true -->
+"@
