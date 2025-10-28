@@ -2,3 +2,4 @@
 {"ts_utc":"2025-10-28T11:00:00Z","actor":"Menir","action":"validate_and_ready_push","result":"OK"}
 {"timestamp_utc": "2025-10-28T13:39:11Z", "action": "bootstrap canonical contract", "result": "OK", "commit": "6e6a14aae9eee222ea0561ca46ddebe460e670ba"}
 {"timestamp_utc":"2025-10-28T16:00:00Z","action":"risk_report_update","result":"OK","file":"reports/risk_report.md","commit_applied":"1ec1343"}
+{"timestamp_utc":"2025-10-28T18:30:00Z","action":"tivoli_stage2_handoff_declared","result":"OK","file":"cypher/tivoli_stage2.cypher","impact":"assembleia_tivoli"}
