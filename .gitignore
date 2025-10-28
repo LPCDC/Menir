@@ -68,3 +68,7 @@ desktop.ini
 *.swp
 .env.local
 status/zk_log_digest.json
+
+# audit log
+!logs/
+!logs/zk_audit.jsonl
