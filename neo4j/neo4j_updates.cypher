@@ -1,5 +1,3 @@
-New-Item -ItemType Directory -Force -Path ".\neo4j" | Out-Null
-Set-Content -Path ".\neo4j\neo4j_updates.cypher" -Encoding UTF8 -Value @"
 :param NOW => datetime({timezone: 'America/Sao_Paulo'});
 
 // 1) Constraints
@@ -18,7 +16,7 @@ MERGE (c:Conta {id: '15220012'})
 // 3) Create/Update EventoBanco
 MERGE (e:EventoBanco {id: 'REG-2025-10-001'})
 SET
-  e.atendente = 'S.',
+  e.atendente = 'Silva',
   e.data = date('2025-09-29'),
   e.conta = '15220012',
   e.status = 'negativa em 2025-10-10',
@@ -35,4 +33,3 @@ MERGE (e)-[:ENVOLVENDO {uid: 'REG-2025-10-001#15220012'}]->(c);
 RETURN e, p, c;
 
 // requires_push_agent: true
-"@
