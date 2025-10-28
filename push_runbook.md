@@ -33,4 +33,4 @@ $env:GPU_ALERT_THRESHOLD_C = "86"
 
 4. Conferir no GitHub se menir_state.json, lgpd_policy.md, output_contracts.md, push_runbook.md e logs/zk_audit.jsonl foram atualizados.
 
-Última atualização runbook: 2025-10-28T13:06:12Z UTC.
+Última atualização runbook: 2025-10-28T13:18:22Z UTC.

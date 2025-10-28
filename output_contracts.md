@@ -32,4 +32,4 @@ END HEARTBEAT
 
 ## 5. Auditoria
 Cada merge externo gera linha em logs/zk_audit.jsonl com hash e timestamp.
-Atualizado em 2025-10-28T13:06:12Z UTC.
+Atualizado em 2025-10-28T13:18:22Z UTC.
