@@ -1,25 +1,83 @@
 {
-  "meta":{
-    "boot_version":"v5.0",
-    "branch_canonico":"release/menir-aio-v5.0-boot-local",
-    "repo":"LPCDC/Menir",
-    "timestamp_utc":"2025-10-28T10:57:21Z",
-    "next_deadline":"2025-10-29T19:30:00-03:00"
+  "version": "menir_v5.0",
+  "core": {
+    "architecture": "hibrido_federado_grafo_vitalicio",
+    "neo4j": {
+      "uri": "bolt://localhost:7687",
+      "database": "neo4j"
+    },
+    "lgpd_policy_ref": "lgpd_policy.md",
+    "zk_audit_log": "logs/zk_audit.jsonl"
   },
-  "tasks":[
-    "gerar Cypher incremental para novas Transacao Itaú",
-    "gerar timeline Itaú redigida sem sobrenomes completos"
-  ],
-  "schema":{
-    "neo4j_labels_added":["EventoBanco","Transacao"],
-    "neo4j_rels_added":["REFERE_A","ENVOLVENDO"],
-    "evento_banco_anchor_id":"REG-2025-10-001",
-    "conta_anchor_id":"15220012",
-    "projeto_anchor_slug":"Itau"
+  "projects": {
+    "banco_itau": {
+      "status": "ativo",
+      "scope": [
+        "linha_do_tempo_bancaria",
+        "evento_de_agencia",
+        "primeiro_negativo_historico",
+        "prova_juridica"
+      ]
+    },
+    "tivoli": {
+      "status": "em_andamento",
+      "pipeline": [
+        "Stage0_CAD_clean",
+        "Stage1_SKP_base (Bia)",
+        "Stage2_HandOff",
+        "Stage3_Render_Narrativa (Luiz)",
+        "Stage4_Booklet_Assembleia (Luiz+Carol)"
+      ],
+      "visual_padrao": "S4 ~16h Guaruja luz quente cobertura social piso_escuro_continuo"
+    },
+    "ibere": {
+      "status": "pronto_para_assembleia",
+      "data_congelamento": "2025-10-12"
+    },
+    "otani": {
+      "status": "ativo",
+      "notes": [
+        "sala_estar_foco_altar_budista",
+        "budista_escandinavo",
+        "cenas_S1_S6",
+        "camera_fixa_sem_crop"
+      ]
+    }
   },
-  "slowdown_guard":{"gpu_temp_c_max":87,"latency_ms_max":5000,"char_count_max":90000},
-  "push_policy":"manual_approval_required",
-  "itau_context":"Linha do tempo bancária e efeito patrimonial pós assinatura 2025-09-29.",
-  "assembly_context":"Condomínio Tivoli, retrofit térreo e síndico profissional.",
-  "zk_log_digest":[{"hash":"SHA256:PLACEHOLDER","action":"timeline_itau_generated","ts_brt":"2025-10-27T20:40:00-03:00"}]
+  "slowdown_guard": {
+    "char_threshold": "80000",
+    "latency_ms": "2500",
+    "gpu_alert_celsius": "86",
+    "status": "ativo"
+  },
+  "pending_tasks": {
+    "red": [
+      "rodar_cypher_init_no_neo4j",
+      "preencher_env_local_com_openbanking_ipfs_blockchain_keys",
+      "primeiro_push_canonico_com_auditoria"
+    ],
+    "yellow": [
+      "instalar_ipfs_privado_sem_bootstrap",
+      "rodar_zk_log_com_prova_zk"
+    ],
+    "green": [
+      "validar_slowdown_guard_com_gpu_87C",
+      "montar_apresentacao_assembleia_ibere"
+    ]
+  },
+  "paths": {
+    "repo_local": "C:\\Users\\Pichau\\Repos\\MenirVital",
+    "env_file": "C:\\Users\\Pichau\\Repos\\MenirVital\\.env.local",
+    "branch": "release/menir-aio-v5.0-boot-local"
+  },
+  "legal": {
+    "lgpd_mode": "mask_third_parties",
+    "owner_fullname_allowed": true,
+    "institutions_fullname_allowed": true,
+    "third_party_fullname_allowed": false
+  },
+  "boot_state": {
+    "bootnow_version": "v5.0_all_in_one_core_enabled",
+    "timestamp_utc": "2025-10-28T13:06:12Z"
+  }
 }
