@@ -4,3 +4,5 @@
 {"ts_utc":"2025-10-28T14:58:10Z","action":"ops.healthcheck","result":"OK","commit":"7d973352f47eff5a45d0b11e268988d2abb6e4a4"}
 {"ts_utc": "2025-10-28T17:57:51.572789+00:00", "action": "ccb_15220012_ingest", "result": "OK", "details": "CCB assinada recebida; prenotacao paga; 1a analise 3o RI Santos; aguardando protocolo", "sha256": "0e1c9dc906ee271b06d0cc20f0697f7fedf2ffe841f2b280724dc1fc2a8a747f"}
 {"ts_utc": "2025-10-28T18:06:32.986047+00:00", "action": "ipfs_pin_ccb_15220012", "result": "OK", "details": "CIDs PDF e EML fixados no IPFS privado", "sha256": "e1b52ff10378f489a109eeabba0ba080f82502212894ce800a633c02e44ca85e"}
+{"ts_utc": "2025-10-28T19:00:49.969854+00:00", "action": "closing_push_itau", "result": "OK", "details": "Push final do caso Itaú, ZK/Neo4j íntegros", "sha256": "da17493d4d54e8938f833bfc819c0699535324395bb05310ae52203448e04a36"}
+{"ts_utc":"2025-10-29T00:31:58.227Z","result":"PENDING","details":"teste direto","commit":"PENDING","action":"sync canonical state"}
