@@ -1,3 +1,10 @@
+## BootNow checkpoint — 2025-10-29T14:26:46.228335+00:00Z
+
+- Timestamp (UTC): 2025-10-29T14:26:46.228335+00:00
+- Checkpoint hash: c9179cf6a13409088fba33e1022b1a23b3919bbdc8604196d2ca4781c5c791c6
+- Health: menir_healthcheck → skipped (missing optional dependencies: typer, rich)
+
+---
 # Checkpoint — Menir v5.0 Boot (Meta Canonical)
 📅 Data: 2025-10-29T06:40:00-03:00  
 🔑 Versão: v5.0-BootNow (fusão Gatomia + núcleo Menir Vital)
