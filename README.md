@@ -1,17 +1,48 @@
----
+Menir — BootNow v5.0
 
-## Controles de Proatividade & Parâmetros para GPT-5
+Camada pseudo-OS pessoal. Foco: memória auditável, Neo4j, GitOps, rotas GPT-5 e trilha ZK.
 
-Este projeto está adaptado para usar o GPT-5 com controle fino de proatividade, uso de ferramentas, persistência, e critérios claros de parada. Aqui vão as diretrizes:
+TL;DR
+- BootNow: scripts/boot_now.py inicializa estado, checkpointa e roda healthchecks.
+- Graph: Neo4j (local/Aura) com schema mínimo e seeds em /graph.
+- GitOps: todas as alterações passam via PR com validação automática.
+- Auditoria: logs/zk_audit.jsonl registra eventos com hash e timestamp.
 
-- **reasoning_effort** — defina `minimal`, `low`, `medium` (default) ou `high` conforme necessidade de profundidade; para tarefas simples use valores mais baixos.  
-- **verbosity** — controla o nível de detalhe da resposta final; valores possíveis: `low`, `medium`, `high`. Combine com `reasoning_effort` para ajustar qualidade vs. rapidez.  
-- **Tool budget** — limite máximo de chamadas a ferramentas externas (ex: `max_tool_calls = 2`). Se exceder, pare ou peça confirmação.  
-- **Critérios de parada** — por exemplo: quando múltiplas fontes de dados convergirem ≥ 70%, ou quando esforço adicional não trouxer ganho claro.  
-- **Persistência controlada** — para tarefas longas, peça ao modelo continuar até resolver, mas com guardrails (orçamento, confirmação para ações perigosas).  
-- **Tool preambles / Feedback parcial** — antes de fazer ações automáticas, peça plano de ação; durante execução, atualize o progresso; finalize com resumo.  
-- **Uso da Responses API** — quando aplicável, para manter histórico entre turns e evitar repetir passos.  
-- **Segurança e ações críticas** — ações que alterem banco, façam deploy ou deletem dados exigem confirmação explícita do usuário.  
+Estrutura
+.github/workflows/ → checks de PR e CI
+graph/ → cypher_init.cql, seeds, validação
+scripts/ → boot_now.py, mcp_server.py, utilidades
+logs/ → zk_audit.jsonl (append-only)
+checkpoint.md → checkpoint canônico humano
 
----
+Começo Rápido
+1. Python 3.12+ e Neo4j ativo.
+2. Rode graph/cypher_init.cql no banco.
+3. Execute python scripts/boot_now.py
+4. Confirme checkpoint.md atualizado e evento em logs/zk_audit.jsonl.
 
+Fluxo de Desenvolvimento
+Branch: release/<nome> ou feat|fix|docs|refactor|chore/<slug>
+Commits prefixados: feat:, fix:, docs:, refactor:, trigger:, chore:
+PR obrigatória → checks automáticos:
+  - valida mensagem de commit
+  - exige modificação em checkpoint.md ou logs/zk_audit.jsonl
+  - bloqueia marcadores de conflito <<<< >>>>
+
+Regras de PR
+Checklist mínimo:
+  [ ] Testei localmente
+  [ ] Atualizei checkpoint.md ou registrei evento no logs/zk_audit.jsonl
+  [ ] Mensagem de commit com prefixo correto
+  [ ] Sem conflitos com main
+
+Versionamento e Release
+Tag semântica (vX.Y.Z).
+v5.0.0-boot consolida BootNow v5.0 e checkpoint canônico.
+
+Segurança
+- Nunca commitar segredos. Use variáveis de ambiente ou GitHub secrets.
+- Logs contêm apenas hashes, não dados sensíveis.
+
+Licença
+Definir.
