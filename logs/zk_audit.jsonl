@@ -6,3 +6,4 @@
 {"ts_utc": "2025-10-28T18:06:32.986047+00:00", "action": "ipfs_pin_ccb_15220012", "result": "OK", "details": "CIDs PDF e EML fixados no IPFS privado", "sha256": "e1b52ff10378f489a109eeabba0ba080f82502212894ce800a633c02e44ca85e"}
 {"ts_utc": "2025-10-28T19:00:49.969854+00:00", "action": "closing_push_itau", "result": "OK", "details": "Push final do caso Itaú, ZK/Neo4j íntegros", "sha256": "da17493d4d54e8938f833bfc819c0699535324395bb05310ae52203448e04a36"}
 {"ts_utc":"2025-10-29T00:31:58.227Z","result":"PENDING","details":"teste direto","commit":"PENDING","action":"sync canonical state"}
+{"ts_utc":"2025-10-29T00:38:10.206Z","result":"PENDING","details":"teste","commit":"PENDING","action":"sync canonical state"}
