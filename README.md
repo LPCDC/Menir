@@ -1,48 +1,20 @@
-Menir — BootNow v5.0
+# Menir – Boot v5.0
+Repositório: LPCDC/Menir · Branch: release/menir-aio-v5.0-boot
 
-Camada pseudo-OS pessoal. Foco: memória auditável, Neo4j, GitOps, rotas GPT-5 e trilha ZK.
+## Propósito
+Este branch mantém o **núcleo de inicialização padrão** do Menir (sem dependência local).  
+Serve para ativar o sistema em ambiente remoto, testar integração com Neo4j/Aura e sincronizar logs via GitHub Actions.
 
-TL;DR
-- BootNow: scripts/boot_now.py inicializa estado, checkpointa e roda healthchecks.
-- Graph: Neo4j (local/Aura) com schema mínimo e seeds em /graph.
-- GitOps: todas as alterações passam via PR com validação automática.
-- Auditoria: logs/zk_audit.jsonl registra eventos com hash e timestamp.
+## Estrutura
+- `boot.py` / `bootnow.ps1` — inicializadores principais  
+- `logs/` — trilhas de auditoria (`zk_audit.jsonl`)  
+- `tools/` — scripts de suporte (verificação, ingest, push)  
+- `config/` — arquivos `.env` e políticas LGPD  
 
-Estrutura
-.github/workflows/ → checks de PR e CI
-graph/ → cypher_init.cql, seeds, validação
-scripts/ → boot_now.py, mcp_server.py, utilidades
-logs/ → zk_audit.jsonl (append-only)
-checkpoint.md → checkpoint canônico humano
-
-Começo Rápido
-1. Python 3.12+ e Neo4j ativo.
-2. Rode graph/cypher_init.cql no banco.
-3. Execute python scripts/boot_now.py
-4. Confirme checkpoint.md atualizado e evento em logs/zk_audit.jsonl.
-
-Fluxo de Desenvolvimento
-Branch: release/<nome> ou feat|fix|docs|refactor|chore/<slug>
-Commits prefixados: feat:, fix:, docs:, refactor:, trigger:, chore:
-PR obrigatória → checks automáticos:
-  - valida mensagem de commit
-  - exige modificação em checkpoint.md ou logs/zk_audit.jsonl
-  - bloqueia marcadores de conflito <<<< >>>>
-
-Regras de PR
-Checklist mínimo:
-  [ ] Testei localmente
-  [ ] Atualizei checkpoint.md ou registrei evento no logs/zk_audit.jsonl
-  [ ] Mensagem de commit com prefixo correto
-  [ ] Sem conflitos com main
-
-Versionamento e Release
-Tag semântica (vX.Y.Z).
-v5.0.0-boot consolida BootNow v5.0 e checkpoint canônico.
-
-Segurança
-- Nunca commitar segredos. Use variáveis de ambiente ou GitHub secrets.
-- Logs contêm apenas hashes, não dados sensíveis.
-
-Licença
-Definir.
+## Como usar
+```bash
+git clone https://github.com/LPCDC/Menir.git
+cd Menir
+git checkout release/menir-aio-v5.0-boot
+conda activate menir
+python boot.py --mode remote
