@@ -1,0 +1,41 @@
+name: Menir BootNow (mobile)
+on:
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: "itau | tivoli | render"
+        required: false
+        default: "noop"
+permissions:
+  contents: write
+jobs:
+  bootnow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure canonical files
+        run: |
+          mkdir -p logs
+          test -f menir_state.json || echo '{}' > menir_state.json
+          test -f lgpd_policy.md || printf '# LGPD Policy\n\nDraft.\n' > lgpd_policy.md
+          test -f output_contracts.md || printf '# Output Contracts\n\nDraft.\n' > output_contracts.md
+          test -f push_runbook.md || printf '# Push Runbook\n\nDraft.\n' > push_runbook.md
+          test -f logs/zk_audit.jsonl || touch logs/zk_audit.jsonl
+
+      - name: zk_audit entry
+        run: |
+          printf '{"ts_utc":"%s","action":"bootnow_mobile","result":"OK","details":"preflight from Actions"}\n' "$(date -u +%FT%TZ)" >> logs/zk_audit.jsonl
+
+      - name: Optional lane noop
+        if: ${{ github.event.inputs.lane == 'noop' || github.event.inputs.lane == '' }}
+        run: echo "Lane=NOOP (mobile)"
+
+      - name: Commit & push
+        run: |
+          git config user.name "menir-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "bootnow: mobile preflight (GH Actions)"
+          git push
