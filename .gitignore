@@ -66,3 +66,6 @@ desktop.ini
 *.bak
 *.tmp
 *.swp
+
+# Menir-10 exports
+exports/

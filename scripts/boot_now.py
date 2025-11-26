@@ -1,5 +1,13 @@
 from pathlib import Path
 import subprocess, hashlib, json, os, datetime as dt
+
+# Optional Menir-10 instrumentation
+try:
+    from menir10.menir10_boot import start_boot_interaction, complete_boot_interaction
+except ImportError:
+    start_boot_interaction = None
+    complete_boot_interaction = None
+
 ROOT = Path(__file__).resolve().parents[1]
 ENV = ROOT / '.env'
 LOG = ROOT / 'logs' / 'operations.jsonl'
@@ -26,12 +34,26 @@ def notify_grok(payload: dict):
         return {'status': 'error', 'text': str(e)}
 
 def main():
-    ts = dt.datetime.now(dt.timezone.utc).isoformat()
-    chk = ART / 'checkpoint.md'
-    if not chk.exists(): chk.write_text('# checkpoint\n', encoding='utf-8')
-    entry = {'ts': ts, 'action': 'boot_now', 'hash': sha256(chk)}
-    LOG.write_text((LOG.read_text(encoding='utf-8') + '\n' if LOG.exists() else '') + json.dumps(entry), encoding='utf-8')
-    note = notify_grok({'service': 'Menir', 'event': 'boot_now', 'ts': ts, 'hash': entry['hash']})
-    print(json.dumps({'boot_now': 'OK', 'notify': note}))
+    state = None
+    if start_boot_interaction is not None:
+        state = start_boot_interaction()
+    
+    try:
+        ts = dt.datetime.now(dt.timezone.utc).isoformat()
+        chk = ART / 'checkpoint.md'
+        if not chk.exists(): chk.write_text('# checkpoint\n', encoding='utf-8')
+        entry = {'ts': ts, 'action': 'boot_now', 'hash': sha256(chk)}
+        LOG.write_text((LOG.read_text(encoding='utf-8') + '\n' if LOG.exists() else '') + json.dumps(entry), encoding='utf-8')
+        note = notify_grok({'service': 'Menir', 'event': 'boot_now', 'ts': ts, 'hash': entry['hash']})
+        print(json.dumps({'boot_now': 'OK', 'notify': note}))
+        
+        if state is not None and complete_boot_interaction is not None:
+            complete_boot_interaction(state, status="ok")
+    
+    except Exception as e:
+        if state is not None and complete_boot_interaction is not None:
+            complete_boot_interaction(state, status="error", extra={"error": str(e)})
+        raise
 
 if __name__ == '__main__': main()
+

@@ -23,3 +23,16 @@ cd Menir
 git checkout main
 conda activate menir
 pip install -r requirements.txt
+## Menir-10 (local psych engine)
+
+Menir-10 is a lightweight "psych engine" that logs interactions locally to JSONL and can export to Neo4j via Cypher. It requires only Python stdlib and provides:
+
+- **Local logging**: Interactions are stored in `logs/menir10_interactions.jsonl` with rich metadata.
+- **Neo4j export**: Generate Cypher `CREATE` statements for graph import.
+- **Insights CLI**: Query projects, generate summaries, and render GPT-ready context blocks.
+- **Boot instrumentation**: Optional integration with `scripts/boot_now.py` via `MENIR_PROJECT_ID` env var.
+
+For safe experimentation without touching real data, use the synthetic test project `test_menir10` as documented in [docs/PROJECT_TEST_MENIR10.md](docs/PROJECT_TEST_MENIR10.md).
+
+See [docs/MENIR10_OVERVIEW.md](docs/MENIR10_OVERVIEW.md) and [docs/MENIR10_LOG_SCHEMA.md](docs/MENIR10_LOG_SCHEMA.md) for more details.
+```
