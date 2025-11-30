@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "SaintCharles_CM2025": {
+      "id": "SaintCharles_CM2025",
+      "name": "Edifício Saint Charles – Áreas Comuns",
+      "category": "Condominios_Guaruja",
+      "status": "ativo",
+      "default_env": {
+        "MENIR_PROJECT_ID": "SaintCharles_CM2025"
+      },
+      "notes": "CM-2025-ARQ-008 – contrato Carol + proposta LibLabs; reforma e requalificação das áreas comuns do condomínio em Guarujá/SP."
+    }
+  }
+}
