@@ -1,74 +1,129 @@
 #!/usr/bin/env python
 """
-menir10_log_cli.py – CLI mínimo para registrar interações no Menir-10.
-
-Uso básico (no diretório do repositório):
-
-    export MENIR_PROJECT_ID=tivoli
-    python scripts/menir10_log_cli.py -c "Reunião com síndico sobre orçamento"
-
-Ou, sem MENIR_PROJECT_ID:
-
-    python scripts/menir10_log_cli.py --project itau_15220012 -c "Ligação com Tatiana sobre prazo do cartório"
+CLI mínimo para registrar interações Menir-10 em logs/menir10_interactions.jsonl.
 """
 
 import argparse
-import json
-import uuid
-from datetime import datetime, timezone
-from pathlib import Path
-import os
+import sys
+from typing import Optional
+
+from menir10.menir10_log import append_log, MissingProjectIdError
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Registrar uma interação no Menir-10 (JSONL).")
+def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Log de interações Menir-10 em JSONL."
+    )
+    parser.add_argument(
+        "-p",
+        "--project-id",
+        help="ID do projeto (se omitido, usa MENIR_PROJECT_ID do ambiente).",
+    )
     parser.add_argument(
         "-c",
         "--content",
         required=True,
-        help="Texto da interação (descrição do evento).",
+        help="Conteúdo principal da interação (mensagem resumida).",
     )
     parser.add_argument(
-        "--project",
-        "--project_id",
-        dest="project_id",
-        default=os.getenv("MENIR_PROJECT_ID", "default"),
-        help="ID do projeto (ex.: tivoli, itau_15220012, ibere). "
-             "Se omitido, usa MENIR_PROJECT_ID ou 'default'.",
+        "--intent-profile",
+        default="note",
+        help="Perfil de intenção (ex.: boot, note, call, summary). Default: note.",
     )
-    parser.add_argument(
-        "--role",
-        default="user",
-        help="Papel na interação (user/assistant/outro). Default: user.",
-    )
-    parser.add_argument(
-        "--log-path",
-        default="logs/menir10_interactions.jsonl",
-        help="Caminho do arquivo de log JSONL. Default: logs/menir10_interactions.jsonl",
-    )
+    return parser.parse_args(argv)
 
+
+def main(argv: Optional[list[str]] = None) -> int:
+    args = parse_args(argv)
+
+    try:
+        record = append_log(
+            project_id=args.project_id,
+            intent_profile=args.intent_profile,
+            content=args.content,
+        )
+    except MissingProjectIdError as exc:
+        sys.stderr.write(f"ERRO: {exc}\n")
+        return 1
+    except Exception as exc:
+        sys.stderr.write(f"ERRO inesperado ao logar interação: {exc}\n")
+        return 1
+
+    pid = record["project_id"]
+    iid = record["interaction_id"]
+    print(f"OK: evento registrado para projeto '{pid}'. interaction_id={iid}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+#!/usr/bin/env python
+import argparse
+import datetime as _dt
+import json
+import os
+import pathlib
+import sys
+import uuid
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="CLI mínimo para registrar eventos no Menir-10 por projeto."
+    )
+    parser.add_argument(
+        "-p",
+        "--project",
+        dest="project_id",
+        help="ID do projeto (ex.: tivoli, itau_15220012). "
+             "Se omitido, usa MENIR_PROJECT_ID.",
+    )
+    parser.add_argument(
+        "-c",
+        "--content",
+        dest="content",
+        required=True,
+        help="Texto do evento / nota a ser registrada.",
+    )
     args = parser.parse_args()
 
-    ts = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    interaction_id = uuid.uuid4().hex
+    project_id = args.project_id or os.getenv("MENIR_PROJECT_ID")
+    if not project_id:
+        print(
+            "ERRO: informe --project ou defina MENIR_PROJECT_ID antes de usar o CLI.\n"
+            "Exemplos:\n"
+            "  export MENIR_PROJECT_ID=tivoli\n"
+            "  python scripts/menir10_log_cli.py -c \"Reunião com síndico\"\n"
+            "ou\n"
+            "  python scripts/menir10_log_cli.py -p itau_15220012 -c \"Ligação com gerente\"",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
-    entry = {
-        "interaction_id": interaction_id,
-        "project_id": args.project_id,
-        "role": args.role,
-        "content": args.content,
-        "ts": ts,
-        "meta": {},
+    logs_dir = pathlib.Path("logs")
+    logs_dir.mkdir(exist_ok=True)
+    path = logs_dir / "menir10_interactions.jsonl"
+
+    now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+    record = {
+        "interaction_id": str(uuid.uuid4()),
+        "project_id": project_id,
+        "intent_profile": "note",
+        "created_at": now,
+        "updated_at": now,
+        "flags": {},
+        "metadata": {
+            "stage": "single",
+            "status": "ok",
+            "source": "cli",
+            "content": args.content,
+        },
     }
 
-    log_path = Path(args.log_path)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        json.dump(record, f, ensure_ascii=False)
+        f.write("\n")
 
-    with log_path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-
-    print(f"OK: gravado em {log_path} (interaction_id={interaction_id}, project_id={args.project_id})")
-
+    print(f"OK: evento registrado em {path} para projeto '{project_id}'.")
 
 if __name__ == "__main__":
     main()
