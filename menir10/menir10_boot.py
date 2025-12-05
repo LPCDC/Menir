@@ -19,7 +19,7 @@ import os
 from typing import Dict, Any
 
 from .menir10_state import PerceptionState
-from .menir10_log import append_log, make_entry
+from .menir10_log import append_log
 
 
 def get_default_project_id() -> str:
@@ -47,16 +47,13 @@ def start_boot_interaction(intent_profile: str = "boot_now") -> PerceptionState:
     )
     state.start_interaction()
     
-    entry = make_entry(
-        interaction_id=state.interaction_id,
+    append_log(
         project_id=state.project_id,
         intent_profile=state.intent_profile,
-        created_at=state.created_at,
-        updated_at=state.updated_at,
+        content="",
         flags=state.flags,
         metadata={"stage": "start"},
     )
-    append_log(entry)
     
     return state
 
@@ -79,13 +76,10 @@ def complete_boot_interaction(
     if extra:
         extras.update(extra)
     
-    entry = make_entry(
-        interaction_id=state.interaction_id,
+    append_log(
         project_id=state.project_id,
         intent_profile=state.intent_profile,
-        created_at=state.created_at,
-        updated_at=state.updated_at,
+        content="",
         flags=state.flags,
         metadata=extras,
     )
-    append_log(entry)
