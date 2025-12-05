@@ -14,8 +14,8 @@
   - LGPD masking e nó de Consentimento
 
 ## Diretórios e Repositórios
-- Local: `C:\Users\Pichau\Repos\MenirVital`
-- Remoto: `github.com/LPCDC/Menir` → branch `release/menir-aio-v5.0-boot`
+- Local: `/workspaces/Menir` (Codespace) or `C:\Users\Pichau\Repos\Menir` (PC)
+- Remoto: `github.com/LPCDC/Menir` → branch `main` (primary) + release branches
 - Arquivos canônicos:
   - `menir_state.json`
   - `lgpd_policy.md`

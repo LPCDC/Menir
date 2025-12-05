@@ -67,5 +67,14 @@ desktop.ini
 *.tmp
 *.swp
 
-# Menir-10 exports
+# ======================
+# Menir-10 (local logs & exports)
+# ======================
 exports/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Test artifacts
+test_*.jsonl
+*.tmp.json

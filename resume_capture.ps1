@@ -1,5 +1,8 @@
 # resume_capture.ps1
-Set-Location "C:\Users\Pichau\Repos\MenirVital"
+# ⚠️ DEPRECATED: Use bash scripts in scripts/ or Python menir10 CLIs instead
+# For Codespace: repo is at /workspaces/Menir
+# For Windows: clone to C:\Users\Pichau\Repos\Menir
+Set-Location $PWD  # Use current directory instead of hardcoded path
 
 # tenta ler o último boot_now salvo (gerado antes pelo pause_session.ps1)
 $lastBootJson = ""
