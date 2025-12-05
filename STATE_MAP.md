@@ -163,3 +163,24 @@ Tags:
 - ✅ Smoke test validated
 
 **Next action:** Close this Codespace, deploy the package, or open a new chat with `BOOT NOW`.
+
+---
+
+## v10.4.1 – Audit Cleanup
+
+**Legacy Files Archived:**
+- `scripts/mcp_server.py` → `legacy/mcp_server_legacy.py` (old Flask-based MCP server)
+- `menir_allinone.py` → `legacy/menir_allinone_legacy.py` (experimental all-in-one CLI)
+- `scriptsmcp_server.py` → `legacy/mcp_server_stray.py` (stray duplicate)
+
+**Official Entrypoints (v10.4+):**
+- **MCP Server:** `uvicorn menir10.mcp_app:app --host 0.0.0.0 --port 8080`
+- **Memoetic CLI:** `python -m menir10.memoetic_cli --project <name> --mode [summary|voice|memes]`
+- **Boot Script:** `python scripts/boot_now.py`
+- **GPT CLI:** `python ask_menir.py "<query>"` (requires OPENAI_API_KEY)
+
+**Rationale:**
+- Consolidates MCP implementation into single, tested `menir10/mcp_app.py`
+- Removes redundant or outdated CLI wrappers
+- Improves maintainability and reduces confusion about which entrypoints are current
+- All legacy code preserved in `./legacy/` for reference if needed
