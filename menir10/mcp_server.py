@@ -223,8 +223,14 @@ def handle_context(params: Dict[str, Any] | None) -> Dict[str, Any]:
     
     # Add markdown context if requested
     if include_markdown:
-        markdown_context = render_project_context(project_id, interactions, limit=limit)
-        result["markdown_context"] = markdown_context
+        try:
+            # render_project_context expects a summary dict
+            summary = summarize_project(project_id, interactions)
+            markdown_context = render_project_context(summary)
+            result["markdown_context"] = markdown_context
+        except Exception as e:
+            # Gracefully handle rendering errors
+            result["markdown_context"] = f"# Context for {project_id}\n\nError rendering context: {str(e)}"
     
     return result
 
