@@ -1,0 +1,29 @@
+# Menir Voice Interface Requirements
+
+# Core
+openai>=1.0.0
+requests>=2.31.0
+rich>=13.0.0
+typer>=0.9.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Audio Processing
+numpy>=1.24.0
+scipy>=1.10.0
+librosa>=0.10.0
+sounddevice>=0.4.5
+
+# Speech Recognition (Optional - requires system dependencies)
+# PyAudio - for audio input (requires PortAudio system library)
+# pyaudio>=0.2.13
+
+# Google Cloud (Optional - requires credentials)
+# google-cloud-speech>=2.20.0
+# google-cloud-texttospeech>=2.13.0
+
+# OpenAI Whisper (Optional - for STT)
+# openai-whisper>=20230314
+
+# Local TTS (Optional)
+# pyttsx3>=2.90
