@@ -6,7 +6,9 @@ from fastapi import FastAPI, Body, HTTPException
 try:
     from menir10.menir10_insights import get_logs, summarize_project, render_project_context
     from menir10.menir10_log import append_log, make_entry
-except ImportError:
+    logging.info("✅ Successfully imported menir10 data modules")
+except ImportError as e:
+    logging.warning(f"⚠️  Failed to import menir10 modules: {e}")
     def get_logs(): return []
     def summarize_project(*args, **kwargs): return {"sample_count": 0, "total_count": 0}
     def render_project_context(*args): return "Mock context (Data modules not found)"
@@ -44,9 +46,12 @@ async def jsonrpc_handler(payload: dict = Body(...)):
             logging.info(f"🔎 Project match: {project_id}")
             try:
                 logs = get_logs()
+                logging.info(f"📋 Loaded {len(logs)} total logs")
                 summary = summarize_project(project_id, logs, limit=20)
+                logging.info(f"📊 Project summary: total={summary.get('total_count')}, sample={summary.get('sample_count')}")
                 if summary.get("total_count", 0) > 0:
                     context_block = render_project_context(summary)
+                    logging.info(f"✅ Context rendered ({len(context_block)} chars)")
                 else:
                     context_block = f"Mock context for {project_id} (Logs pending ingestion)"
             except Exception as e:
