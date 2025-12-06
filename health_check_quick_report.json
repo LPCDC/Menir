@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-06T22:58:13.746404",
+  "uri": "bolt://localhost:7687",
+  "schema_missing_labels": [],
+  "schema_extra_labels": [],
+  "counts": {
+    "Work": 2,
+    "Chapter": 2,
+    "Character": 9,
+    "Scene": 4,
+    "Event": 13
+  },
+  "status": "OK"
+}
