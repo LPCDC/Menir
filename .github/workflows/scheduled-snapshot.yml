@@ -21,6 +21,7 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
+          pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run Neo4j sanity check
@@ -32,21 +33,21 @@ jobs:
           source .venv/bin/activate
           python scripts/sanity_neo4j_full.py
 
-      - name: Save state snapshot
+      - name: Generate state snapshot
         run: |
           source .venv/bin/activate
-          bash scripts/create_state_snapshot.sh
+          python scripts/generate_state_snapshot.py > /dev/null
 
       - name: Commit & push snapshot
         run: |
           git config user.name "menir-bot"
           git config user.email "menir-bot@example.com"
           git add menir_state_snapshot_*.json
-          git commit -m "ci: autosnapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "Nothing to commit"
+          git commit -m "ci: autosnapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes to commit"
           git push origin HEAD
 
       - name: Tag snapshot
         run: |
-          TAG="snapshot-$(date -u +%Y-%m-%dT%H%M%SZ)"
+          TAG="snapshot-$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git tag $TAG
           git push origin $TAG
