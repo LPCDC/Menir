@@ -16,12 +16,17 @@ def load_logs(log_path: Path | str | None = None) -> List[Dict[str, Any]]:
     Returns:
         List of log entry dictionaries. Empty list if file does not exist.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if log_path is None:
         log_path = DEFAULT_LOG_PATH
     
     log_path = Path(log_path)
+    logger.info(f"📂 Attempting to load logs from: {log_path} (absolute: {log_path.absolute()})")
     
     if not log_path.exists():
+        logger.warning(f"⚠️  Log file does not exist: {log_path}")
         return []
     
     logs = []
@@ -31,6 +36,7 @@ def load_logs(log_path: Path | str | None = None) -> List[Dict[str, Any]]:
             if line:
                 logs.append(json.loads(line))
     
+    logger.info(f"✅ Loaded {len(logs)} log entries")
     return logs
 
 

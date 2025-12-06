@@ -121,6 +121,12 @@ def render_project_context(summary: Dict[str, Any]) -> str:
             
             line = f"- {created_at} | intent={intent_profile} | flags={{{flags_str}}}"
             lines.append(line)
+            
+            # Include metadata.content if present
+            metadata = interaction.get("metadata", {})
+            content = metadata.get("content", "")
+            if content:
+                lines.append(f"  Content: {content}")
     else:
         lines.append("(no interactions)")
     
