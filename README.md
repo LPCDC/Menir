@@ -35,6 +35,29 @@ cd Menir
 git checkout main
 conda activate menir
 pip install -r requirements.txt
+```
+
+## 📊 Automatic Snapshot (CI)
+
+Este repositório está configurado com workflow GitHub Actions para gerar snapshots de estado diariamente.
+
+**Schedule:** Daily at 03:00 UTC (00:00 BRT / 22:00 EST)
+
+Para gerar snapshot manualmente, execute:
+
+```bash
+source .venv/bin/activate
+python scripts/generate_state_snapshot.py
+```
+
+Ou use a versão leve:
+
+```bash
+python scripts/quick_snapshot.py
+```
+
+Snapshots são versionados com tags no formato `snapshot-YYYY-MM-DDTHH:MM:SSZ` para auditoria.
+
 ## Menir-10 (local psych engine)
 
 Menir-10 is a lightweight "psych engine" that logs interactions locally to JSONL and can export to Neo4j via Cypher. It requires only Python stdlib and provides:
