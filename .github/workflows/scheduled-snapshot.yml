@@ -1,0 +1,52 @@
+name: Menir – Scheduled Snapshot
+
+on:
+  schedule:
+    # Cron: todo dia às 00:00 UTC (ajuste conforme sua zona — Brasil UTC-3)
+    - cron: '0 03 * * *'
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Run Neo4j sanity check
+        env:
+          NEO4J_URI: ${{ secrets.NEO4J_URI }}
+          NEO4J_USER: ${{ secrets.NEO4J_USER }}
+          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+        run: |
+          source .venv/bin/activate
+          python scripts/sanity_neo4j_full.py
+
+      - name: Save state snapshot
+        run: |
+          source .venv/bin/activate
+          bash scripts/create_state_snapshot.sh
+
+      - name: Commit & push snapshot
+        run: |
+          git config user.name "menir-bot"
+          git config user.email "menir-bot@example.com"
+          git add menir_state_snapshot_*.json
+          git commit -m "ci: autosnapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "Nothing to commit"
+          git push origin HEAD
+
+      - name: Tag snapshot
+        run: |
+          TAG="snapshot-$(date -u +%Y-%m-%dT%H%M%SZ)"
+          git tag $TAG
+          git push origin $TAG
