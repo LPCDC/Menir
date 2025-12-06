@@ -1,0 +1,16 @@
+services:
+  menir-graph:
+    image: neo4j:5.15-community
+    container_name: menir-graph
+    ports:
+      - "7474:7474"   # HTTP
+      - "7687:7687"   # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/menir123
+    volumes:
+      - menir-neo4j-data:/data
+      - menir-neo4j-logs:/logs
+
+volumes:
+  menir-neo4j-data:
+  menir-neo4j-logs:

@@ -1,0 +1,25 @@
+{
+  "name": "Menir v10.4.1 - Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python3",
+        "terminal.integrated.shell.linux": "/bin/bash"
+      }
+    }
+  },
+  "forwardPorts": [7474, 7687],
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt || true",
+  "remoteUser": "vscode"
+}
