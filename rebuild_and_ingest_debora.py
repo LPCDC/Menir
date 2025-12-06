@@ -262,6 +262,7 @@ def merge_scene_and_links(tx, scene, previous_scene_id):
         tx.run("""
             MERGE (p:Place {id: $placeId})
             SET p.name = $placeName, p.type = $placeType, p.updatedAt = datetime()
+            WITH p
             MATCH (s:Scene {id: $sceneId})
             MERGE (s)-[:SET_IN]->(p)
             """,
@@ -273,6 +274,7 @@ def merge_scene_and_links(tx, scene, previous_scene_id):
         tx.run("""
             MERGE (c:Character {id: $charId})
             SET c.name = $charName, c.role = $charRole, c.updatedAt = datetime()
+            WITH c
             MATCH (s:Scene {id: $sceneId})
             MERGE (c)-[:APPEARS_IN]->(s)
             """,
@@ -287,6 +289,7 @@ def merge_scene_and_links(tx, scene, previous_scene_id):
             MATCH (s:Scene {id: $sceneId})
             MERGE (e:Event {id: $eventId})
             SET e.eventIndex = $eventIndex, e.summary = $summary, e.eventType = $eventType, e.updatedAt = datetime()
+            WITH e, s
             MERGE (e)-[:OCCURS_IN]->(s)
             """,
             sceneId=scene["sceneId"], eventId=ev["eventId"], eventIndex=ev.get("eventIndex", 0),
