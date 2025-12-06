@@ -1,9 +1,21 @@
----
+# Menir – Development Container (v10.4.1)
 
-### 🧩 `README.md` — `main`
-```markdown
-# Menir – Main
-Repositório: LPCDC/Menir · Branch: main
+> Este repositório abriga a camada pseudo-OS **Menir**. Este codespace / devcontainer configura um ambiente de desenvolvimento isolado e reprodutível.
+
+## 📦 Setup
+
+1. Abra o repositório no GitHub.  
+2. Clique em **Code → Codespaces → Create codespace on main**.  
+3. O container será inicializado com:  
+   - Python 3.12  
+   - Docker-in-Docker  
+   - Extensões: Python, Pylance, Docker  
+4. (Opcional) Para rodar Neo4j local dentro do container:
+   ```bash
+   docker-compose up -d
+   ```
+
+---
 
 ## Propósito
 Branch **principal e estável** do Menir.  
