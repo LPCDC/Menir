@@ -37,4 +37,4 @@ services:
   #     - .env
   #   volumes:
   #     - .:/workspace
-  #   command: bash -c "sleep 5 && ./scripts/menir_bootstrap_and_ingest.sh"
+  #   command: bash -c "sleep 5 && ./scripts/menir_startup.sh"
