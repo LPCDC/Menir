@@ -1,4 +1,30 @@
-# Menir — Livro Débora 🔗 Graph Project
+# Menir (MenirVital)
+
+> **Branch Única**: Este projeto segue a política de **branch única (`main`)**.  
+> Features devem ser desenvolvidas em branches temporárias e mergeadas via PR ou merge direto após testes.
+
+## 🛠️ Automação e Uso
+
+O projeto conta com um `Makefile` e scripts em `scripts/` para tarefas comuns.
+
+### Pré-requisitos
+*   **Python 3.10+** (com dependências no `requirements.txt`)
+*   **Neo4j Desktop** ou **AuraDB** rodando.
+*   Arquivo `.env` na raiz com credenciais (veja `.env.example`).
+*   (Opcional) **Make** (no Windows via `choco install make`).
+
+### Comandos Principais
+
+| Comando | Descrição |
+| :--- | :--- |
+| `make healthcheck` | Testa conectividade com o Neo4j. |
+| `make backup` | Cria tag Git de backup e sobe para o remote. |
+| `make ingest` | Roda pipeline de ingestão de dados. |
+| `make clean-logs` | Remove logs com mais de 30 dias. |
+| `make full-cycle` | Executa Healthcheck → Ingest → Backup → Clean. |
+| `make dump-graph` | (Placeholder) Exporta snapshot do banco. |
+
+---
 
 [![Dependências OK](https://img.shields.io/badge/dependencies-checked-brightgreen.svg)](scripts/check_dependencies_local.py)
 

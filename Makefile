@@ -35,3 +35,10 @@ clean-logs:
 # 5. Full cycle: health-check → ingestão → backup → limpeza de logs
 full-cycle: healthcheck ingest backup clean-logs
 	@echo "Full cycle Menir concluído."
+
+# 6. Dump (snapshot do grafo) - Exemplo usando neo4j-admin ou script customizado
+dump-graph:
+	@echo "Creating Graph Dump..."
+	# neo4j-admin database dump neo4j --to-path=./backups
+	# ou python scripts/export_graph.py
+	@echo "Dump placeholder: configure with your specific backup method (APOC, neo4j-admin, etc)."
