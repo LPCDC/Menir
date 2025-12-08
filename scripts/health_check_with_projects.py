@@ -22,7 +22,8 @@ import json
 import os
 import sys
 from datetime import datetime
-from neo4j import GraphDatabase, Neo4jError
+from neo4j import GraphDatabase
+from neo4j.exceptions import Neo4jError
 
 
 class MultiProjectHealthCheck:
