@@ -1,0 +1,72 @@
+name: Menir Full Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  menir-full:
+    runs-on: ubuntu-latest
+    env:
+      NEO4J_URI: ${{ secrets.NEO4J_URI }}
+      NEO4J_USER: ${{ secrets.NEO4J_USER }}
+      NEO4J_PWD: ${{ secrets.NEO4J_PWD }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install neo4j
+
+      - name: Health-check Neo4j
+        run: |
+          python scripts/menir_healthcheck_cli.py
+
+      - name: Ingest data (if script exists)
+        run: |
+          if [ -f ingest/run_ingest_all.py ]; then
+            python ingest/run_ingest_all.py
+          else
+            echo "No ingest script found — skipping"
+          fi
+
+      - name: Dump / backup graph (placeholder)
+        run: |
+          echo "No dump_graph script configured — skipping"
+
+      - name: Clean old logs
+        run: |
+          python scripts/clean_logs.py
+
+      - name: Secrets scan — Gitleaks
+        run: |
+          if ! command -v gitleaks >/dev/null 2>&1; then
+            echo "Installing Gitleaks..."
+            curl -sSL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64.tar.gz | tar -xz -C .
+            chmod +x gitleaks
+          fi
+          ./gitleaks detect --source . --exit-code 1 --report-path=gitleaks-report.json
+
+      - name: Secrets scan — TruffleHog (optional, high-entropy detection)
+        run: |
+          pip install trufflehog3
+          trufflehog filesystem . --entropy True > trufflehog-report.txt || echo "TruffleHog scan done"
+
+      # Optional: commit/push artifacts (careful com segredos ou dados sensíveis)
+      - name: (Optional) Commit artifacts
+        if: false
+        run: |
+          git config user.name "menir-ci"
+          git config user.email "menir@ci"
+          git add .
+          git commit -m "ci: artifacts after pipeline run"
+          git push origin main
