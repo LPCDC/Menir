@@ -42,3 +42,25 @@ dump-graph:
 	# neo4j-admin database dump neo4j --to-path=./backups
 	# ou python scripts/export_graph.py
 	@echo "Dump placeholder: configure with your specific backup method (APOC, neo4j-admin, etc)."
+
+# 7. Security Scans
+secrets-scan:
+	@echo "Checking for Gitleaks..."
+	@if ! command -v gitleaks > /dev/null 2>&1; then \
+		echo "Gitleaks not found. Install: go install github.com/gitleaks/gitleaks/v8@latest"; \
+		exit 1; \
+	fi
+	@gitleaks detect --source . --exit-code 1 --report-path=gitleaks-report.json || true
+	@echo "Gitleaks scan complete. Report: gitleaks-report.json"
+
+truffle-scan:
+	@echo "Checking for TruffleHog..."
+	@if ! command -v trufflehog > /dev/null 2>&1; then \
+		echo "TruffleHog not found. Install: pip install trufflehog3"; \
+		exit 1; \
+	fi
+	@trufflehog filesystem . --since-commit HEAD~50 --entropy=True > trufflehog-report.txt || true
+	@echo "TruffleHog scan complete. Report: trufflehog-report.txt"
+
+check-secrets: secrets-scan truffle-scan
+	@echo "Full secrets check complete."
