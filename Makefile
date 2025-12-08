@@ -2,7 +2,11 @@
 
 .PHONY: healthcheck backup ingest clean-logs full-cycle
 
-# Carregar variáveis de ambiente
+# Carregar variáveis de ambiente (se existirem) e exportar
+# A sintaxe 'include' é padrão make, mas a exportação de vars de .env
+# pode variar. No Windows/PowerShell nem sempre funciona bem via make sem shell Unix.
+# Assumimos que o python carrega .env via python-dotenv se necessário, 
+# ou que as vars já estão no ambiente. 
 ENV_FILE := .env
 ifneq ("$(wildcard $(ENV_FILE))","")
   include $(ENV_FILE)
@@ -11,7 +15,6 @@ endif
 
 # 1. Health-check do grafo (Neo4j / Aura)
 healthcheck:
-	@echo "Running Healthcheck..."
 	python scripts/menir_healthcheck_cli.py
 
 # 2. Backup (snapshot + export de logs, se aplicável)
@@ -23,15 +26,12 @@ backup:
 
 # 3. Ingestão (exemplo: ingestão de e-mail, documentos, etc.)
 ingest:
-	@echo "Running Ingestion (Placeholder)..."
 	# python ingest/run_ingest_all.py
-	@echo "Ingestion complete."
+	@echo "Ingest placeholder: adjust Makefile to point to real script."
 
 # 4. Limpeza de logs antigos (ex: arquivos de log com mais de 30 dias)
 clean-logs:
-	@echo "Cleaning old logs..."
-	@if exist logs ( forfiles /p "logs" /s /m *.* /d -30 /c "cmd /c del @path" ) else ( echo "Logs directory does not exist." )
-	@echo "Logs antigos verificados."
+	python scripts/clean_logs.py
 
 # 5. Full cycle: health-check → ingestão → backup → limpeza de logs
 full-cycle: healthcheck ingest backup clean-logs
