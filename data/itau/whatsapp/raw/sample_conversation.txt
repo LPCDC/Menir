@@ -1,0 +1,9 @@
+[12/15/2023, 08:45:00] Alice: Oi, recebi a fatura do meu cartão de crédito. Estou com dúvida sobre um lançamento.
+[12/15/2023, 08:46:30] Bob: Olá Alice! Como posso te ajudar?
+[12/15/2023, 08:47:15] Alice: Apareceu uma cobrança duplicada de um pagamento que fiz na terça-feira.
+[12/15/2023, 08:50:00] Bob: Entendo. Vou analisar isso para você. Pode enviar uma foto da fatura?
+[12/15/2023, 09:15:30] Alice: Pronto, enviei. É a transação de R$ 1.500,00 em 12/12.
+[12/15/2023, 09:20:45] Bob: Obrigado! Verifiquei aqui e realmente foi cobrado duas vezes. Vou solicitar o estorno.
+[12/15/2023, 09:25:00] Alice: Ótimo! Quanto tempo leva?
+[12/15/2023, 09:30:15] Bob: Normalmente 2-3 dias úteis. Você receberá uma confirmação por aqui mesmo.
+[12/15/2023, 09:35:30] Alice: Perfeito, obrigada pela agilidade!
