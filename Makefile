@@ -26,8 +26,7 @@ backup:
 
 # 3. Ingestão (exemplo: ingestão de e-mail, documentos, etc.)
 ingest:
-	# python ingest/run_ingest_all.py
-	@echo "Ingest placeholder: adjust Makefile to point to real script."
+	python ingest/run_ingest_all.py
 
 # 4. Limpeza de logs antigos (ex: arquivos de log com mais de 30 dias)
 clean-logs:
