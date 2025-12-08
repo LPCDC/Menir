@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Health check simples para Menir (Neo4j + conectividade).
+Health check simples para Menir (conexão com Neo4j + verificação básica).
 """
 
 import os
@@ -13,18 +13,16 @@ def main():
     pwd  = os.getenv("NEO4J_PWD")
 
     if not all([uri, user, pwd]):
-        # Fallback for local development if not set, or just fail
-        # For now, we fail as requested in the skeleton
         print("ERRO: variáveis de ambiente NEO4J_URI / NEO4J_USER / NEO4J_PWD não definidas.")
-        print("Dica: Verifique se o arquivo .env existe e foi carregado.")
         sys.exit(1)
 
     try:
         driver = GraphDatabase.driver(uri, auth=basic_auth(user, pwd))
+        # verifica conectividade imediatamente
+        driver.verify_connectivity()
         with driver.session() as session:
-            result = session.run("MATCH (n) RETURN count(n) AS c").single()
-            count = result["c"]
-            print(f"[OK] Conectado ao Neo4j — nós totais: {count}")
+            result = session.run("RETURN 1 AS ok LIMIT 1").single()
+            print("[OK] Conexão com Neo4j verificada — resultado:", result["ok"])
         driver.close()
     except Exception as e:
         print(f"[ERRO] Falha ao conectar/consultar Neo4j: {e}")
