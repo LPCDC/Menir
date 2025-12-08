@@ -1,0 +1,23 @@
+Nome do arquivo: Declaracao_Renda_2023.pdf
+Caminho: /workspaces/Menir/data/itau/docs/raw/financeiro/Declaracao_Renda_2023.pdf
+Tipo: DECLARACAO_RENDA
+Tamanho: 245 KB
+Hash SHA256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+Nome do arquivo: Contrato_Financiamento.pdf
+Caminho: /workspaces/Menir/data/itau/docs/raw/legal/Contrato_Financiamento.pdf
+Tipo: CONTRATO
+Tamanho: 512 KB
+Hash SHA256: 5d41402abc4b2a76b9719d911017c592a32d0d876b1c46e0a2e6b0a6c4f0e4d0
+
+Nome do arquivo: Extrato_Banco_Dezembro.pdf
+Caminho: /workspaces/Menir/data/itau/docs/raw/extratos/Extrato_Banco_Dezembro.pdf
+Tipo: EXTRATO
+Tamanho: 156 KB
+Hash SHA256: a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3
+
+Nome do arquivo: Comprovante_Transferencia.pdf
+Caminho: /workspaces/Menir/data/itau/docs/raw/comprovantes/Comprovante_Transferencia.pdf
+Tipo: COMPROVANTE_TRANSFERENCIA
+Tamanho: 89 KB
+Hash SHA256: b3a8e0e1c9c4d2f5a6b8e9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9
