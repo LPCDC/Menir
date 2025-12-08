@@ -17,6 +17,8 @@ Definir diretrizes de segurança, integridade e governança para o repositório 
 - Use práticas de codificação segura (input sanitization, validação, tratamento de erros, “defensive programming”) para mitigar vulnerabilidades comuns.
 - Evite commits que misturem funcionalidades e mudanças de segurança ou configuração — mantenha commits pequenos, claros e com escopo definido.  
 - Antes de push ou merge: revisar o diff, garantir que não há credenciais embutidas, dados sensíveis, ou artefatos desnecessários.  
+- **Git Hooks**: Recomenda-se instalar o hook de `pre-commit` local para bloquear segredos acidentais.
+  - Instale gitleaks e depois rode: `.\scripts\setup_hooks.ps1`
 - Se usar dependências externas, mantenha-as atualizadas e monitore vulnerabilidades (dependabot, scanner de dependências, etc.).
 
 ---

@@ -1,0 +1,22 @@
+#!/bin/sh
+# pre-commit hook to detect secrets using gitleaks
+
+# Check if gitleaks is installed
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "⚠️  Gitleaks not found. Skipping secrets check."
+    echo "   To enable: install gitleaks (https://github.com/gitleaks/gitleaks)"
+    exit 0
+fi
+
+echo "🔒 Running Gitleaks scan on staged files..."
+gitleaks detect --source . --staged --redact --report-path gitleaks_report.json --verbose
+
+if [ $? -ne 0 ]; then
+  echo "🛑 Gitleaks detected potential secrets!"
+  echo "   Review report: gitleaks_report.json"
+  echo "   Abort commit to fix issues."
+  exit 1
+fi
+
+echo "✅ No secrets detected."
+exit 0
