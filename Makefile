@@ -64,3 +64,7 @@ truffle-scan:
 
 check-secrets: secrets-scan truffle-scan
 	@echo "Full secrets check complete."
+
+ingest-diff:
+	@echo "Applying Scribe Proposal..."
+	@python scripts/apply_proposal.py scribe_proposal.json
