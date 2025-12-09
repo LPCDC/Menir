@@ -6,14 +6,27 @@ Designed for Neo4j + Python driver; pronto para rodar localmente. Credenciais po
 """
 
 import os
+import sys
 import hashlib
 from neo4j import GraphDatabase, basic_auth
 
-### CONFIGURAÇÃO DE ACESSO (sobreponível via env vars) ###
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "menir123")
-NEO4J_DB = os.getenv("NEO4J_DB") or None  # Deixe None para usar o default 'neo4j'
+# Tenta carregar .env localmente
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+### CONFIGURAÇÃO DE ACESSO (Obrigatório via env vars) ###
+NEO4J_URI = os.getenv("NEO4J_URI")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASSWORD = os.getenv("NEO4J_PWD") or os.getenv("NEO4J_PASSWORD")
+NEO4J_DB = os.getenv("NEO4J_DB") or None
+
+if not all([NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD]):
+    print("ERRO CRÍTICO: Credenciais Neo4j ausentes.", file=sys.stderr)
+    print("Defina NEO4J_URI, NEO4J_USER e NEO4J_PWD no .env ou variáveis de ambiente.", file=sys.stderr)
+    sys.exit(1)
 
 ### DRIVER ###
 auth = basic_auth(NEO4J_USER, NEO4J_PASSWORD)
