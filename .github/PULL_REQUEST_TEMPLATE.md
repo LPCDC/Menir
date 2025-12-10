@@ -1,35 +1,32 @@
-<!-- Obrigatório: preencha os campos abaixo ao abrir o PR -->
+# Descrição do Pull Request
 
-## Descrição
+## 📌 Tipo de PR
+- [ ] Feature / Nova Funcionalidade
+- [ ] Bug Fix / Correção
+- [ ] Refatoração / Melhoria Técnica
+- [ ] Documentação
+- [ ] Outro
 
-Descreva resumidamente o que este pull request muda e qual problema resolve.
+## 📋 Resumo
+*(Descreva brevemente o que este PR faz. Ex: "Adiciona comando 'menir health' ao CLI para verificar conexão com AuraDB.")*
 
-## Tipo de mudança
+## 🛠️ Detalhes das Alterações
+- *Arquivo Modificado 1*: Explicação da mudança...
+- *Arquivo Modificado 2*: Explicação da mudança...
 
-- [ ] feat: nova funcionalidade  
-- [ ] fix: correção de bug  
-- [ ] docs: documentação  
-- [ ] refactor: reorganização ou limpeza de código  
-- [ ] trigger: adição ou modificação de gatilho  
-- [ ] chore: manutenção, não altera comportamento  
+## ✅ Motivação / Justificativa
+*(Por que essa mudança é necessária? Qual problema ela resolve?)*
 
-## Como testar / QA
+## 🧪 Como testar
+1. Passo 1 de teste...
+2. Passo 2 de teste...
+3. Resultado esperado...
 
-Explique como testar localmente ou validar no ambiente. Exemplos:
+## 🛡️ Checklist
+- [ ] O código roda sem erros.
+- [ ] Testes manuais/automatizados executados.
+- [ ] Documentação atualizada (se necessário).
+- [ ] `task.md` atualizado (se aplicável).
 
-- rodar `scripts/test_triggers.sh "Nome do Gatilho"`  
-- aplicar seed cypher relevante  
-- verificar painel/dashboard ou resposta esperada  
-
-## Checklist antes do merge
-
-- [ ] Rodei testes de gatilho localmente  
-- [ ] Atualizei `checkpoint.md` ou `menir_meta_log.jsonl` com meu evento  
-- [ ] Mensagem de commit com prefixo apropriado  
-- [ ] Nenhum conflito com a branch `main`  
-- [ ] Workflows automatizados do GitHub rodaram (deploy / ingest / test/etc.)
-
-## Observações adicionais
-
-Se houver algo específico de deploy, ambiente, dependência ou instrução especial, coloque aqui.
-
+---
+*Menir System — Integrando Linguagem e Sistema* 🧠⚙️
