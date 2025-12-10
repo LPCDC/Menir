@@ -1,0 +1,68 @@
+{
+    "proposal_id": "mock-uuid-1234",
+    "source": {
+        "file": "capitulo_02.txt",
+        "project": "debora",
+        "timestamp": "2025-12-10T10:00:00Z"
+    },
+    "nodes": [
+        {
+            "label": "Character",
+            "properties": {
+                "name": "Caroline Howell",
+                "entity_id": "caroline_howell",
+                "role": "protagonist"
+            }
+        },
+        {
+            "label": "Character",
+            "properties": {
+                "name": "Spencer",
+                "entity_id": "spencer",
+                "role": "love_interest"
+            }
+        },
+        {
+            "label": "Scene",
+            "properties": {
+                "entity_id": "scene_02_01",
+                "title": "Festa da Escola",
+                "chapter_number": 2,
+                "scene_index": 1
+            }
+        },
+        {
+            "label": "Event",
+            "properties": {
+                "entity_id": "event_02_01_01",
+                "summary": "Caroline and Spencer share a cupcake moment.",
+                "type": "INTERACTION"
+            }
+        }
+    ],
+    "relationships": [
+        {
+            "start": "caroline_howell",
+            "type": "APPEARS_IN",
+            "end": "scene_02_01"
+        },
+        {
+            "start": "spencer",
+            "type": "APPEARS_IN",
+            "end": "scene_02_01"
+        },
+        {
+            "start": "event_02_01_01",
+            "type": "OCCURS_IN",
+            "end": "scene_02_01"
+        },
+        {
+            "start": "caroline_howell",
+            "type": "INTERACTS_WITH",
+            "end": "spencer",
+            "properties": {
+                "context": "cupcake flirting"
+            }
+        }
+    ]
+}

@@ -50,6 +50,34 @@ class ScribeEngine:
         self.privacy = PrivacyRouter()
         self.agent = None # Deferred init
 
+    def _fetch_existing_entities(self) -> str:
+        """
+        Fetch existing Characters/Places to guide the LLM (Identity Consistency).
+        Returns a context string.
+        """
+        if not self.agent: return ""
+        
+        # Tools are defined in menir_core.rag.tools
+        from menir_core.rag.tools import query_narrative_graph, driver
+        
+        try:
+            # We bypass the agent tool wrapper to be direct and avoiding loops, 
+            # or we could use the tool function directly if importable.
+            # Using the direct driver is safer/faster here than asking the LLM to query itself.
+            cypher = """
+            MATCH (n) WHERE n:Character OR n:Place
+            RETURN labels(n)[0] as Label, n.name as Name, n.entity_id as ID
+            LIMIT 200
+            """
+            with driver.session() as session:
+                result = session.run(cypher)
+                lines = ["EXISTING ENTITIES (Reuse these IDs if matches occur):"]
+                for r in result:
+                    lines.append(f"- [{r['Label']}] {r['Name']} (ID: {r.get('ID', 'N/A')})")
+                return "\n".join(lines)
+        except Exception as e:
+            return f"Could not fetch existing entities: {e}"
+
     def generate_proposal(self, text: str, source_filename: str = "unknown") -> Dict[str, Any]:
         """
         Analyze text and return a Graph Proposal JSON.
@@ -70,7 +98,7 @@ class ScribeEngine:
             except Exception as e:
                 return {"status": "error", "error": f"Agent Init Failed: {e}"}
 
-        # 3. Load Ontology
+        # 3. Load Context (Ontology + Existing Graph)
         ontology_path = os.path.join(os.path.dirname(__file__), "..", "ontology", "narrative.ttl")
         ontology_context = ""
         try:
@@ -78,6 +106,8 @@ class ScribeEngine:
                 ontology_context = f.read()
         except Exception:
             ontology_context = "Ontology unavailable."
+            
+        existing_graph_context = self._fetch_existing_entities()
 
         prompt = f"""
         You are 'The Scribe'. Extract narrative entities from the text.
@@ -87,18 +117,23 @@ class ScribeEngine:
         {ontology_context}
         ```
         
+        EXISTING GRAPH CONTEXT:
+        {existing_graph_context}
+        
         RULES:
         1. OUTPUT JSON ONLY.
-        2. STRUCTURE:
+        2. Reuse existing IDs/Slugs if the entity is clearly the same.
+        3. STRUCTURE:
            {{
-             "nodes": [ {{ "label": "...", "properties": {{...}} }} ],
-             "relationships": [ {{ "start": "...", "type": "...", "end": "..." }} ]
+             "nodes": [ {{ "label": "...", "properties": {{ "name": "...", "entity_id": "..." }} }} ],
+             "relationships": [ {{ "start": "ID_OR_NAME", "type": "...", "end": "ID_OR_NAME" }} ]
            }}
-        3. STRICT SCHEMA adherence.
+        4. Do not invent labels not in Ontology.
         
         TEXT:
-        {text[:2000]}... (truncated)
+        {text[:15000]} 
         """
+        # Note: increased text limit or handle chunking in production.
         
         try:
             response = self.agent.client.chat.completions.create(
