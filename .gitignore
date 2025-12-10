@@ -70,5 +70,11 @@ desktop.ini
 status/zk_log_digest.json
 
 # audit log
-!logs/
-!logs/zk_audit.jsonl
+# audit log (legacy rules removed for safety)
+# !logs/
+# !logs/zk_audit.jsonl
+
+.menir_state
+BOOT_NOW.cmd
+boot_now.sh
+bootnow.cmd
