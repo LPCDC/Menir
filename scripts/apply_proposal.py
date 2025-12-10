@@ -28,14 +28,22 @@ def main():
         
     applicator = ScribeApplicator()
     try:
-        stats = applicator.apply_proposal(data)
-        print("✅ Application Complete!")
-        print(f"   Nodes processed: {stats['nodes_created']}")
-        print(f"   Rels processed: {stats['relationships_created']}")
-        if stats['errors']:
-            print(f"   ❌ Errors: {len(stats['errors'])}")
-            for err in stats['errors']:
-                print(f"      - {err}")
+        report = applicator.apply_proposal(data)
+        
+        # Save Report
+        report_path = path.with_suffix(".report.json")
+        with open(report_path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, default=str)
+            
+        print(f"✅ Application Complete! Report saved to: {report_path}")
+        print(f"   Status: {report['status'].upper()}")
+        print(f"   Summary: {report['summary']}")
+        
+        if report['status'] != 'success':
+            print("⚠️  Warnings/Errors found:")
+            print(f"   Notes: {report.get('notes', [])}")
+            print(f"   Orphan Scenes: {report['scene_integrity']['orphan_scenes']}")
+
     finally:
         applicator.close()
 
