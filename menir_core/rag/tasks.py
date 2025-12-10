@@ -40,6 +40,34 @@ def query_tasks_graph(intent: str, **params) -> Dict[str, Any]:
             driver.close()
 
 # -------------------------------------------------------------------------
+# High-Level Agent API (v1.1)
+# -------------------------------------------------------------------------
+
+def get_project_state(project_id: str) -> Dict[str, Any]:
+    """
+    Get a summary of the project's health and activity.
+    Returns dict with keys: project_info, tasks_stats, recent_activity.
+    """
+    return query_tasks_graph("PROJECT_SUMMARY", project_id=project_id)
+
+def list_open_tasks(project_id: str) -> List[Dict[str, Any]]:
+    """
+    Get a list of open tasks for a project.
+    Returns list of dicts with keys: task_id, description, status, priority, age_days.
+    """
+    result = query_tasks_graph("PROJECT_OPEN_TASKS", project_id=project_id)
+    if "error" in result:
+        return []
+    return result.get("open_tasks", [])
+
+def get_session_summary(session_id: str = "last") -> Dict[str, Any]:
+    """
+    Get details of a specific session (or the last one).
+    Returns dict with keys: session, tasks_created.
+    """
+    return query_tasks_graph("LAST_SESSION_TASKS", session_ref=session_id)
+
+# -------------------------------------------------------------------------
 # Internal Cypher Implementations
 # -------------------------------------------------------------------------
 

@@ -3,3 +3,4 @@ python-dotenv==1.0.0
 neo4j==5.15.0
 pytest
 openai>=1.0.0
+fastapi

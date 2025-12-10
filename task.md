@@ -19,7 +19,7 @@ Este arquivo registra o backlog evolutivo do Menir **a partir** da v1.0, para or
 
 ### 2.1. Ergonomia de CLI
 
-- [ ] Criar CLI unificado (ex.: `menir_cli.py`) com subcomandos:  
+- [x] Criar CLI unificado (ex.: `menir_cli.py`) com subcomandos:  
   - `menir boot` → invoca `boot_menir.py`  
   - `menir shutdown` → invoca `shutdown_menir.py`  
   - `menir status` → usa Task GraphRAG para mostrar:
@@ -27,14 +27,14 @@ Este arquivo registra o backlog evolutivo do Menir **a partir** da v1.0, para or
     - tarefas abertas por projeto  
     - tarefas “stale”  
 
-- [ ] Criar comando `menir health` para:
+- [x] Criar comando `menir health` para:
   - testar conexão com AuraDB (`scripts/check_db_auth.py`)  
   - verificar contagem de Session/Task no grafo vs JSONL  
 
 ### 2.2. Integração Agente ↔ GraphRAG
 
-- [ ] Fazer o agente Menir consultar automaticamente o grafo (via GraphRAG) antes de responder “não sei” sobre estado de projeto.  
-- [ ] Definir protocolo claro: 
+- [x] Fazer o agente Menir consultar automaticamente o grafo (via GraphRAG) antes de responder “não sei” sobre estado de projeto.  
+- [x] Definir protocolo claro: 
   - AG gera um Snapshot Canônico após cada mudança no repo/infra;  
   - Peposo consome esse snapshot como base de contexto.  
 
