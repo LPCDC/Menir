@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).parent.parent
 SESSIONS_FILE = BASE_DIR / "data" / "system" / "menir_sessions.jsonl"
 TASKS_FILE = BASE_DIR / "data" / "system" / "menir_tasks.jsonl"
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Pre-defined Anchors (could be moved to a file later)
 ANCHOR_PROJECTS = [
