@@ -6,7 +6,7 @@ from neo4j import GraphDatabase
 from dotenv import load_dotenv
 
 # Load environment
-load_dotenv()
+load_dotenv(override=True)
 
 def get_driver():
     uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
