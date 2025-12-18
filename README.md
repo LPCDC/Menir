@@ -39,4 +39,14 @@ python scripts/query_menir.py open debora
 ```
 
 ---
-> *Menir v1.0 - Unindo Linguagem e Sistema.*
+
+---
+
+## 🤝 Contribuindo
+
+Para manter a governança do sistema:
+
+1.  **PRs de Infra/Segurança**: Arquivos críticos (`scripts/`, `infra/`) exigem o template de verificação.
+    *   **Como abrir**: Use a URL com parâmetro: `https://github.com/LPCDC/Menir/compare/main...SUA-BRANCH?template=infra_security.md`
+2.  **PRs Normais**: O template padrão será carregado automaticamente.
+
