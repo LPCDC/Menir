@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "menir"
+version = "1.2.0"
+description = "Menir Vital: Personal Headless OS"
+authors = ["Luiz Pichau <luiz@menir.ai>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.109.0"
+uvicorn = "^0.27.0"
+python-multipart = "^0.0.7"
+pydantic = "^2.6.0"
+neo4j = "^5.17.0"
+requests = "^2.31.0"
+httpx = "^0.26.0"
+jsonlines = "^4.0.0"
+# Core logic deps (adjust versions as needed)
+# langchain = "^0.1.0" 
+# openai = "^1.10.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
