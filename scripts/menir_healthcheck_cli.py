@@ -19,10 +19,10 @@ except ImportError:
 def main():
     uri  = os.getenv("NEO4J_URI")
     user = os.getenv("NEO4J_USER")
-    pwd  = os.getenv("NEO4J_PWD")
+    pwd  = os.getenv("NEO4J_PWD") or os.getenv("NEO4J_PASSWORD")
 
     if not all([uri, user, pwd]):
-        print("ERRO: variáveis de ambiente NEO4J_URI / NEO4J_USER / NEO4J_PWD não definidas.")
+        print("ERRO: variáveis de ambiente NEO4J_URI / NEO4J_USER / (NEO4J_PWD ou NEO4J_PASSWORD) não definidas.")
         print("Dica: Certifique-se de ter um arquivo .env na raiz e 'pip install python-dotenv'.")
         sys.exit(1)
 

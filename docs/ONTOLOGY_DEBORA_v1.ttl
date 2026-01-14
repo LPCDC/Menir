@@ -1,0 +1,98 @@
+@prefix : <http://menir.ai/ontology/debora/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Core Classes
+
+:Work a owl:Class ;
+    rdfs:comment "A literary work or book." .
+
+:Chapter a owl:Class ;
+    rdfs:comment "A division of a Work." .
+
+:Fragment a owl:Class ;
+    rdfs:comment "A distinct segment of text (scene or paragraph) within a Chapter." .
+
+:Character a owl:Class ;
+    rdfs:comment "A fictional person in the narrative." .
+
+:RealPerson a owl:Class ;
+    rdfs:comment "A real-world person acting as inspiration for a Character." .
+
+:Place a owl:Class ;
+    rdfs:comment "A location where events take place." .
+
+:TimeRef a owl:Class ;
+    rdfs:comment "A temporal reference point." .
+
+:Theme a owl:Class ;
+    rdfs:comment "A thematic concept explored in the text." .
+
+:Project a owl:Class ;
+    rdfs:comment "The overarching project in Menir." .
+
+# Properties
+
+:work_id a owl:DatatypeProperty ; rdfs:domain :Work ; rdfs:range xsd:string .
+:title a owl:DatatypeProperty ; rdfs:domain :Work, :Chapter ; rdfs:range xsd:string .
+:version a owl:DatatypeProperty ; rdfs:domain :Work ; rdfs:range xsd:string .
+
+:chapter_id a owl:DatatypeProperty ; rdfs:domain :Chapter ; rdfs:range xsd:string .
+:index a owl:DatatypeProperty ; rdfs:domain :Chapter ; rdfs:range xsd:integer .
+:draft_source a owl:DatatypeProperty ; rdfs:domain :Chapter ; rdfs:range xsd:string .
+
+:fragment_id a owl:DatatypeProperty ; rdfs:domain :Fragment ; rdfs:range xsd:string .
+:order_in_chapter a owl:DatatypeProperty ; rdfs:domain :Fragment ; rdfs:range xsd:integer .
+:text a owl:DatatypeProperty ; rdfs:domain :Fragment ; rdfs:range xsd:string .
+:confidence a owl:DatatypeProperty ; rdfs:domain :Fragment ; rdfs:range xsd:float .
+
+:character_id a owl:DatatypeProperty ; rdfs:domain :Character ; rdfs:range xsd:string .
+:name a owl:DatatypeProperty ; rdfs:domain :Character, :Place ; rdfs:range xsd:string .
+:role a owl:DatatypeProperty ; rdfs:domain :Character ; rdfs:range xsd:string .
+
+:person_id a owl:DatatypeProperty ; rdfs:domain :RealPerson ; rdfs:range xsd:string .
+:sensitivity_level a owl:DatatypeProperty ; rdfs:domain :RealPerson ; rdfs:range xsd:string .
+
+:place_id a owl:DatatypeProperty ; rdfs:domain :Place ; rdfs:range xsd:string .
+:city a owl:DatatypeProperty ; rdfs:domain :Place ; rdfs:range xsd:string .
+:type a owl:DatatypeProperty ; rdfs:domain :Place ; rdfs:range xsd:string .
+
+:time_id a owl:DatatypeProperty ; rdfs:domain :TimeRef ; rdfs:range xsd:string .
+:label a owl:DatatypeProperty ; rdfs:domain :TimeRef, :Theme ; rdfs:range xsd:string .
+
+:theme_id a owl:DatatypeProperty ; rdfs:domain :Theme ; rdfs:range xsd:string .
+
+# Relationships
+
+:HAS_CHAPTER a owl:ObjectProperty ;
+    rdfs:domain :Work ;
+    rdfs:range :Chapter .
+
+:HAS_FRAGMENT a owl:ObjectProperty ;
+    rdfs:domain :Chapter ;
+    rdfs:range :Fragment .
+
+:FOCUSES_ON a owl:ObjectProperty ;
+    rdfs:domain :Project ;
+    rdfs:range :Work .
+
+:MENTIONS_CHARACTER a owl:ObjectProperty ;
+    rdfs:domain :Fragment ;
+    rdfs:range :Character .
+
+:SET_IN a owl:ObjectProperty ;
+    rdfs:domain :Fragment ;
+    rdfs:range :Place .
+
+:HAS_TIME_REF a owl:ObjectProperty ;
+    rdfs:domain :Fragment ;
+    rdfs:range :TimeRef .
+
+:EXPLORES_THEME a owl:ObjectProperty ;
+    rdfs:domain :Fragment ;
+    rdfs:range :Theme .
+
+:BASED_ON a owl:ObjectProperty ;
+    rdfs:domain :Character ;
+    rdfs:range :RealPerson .
