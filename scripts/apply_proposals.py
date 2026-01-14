@@ -14,8 +14,8 @@ sys.path.append(str(BASE_DIR))
 
 # Config
 DATA_DIR = BASE_DIR / "data"
-PROPOSALS_DIR = DATA_DIR / "proposals"
-ARCHIVE_DIR = PROPOSALS_DIR / "archive"
+PROPOSALS_DIR = DATA_DIR / "proposals" / "inbox"
+ARCHIVE_DIR = DATA_DIR / "proposals" / "archive"
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
@@ -84,13 +84,26 @@ def apply_proposal_tx(tx, data):
 
     logger.info(f"Applying Proposal {proposal_id}...")
     
-    # Apply Nodes
-    for node in data.get("nodes", []):
-        apply_node_op(tx, node)
+    # Handler for 'create_node' (Pilot 3)
+    if data.get("type") == "create_node":
+        payload = data.get("payload", {})
+        label = payload.get("label", "Generic")
+        props = payload.get("properties", {})
         
-    # Apply Relationships
-    for rel in data.get("relationships", []):
-        apply_rel_op(tx, rel)
+        # Sanitize label (simple alphanumeric check or backtick escape)
+        # Using backticks is safer for Cypher
+        cypher = f"CREATE (n:`{label}`) SET n += $props RETURN n"
+        tx.run(cypher, props=props)
+        logger.info(f"Created node :{label} with props {props}")
+
+    # Legacy V1 Logic (Optional, keeping for compatibility if mixed)
+    if data.get("nodes"):
+        for node in data.get("nodes", []):
+            apply_node_op(tx, node)
+            
+    if data.get("relationships"):
+        for rel in data.get("relationships", []):
+            apply_rel_op(tx, rel)
         
     # Create Log
     tx.run("""
