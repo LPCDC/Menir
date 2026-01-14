@@ -1,35 +1,36 @@
-<!-- Obrigatório: preencha os campos abaixo ao abrir o PR -->
+# Pull Request — Menir ���
 
-## Descrição
+## ��� Contexto / Motivação  
+Descreva o que motivou este PR (bug, feature, refactor, hardening, docs…).
 
-Descreva resumidamente o que este pull request muda e qual problema resolve.
+## ✅ Alterações realizadas  
+- [ ] Lista clara e completa de mudanças  
+- [ ] Justificativa para cada mudança  
+- [ ] Link para issue / ticket relacionado (se aplicável)
 
-## Tipo de mudança
+## ��� Checklist de Qualidade / Segurança / Operação  
 
-- [ ] feat: nova funcionalidade  
-- [ ] fix: correção de bug  
-- [ ] docs: documentação  
-- [ ] refactor: reorganização ou limpeza de código  
-- [ ] trigger: adição ou modificação de gatilho  
-- [ ] chore: manutenção, não altera comportamento  
+### Código & Funcionalidade  
+- [ ] Código compilou / scripts rodaram sem erros  
+- [ ] Testes existentes passaram  
+- [ ] Nenhum debug-print ou código comentado deixado  
+- [ ] Código segue estilo/convenções do projeto  
 
-## Como testar / QA
+### Documentação  
+- [ ] Documentação (README, docs/, guia de operação) atualizada se necessário  
+- [ ] Se adicionou configuração (.env, variáveis etc.), incluiu instruções e exemplo sem secrets  
 
-Explique como testar localmente ou validar no ambiente. Exemplos:
+### Persistência de Dados & Segurança (se aplicável)  
+- [ ] Se alterou mecanismos de backup / logs / auth — verificação de que backup/loggers foram testados  
+- [ ] Não expôs credenciais ou dados sensíveis no código ou histórico  
+- [ ] Mudanças críticas revisadas por pelo menos outro par  
 
-- rodar `scripts/test_triggers.sh "Nome do Gatilho"`  
-- aplicar seed cypher relevante  
-- verificar painel/dashboard ou resposta esperada  
+### Infraestrutura / Deploy / Ambiente  
+- [ ] Compatibilidade Windows / Linux / WSL verificada  
+- [ ] Scripts de startup / shutdown / backups / health funcionando  
 
-## Checklist antes do merge
+## ��� Como testar / usar manualmente  
+Descreva como um revisor pode validar as mudanças (build, scripts, health, backup etc).
 
-- [ ] Rodei testes de gatilho localmente  
-- [ ] Atualizei `checkpoint.md` ou `menir_meta_log.jsonl` com meu evento  
-- [ ] Mensagem de commit com prefixo apropriado  
-- [ ] Nenhum conflito com a branch `main`  
-- [ ] Workflows automatizados do GitHub rodaram (deploy / ingest / test/etc.)
-
-## Observações adicionais
-
-Se houver algo específico de deploy, ambiente, dependência ou instrução especial, coloque aqui.
-
+## Observações / Dúvidas pendentes  
+<descreva aqui>

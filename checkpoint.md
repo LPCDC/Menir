@@ -1,59 +1,47 @@
-# Checkpoint — Menir_Meta
-Data: 2025-09-18T04:54:00.442392
+# Checkpoint — Menir v5.0 Boot (Meta Canonical)
+📅 Data: 2025-10-29T06:40:00-03:00  
+🔑 Versão: v5.0-BootNow (fusão Gatomia + núcleo Menir Vital)
 
-## Evento Registrado
-- Primeira execução bem-sucedida do gatilho 'Marco → Civil da internet'
-- Impacto: validação do ciclo de estado em múltiplas janelas
+## Estado Atual
+- BootNow consolidado como sequência raiz (all-in-one).
+- Integração completa de:
+  - Grafo Vitalício Criptografado (Neo4j local/Aura)
+  - zk-log e auditoria SHA-256
+  - SlowdownGuard v0.3
+  - Pipeline Tivoli (LibLabs retrofit)
+  - Renderizador Arquitetônico Premium
+  - Federação Blockchain/IPFS (hash + ZK proof)
+  - LGPD masking e nó de Consentimento
 
-# Checkpoint — Menir (MarcoPolo + Gato Mia)
-📅 Data: 2025-09-20  
-🔑 Versão: v1.0 dos gatilhos unificados
+## Diretórios e Repositórios
+- Local: `C:\Users\Pichau\Repos\MenirVital`
+- Remoto: `github.com/LPCDC/Menir` → branch `release/menir-aio-v5.0-boot`
+- Arquivos canônicos:
+  - `menir_state.json`
+  - `lgpd_policy.md`
+  - `output_contracts.md`
+  - `push_runbook.md`
+  - `logs/zk_audit.jsonl`
 
----
+## Segurança e Políticas
+- Criptografia Fernet local
+- Hash e timestamp em cada operação
+- External dispatch bloqueado
+- Simulation dispatch permitido
+- Consentimento explícito LGPD
+- Auditoria em blockchain privada (ZK proofs)
 
-## Triggers Ativos
-- **Marco** → resposta: **Polo**  
-- **Polo** → resposta: **Polo**  
-- **Marco Polo** (junto) → resposta: **Polo**  
-- **Gato** → resposta: **Miau**  
-- **Mia** → resposta: **Miau**  
-- **Gato Mia** (junto) → resposta: **Miau**
+## Infra
+- Neo4j ativo (schema {Pessoa, Evento, DadoSaude, Projeto, Documento})
+- Python 3.12 (env `menir`)
+- Torch 2.5.1 + CUDA 12.1
+- Repositório auditável GitOps controlado
+- Integrado com Grok supervisor (xAI)
 
-Todos os triggers acionam o **painel-resumo unificado** (MarcoPolo/GatoMia).
+## Últimas Operações
+- [2025-10-28] Commit push canônico → `release/menir-aio-v5.0-boot`
+- [2025-10-28] zk_log.py → evento `ccb_15220012_ingest` OK
+- [2025-10-27] BootNow v5.0 confirmado, migração Gatomia concluída
 
----
-
-## Arquivos Ativos
-- `MENIR_PLAN.md` → plano geral (visual, auditoria, queries resumidas, alias incluído).  
-- `projects/MarcoPolo/marcopolo_dashboard_seed.cypher` → seed original (MarcoPolo).  
-- `projects/MarcoPolo/gatomia_dashboard_seed.cypher` → seed alias (GatoMia).  
-
----
-
-## Camada Visual
-- **NeoDash** no Neo4j Aura (principal).  
-- **Bloom** opcional.  
-- Dashboards salvos no banco como “MarcoPolo/GatoMia”.
-
----
-
-## Diretrizes Técnicas
-- Consultas: usar `OPTIONAL MATCH` + `COLLECT[..]` + `LIMIT` → respostas sempre seguras, nunca vazias.  
-- CSVs: devem estar públicos (GitHub Pages / S3).  
-- Auditoria: opcional com `apoc.util.sha256`.
-
----
-
-## Estado da Instalação
-- Repo atualizado com `MENIR_PLAN.md`.  
-- Seeds `marcopolo_dashboard_seed.cypher` e `gatomia_dashboard_seed.cypher` criados.  
-- Pronto para migrar de chat: basta abrir nova janela e dizer **“Marco”** ou **“Gato Mia”** → resposta **Polo/Miau** + resumo completo.
-
----
-
-## Últimos Commits (sync GitHub → MENIR)
-- [2025-09-20] gatomia: rename MarcoPolo → Gatomi + add dashboard
-- [2025-09-20] reflexive: seed mínimo (constraints básicos)
-- [2025-09-19] proj:Itau fix setup_itau_relations
-
-✅ Este checkpoint garante que o Menir retome exatamente deste ponto em qualquer nova janela.
+✅ Este checkpoint substitui todos os anteriores.  
+Serve como ponto de restauração padrão para novas execuções BootNow.

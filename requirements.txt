@@ -1,0 +1,9 @@
+pydantic==2.5.0
+python-dotenv==1.0.0
+neo4j==5.15.0
+pytest
+openai>=1.0.0
+fastapi
+
+watchdog==3.0.0
+pypdf==3.17.0

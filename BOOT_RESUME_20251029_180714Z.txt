@@ -1,0 +1,9 @@
+BOOT RESUME
+branch_base: main
+ultimo_boot_now_json: {{"boot_now": "OK", "notify": {"status": "error", "text": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /mcp/tool (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000169C4144830>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"}}}
+
+pendencias_abertas:
+  - Precisamos medir altura do muro de trás (divisa prédio vizinho), da mureta lateral da garagem e da divisória entre as duas garagens de serviço. Sem essas medidas o sketch não fecha. Bia só consegue mexer em casa porque na prefeitura não tem SketchUp.
+  - sketch até 2025-10-30
+  - CAD indicativo até 2025-11-03
+  - acompanhamento projeto tivoli

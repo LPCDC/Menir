@@ -1,0 +1,49 @@
+@prefix : <http://menir.ai/ontology/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+:NarrativeEntity a owl:Class ;
+    rdfs:label "Narrative Entity" .
+
+:Character a owl:Class ;
+    rdfs:subClassOf :NarrativeEntity ;
+    rdfs:label "Character" .
+
+:Place a owl:Class ;
+    rdfs:subClassOf :NarrativeEntity ;
+    rdfs:label "Place" .
+
+:Event a owl:Class ;
+    rdfs:subClassOf :NarrativeEntity ;
+    rdfs:label "Event" .
+
+:Chapter a owl:Class ;
+    rdfs:label "Chapter" .
+
+:Scene a owl:Class ;
+    rdfs:label "Scene" .
+
+# Properties
+:appearsIn a owl:ObjectProperty ;
+    rdfs:domain :Character ;
+    rdfs:range :Scene ;
+    rdfs:label "APPEARS_IN" .
+
+:setIn a owl:ObjectProperty ;
+    rdfs:domain :Scene ;
+    rdfs:range :Place ;
+    rdfs:label "SET_IN" .
+
+:interactsWith a owl:ObjectProperty ;
+    rdfs:domain :Character ;
+    rdfs:range :Character ;
+    rdfs:label "INTERACTS_WITH" .
+
+:hasEmotion a owl:DatatypeProperty ;
+    rdfs:domain :Character ;
+    rdfs:range rdfs:Literal .
+
+:summary a owl:DatatypeProperty ;
+    rdfs:domain :Event ;
+    rdfs:range rdfs:Literal .

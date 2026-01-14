@@ -1,0 +1,54 @@
+@startuml Menir_Data_Pipeline
+skinparam monochrome true
+
+start
+
+: CLEAN / RESET (opcional) ;
+if (existe grafo antigo?) then (sim)
+  : DETACH DELETE ALL NODES/RELATIONS ;
+else (não)
+endif
+
+: SCHEMA SETUP ;
+note right
+  Aplica constraints e índices conforme schema v2
+  (Work, Chapter, ChapterVersion, Scene, Event, etc.)
+end note
+
+: SEED (Macro) ;
+note right
+  Cria nós base: Work, Chapter
+  Inicializa estrutura raiz
+end note
+
+: INGEST (Micro) ;
+note right
+  Para cada capítulo:
+  Cria Scene, Event, Character, Place, Object
+  Relacionamentos (OCCURS_IN, APPEARS_IN, SET_IN, etc.)
+end note
+
+: AUDIT / EXPORT ;
+note right
+  Verifica integridade:
+  - Cenas sem eventos
+  - Personagens órfãos
+  - Contagem de nós/relações
+  - Relacionamentos entre personagens
+  - Co-aparecimentos
+end note
+
+: OUTPUT / REPORTS ;
+note right
+  Gera CSVs:
+  - rebuild_nodes_count.csv
+  - rebuild_rels_count.csv
+  - rebuild_orphan_characters.csv
+  - rebuild_scenes_without_events.csv
+  - rebuild_char_relations.csv
+  - rebuild_coappearances.csv
+end note
+
+stop
+
+@enduml

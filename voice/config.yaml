@@ -1,0 +1,47 @@
+# Menir v10.3 Voice Configuration
+
+# MCP Server
+mcp:
+  endpoint: "http://localhost:8080/jsonrpc"
+  timeout: 10
+  health_check: true
+
+# Speech-to-Text (STT)
+stt:
+  engine: "auto"  # auto, google, whisper, azure, native
+  language: "pt-BR"
+  confidence_threshold: 0.8
+  timeout: 30
+
+# Text-to-Speech (TTS)
+tts:
+  engine: "auto"  # auto, google, azure, pyttsx3, native
+  voice: "pt-BR"
+  speed: 1.0
+  pitch: 1.0
+
+# GPT Integration
+gpt:
+  model: "gpt-4"
+  temperature: 0.3
+  max_tokens: 1000
+  system_prompt: "You are Menir's voice assistant. Answer concisely and clearly."
+
+# Audio
+audio:
+  sample_rate: 16000
+  channels: 1
+  format: "PCM_16"
+  device: "default"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "voice/logs/menir_voice.log"
+  max_size_mb: 100
+
+# Voice Wake Word
+voice:
+  wake_word: "menir"
+  detection_sensitivity: 0.5
+  continuous_mode: true

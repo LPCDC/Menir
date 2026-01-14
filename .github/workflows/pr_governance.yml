@@ -1,0 +1,43 @@
+name: PR Governance
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check for Sensitive Changes
+        id: sensitive-check
+        run: |
+          # Define sensitive paths
+          SENSITIVE_PATHS="scripts/ infra/ .github/workflows/"
+          
+          # Check if any sensitive file was modified
+          MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...origin/${{ github.head_ref }} | grep -E "^(scripts/|infra/|.github/workflows/)")
+          
+          if [ -n "$MODIFIED" ]; then
+            echo "::set-output name=is_sensitive::true"
+            echo "Sensitive files modified: $MODIFIED"
+          else
+            echo "::set-output name=is_sensitive::false"
+          fi
+
+      - name: Enforce Security Checklist
+        if: steps.sensitive-check.outputs.is_sensitive == 'true'
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          
+          # Check for key phrase from infra_security.md template
+          if [[ "$BODY" != *"Checklist de Segurança"* ]]; then
+            echo "::error::❌ Infra/Security changes detected but critical checklist is missing!"
+            echo "::error::Please edit the description and use the correct template (?template=infra_security.md)"
+            exit 1
+          else
+            echo "✅ Security Checklist present."
+          fi

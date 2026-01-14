@@ -1,0 +1,16 @@
+{
+  "timestamp_utc": "2025-12-08T03:09:59.330042Z",
+  "filter": {
+    "project_id": "(all)"
+  },
+  "neo4j": {
+    "uri": "bolt://localhost:7687",
+    "status": "unreachable",
+    "total_nodes": null,
+    "total_rels": null,
+    "schema_constraints": null,
+    "error": "Couldn't connect to localhost:7687 (resolved to ('[::1]:7687', '127.0.0.1:7687')):\nFailed to establish connection to ResolvedIPv6Address(('::1', 7687, 0, 0)) (reason [Errno 111] Connection refused)\nFailed to establish connection to ResolvedIPv4Address(('127.0.0.1', 7687)) (reason [Errno 111] Connection refused)"
+  },
+  "projects": {},
+  "warnings": []
+}

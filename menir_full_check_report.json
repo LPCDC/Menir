@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-12-06T23:03:25.838591",
+  "neo4j_uri": "bolt://localhost:7687",
+  "schema": {
+    "missing_labels": [],
+    "extra_labels": []
+  },
+  "counts": {
+    "Work": 2,
+    "Chapter": 2,
+    "Character": 9,
+    "Scene": 4,
+    "Event": 13
+  },
+  "integrity": {
+    "scenes_without_events": []
+  },
+  "status": "OK"
+}

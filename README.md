@@ -1,17 +1,52 @@
----
+# Menir — Semantic Narrative System
 
-## Controles de Proatividade & Parâmetros para GPT-5
+## Versão atual: **v1.0 – System Core + Task GraphRAG**
 
-Este projeto está adaptado para usar o GPT-5 com controle fino de proatividade, uso de ferramentas, persistência, e critérios claros de parada. Aqui vão as diretrizes:
+Menir é agora um sistema operacional pessoal completo, com:
 
-- **reasoning_effort** — defina `minimal`, `low`, `medium` (default) ou `high` conforme necessidade de profundidade; para tarefas simples use valores mais baixos.  
-- **verbosity** — controla o nível de detalhe da resposta final; valores possíveis: `low`, `medium`, `high`. Combine com `reasoning_effort` para ajustar qualidade vs. rapidez.  
-- **Tool budget** — limite máximo de chamadas a ferramentas externas (ex: `max_tool_calls = 2`). Se exceder, pare ou peça confirmação.  
-- **Critérios de parada** — por exemplo: quando múltiplas fontes de dados convergirem ≥ 70%, ou quando esforço adicional não trouxer ganho claro.  
-- **Persistência controlada** — para tarefas longas, peça ao modelo continuar até resolver, mas com guardrails (orçamento, confirmação para ações perigosas).  
-- **Tool preambles / Feedback parcial** — antes de fazer ações automáticas, peça plano de ação; durante execução, atualize o progresso; finalize com resumo.  
-- **Uso da Responses API** — quando aplicável, para manter histórico entre turns e evitar repetir passos.  
-- **Segurança e ações críticas** — ações que alterem banco, façam deploy ou deletem dados exigem confirmação explícita do usuário.  
+- 🎯 **Eixo de Sessões**: ciclo Boot → Trabalho → Shutdown, com histórico auditável.  
+- 🧠 **Task GraphRAG**: grafo de sessões/tarefas em Neo4j Aura + queries de estado.  
+- 📘 **Manual de Operador**: `docs/MANUAL_OPERADOR_MENIR_v1.0.md`.  
+- 📋 **Backlog para futuras evoluções**: `task.md`.  
 
 ---
+
+## Começando a usar (fluxo mínimo)
+
+### 1. Preparação
+
+- Clone este repositório.  
+- Garanta que o arquivo `.env` esteja configurado com credenciais válidas do Neo4j AuraDB e da OpenAI.  
+- Instale dependências Python, se houver.
+
+### 2. Iniciar um bloco de trabalho
+
+```bash
+python scripts/boot_menir.py
+```
+
+### 3. Encerrar um bloco de trabalho
+
+```bash
+python scripts/shutdown_menir.py
+```
+
+### 4. Consultar o Sistema (GraphRAG)
+
+```bash
+python scripts/query_menir.py summary menir_core
+python scripts/query_menir.py open debora
+```
+
+---
+
+---
+
+## 🤝 Contribuindo
+
+Para manter a governança do sistema:
+
+1.  **PRs de Infra/Segurança**: Arquivos críticos (`scripts/`, `infra/`) exigem o template de verificação.
+    *   **Como abrir**: Use a URL com parâmetro: `https://github.com/LPCDC/Menir/compare/main...SUA-BRANCH?template=infra_security.md`
+2.  **PRs Normais**: O template padrão será carregado automaticamente.
 
