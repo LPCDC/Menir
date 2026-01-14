@@ -1,0 +1,139 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Menir Audit Report",
+    "type": "object",
+    "properties": {
+        "proposal_id": {
+            "type": "string"
+        },
+        "timestamp": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "project": {
+            "type": "string"
+        },
+        "input_file": {
+            "type": "string"
+        },
+        "status": {
+            "type": "string",
+            "enum": [
+                "success",
+                "warning",
+                "error"
+            ]
+        },
+        "summary": {
+            "type": "object",
+            "properties": {
+                "nodes_created": {
+                    "type": "integer"
+                },
+                "nodes_merged": {
+                    "type": "integer"
+                },
+                "relationships_created": {
+                    "type": "integer"
+                },
+                "relationships_expired": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "nodes_created",
+                "relationships_created"
+            ]
+        },
+        "duplicate_checks": {
+            "type": "object",
+            "properties": {
+                "entities_flagged": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "entity_type": {
+                                "type": "string"
+                            },
+                            "node_ids": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "reason": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "scene_integrity": {
+            "type": "object",
+            "properties": {
+                "orphan_scenes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "scenes_without_events": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "scenes_without_characters": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "provenance_issues": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "missing_fields": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "pii_warnings": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "node_or_context": {
+                        "type": "string"
+                    },
+                    "pattern": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "notes": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [
+        "proposal_id",
+        "status",
+        "summary"
+    ]
+}
