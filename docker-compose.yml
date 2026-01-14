@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  menir-db:
+    image: neo4j:5.15-community
+    container_name: menir-db
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: "neo4j/menir_local_secret"
+    volumes:
+      - ./data/neo4j:/data
+  
+  menir-watcher:
+    build: .
+    container_name: menir-watcher
+    command: python -m menir10.service_watcher
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    depends_on:
+      - menir-db
