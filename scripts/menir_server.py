@@ -12,12 +12,13 @@ from enum import Enum
 from fastapi import FastAPI, HTTPException, Depends, Request, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
+from neo4j import GraphDatabase
 
 # Setup Paths
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"
 LOGS_DIR = DATA_DIR
-PROPOSALS_DIR = DATA_DIR / "proposals"
+PROPOSALS_DIR = DATA_DIR / "proposals" / "inbox"
 VIEWS_DIR = BASE_DIR / "views"
 
 # Append menir_core to path if needed (though usually handled by venv)
@@ -40,11 +41,32 @@ def append_operation_log(data: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Failed to write audit log: {e}")
 
+
 # ==========================================
 # Security & Config
 # ==========================================
 
 security = HTTPBearer()
+
+# Neo4j Config
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://menir-db:7687")
+NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+NEO4J_PWD = os.getenv("NEO4J_PWD", "menir123")
+
+driver = None
+
+def get_driver():
+    global driver
+    if not driver:
+        try:
+            driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PWD))
+            driver.verify_connectivity()
+            logger.info(f"Connected to Neo4j at {NEO4J_URI}")
+        except Exception as e:
+            logger.error(f"Failed to connect to Neo4j: {e}")
+            raise
+    return driver
+
 
 def get_api_token():
     token = os.getenv("MENIR_API_TOKEN")
@@ -126,13 +148,17 @@ def mask_sensitive_payload(payload: Dict[str, Any]) -> str:
         return f"<hash:{h} size:{len(s)}>"
     return s
 
-def execute_cypher_mock(query, params):
-    # TODO: Connect to real Neo4j Driver
-    # For V1 implementation structure, we return a mock if DB not ready, 
-    # but plan requires real implementation.
-    # Assuming connection pattern from menir_core...
-    # For now, let's just acknowledge strictly.
-    return [{"status": "DB_CONNECTION_PENDING", "query": query}]
+def execute_cypher(query: str, params: Dict[str, Any] = {}) -> List[Dict[str, Any]]:
+    """Execute Cypher query and return list of dicts."""
+    d = get_driver()
+    try:
+        with d.session() as session:
+            result = session.run(query, params)
+            return [record.data() for record in result]
+    except Exception as e:
+        logger.error(f"Cypher execution failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Database execution error: {str(e)}")
+
 
 def load_view_query(view_id: str) -> str:
     """Load query from views/{view_id}.cypher"""
@@ -147,7 +173,18 @@ def load_view_query(view_id: str) -> str:
 # FastAPI App
 # ==========================================
 
-app = FastAPI(title="Menir Server", version="1.1.0")
+app = FastAPI(title="Menir Server", version="1.2.0")
+
+@app.on_event("startup")
+def startup_event():
+    get_driver()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    global driver
+    if driver:
+        driver.close()
+
 
 @app.middleware("http")
 async def audit_logger(request: Request, call_next):
@@ -192,7 +229,7 @@ def health():
             "neo4j": "connected", # Placeholder checks
             "vector_store": "ready"
         },
-        "version": "1.1.1"
+        "version": "1.2.0"
     }
 
 @app.get("/v1/meta/state", dependencies=[Depends(verify_token)])
@@ -216,8 +253,8 @@ def query_view(body: ViewParams):
     # Validate just in case file has writes?
     validate_readonly_cypher(cypher)
     
-    # execute_cypher_mock(cypher, body.params)
-    return {"view": body.view_id, "status": "executed"}
+    data = execute_cypher(cypher, body.params)
+    return {"view": body.view_id, "data": data}
 
 @app.post("/v1/context/search", dependencies=[Depends(verify_token)])
 def context_search(body: SearchQuery):
@@ -227,7 +264,7 @@ def context_search(body: SearchQuery):
     # Search logic...
     return {"results": ["Context result 1", "Context result 2"], "project": body.project_id}
 
-@app.post("/v1/scribe/proposals", dependencies=[Depends(verify_token)])
+@app.post("/v1/scribe/proposal", dependencies=[Depends(verify_token)])
 def create_proposal(body: ProposalInput):
     # Generate ID and TS
     ts_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -259,7 +296,7 @@ def create_proposal(body: ProposalInput):
     }
     append_operation_log(safe_log)
     
-    return {"proposal_id": pid, "status": "pending", "file": filename}
+    return {"status": "received", "proposal_id": pid}
 
 @app.get("/v1/scribe/proposals/{proposal_id}", dependencies=[Depends(verify_token)])
 def get_proposal_status(proposal_id: str):
