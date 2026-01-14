@@ -132,8 +132,46 @@ def command_health(args):
     except requests.exceptions.ConnectionError:
         logger.error("❌ MCP Server: OFFLINE (Connection Refused)")
     
-    # 2. Check DB (Optional: wrap check_db_auth.py)
-    # run_script("check_db_auth.py")
+    # 2. Check Menir API Server
+    try:
+        url_api = "http://localhost:8000/v1/health"
+        resp_api = requests.get(url_api, timeout=2)
+        if resp_api.status_code == 200:
+            logger.info(f"✅ Menir API: ONLINE (v{resp_api.json().get('version')})")
+        else:
+            logger.error(f"❌ Menir API: Error {resp_api.status_code}")
+    except:
+        logger.warning("🔸 Menir API: OFFLINE")
+
+def command_server(args):
+    """Launch the Menir API Server (FastAPI)."""
+    logger.info("🌐 Launching Menir API Server...")
+    server_script = SCRIPTS_DIR / "menir_server.py"
+    
+    # Check Env
+    if not os.getenv("MENIR_API_TOKEN"):
+        logger.warning("⚠️ MENIR_API_TOKEN is not set! Authentication logic might fail or block requests.")
+    
+    try:
+        # Run uvicorn via the script
+        cmd = [sys.executable, str(server_script)]
+        subprocess.run(cmd, cwd=BASE_DIR)
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user.")
+
+def command_apply(args):
+    """Apply pending proposals to the Graph."""
+    mode = "COMMIT" if args.commit else "DRY-RUN"
+    logger.info(f"🏗️  Applicator Mode: {mode}")
+    
+    script = SCRIPTS_DIR / "apply_proposals.py"
+    cmd_args = []
+    if args.commit:
+        cmd_args.append("--commit")
+    if args.file:
+        cmd_args.extend(["--file", args.file])
+        
+    run_script("apply_proposals.py", args=cmd_args)
 
 def main():
     parser = argparse.ArgumentParser(description="Menir Unified CLI")
@@ -151,6 +189,14 @@ def main():
     # Health
     parser_health = subparsers.add_parser("health", help="Check component health")
     
+    # Server
+    parser_server = subparsers.add_parser("server", help="Start Menir API Server")
+    
+    # Apply
+    parser_apply = subparsers.add_parser("apply", help="Apply pending proposals")
+    parser_apply.add_argument("--commit", action="store_true", help="Commit changes to DB (default is Dry Run)")
+    parser_apply.add_argument("--file", help="Specific file to apply")
+    
     args = parser.parse_args()
     
     if args.command == "start":
@@ -161,6 +207,10 @@ def main():
         command_status(args)
     elif args.command == "health":
         command_health(args)
+    elif args.command == "server":
+        command_server(args)
+    elif args.command == "apply":
+        command_apply(args)
     else:
         parser.print_help()
 
