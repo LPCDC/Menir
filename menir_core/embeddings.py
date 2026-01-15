@@ -33,14 +33,61 @@ class DummyHashEmbedding(EmbeddingBackend):
         return out
 
 
-# Backend padrão atual – pode ser trocado depois por OpenAI/Groq/Gemini
+import os
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+class GeminiEmbedding(EmbeddingBackend):
+    def __init__(self, api_key: str, model: str = "models/text-embedding-004"):
+        if not genai:
+            raise ImportError("google-generativeai not installed")
+        genai.configure(api_key=api_key)
+        self.model = model
+        self.dim = 768 # text-embedding-004 is 768
+
+    def embed(self, text: str) -> List[float]:
+        result = genai.embed_content(
+            model=self.model,
+            content=text,
+            task_type="retrieval_document"
+        )
+        return result['embedding']
+
+class OpenAIEmbedding(EmbeddingBackend):
+    def __init__(self, api_key: str, model: str = "text-embedding-3-small"):
+        if not OpenAI:
+            raise ImportError("openai not installed")
+        self.client = OpenAI(api_key=api_key)
+        self.model = model
+        self.dim = 1536 # small
+
+    def embed(self, text: str) -> List[float]:
+        text = text.replace("\n", " ")
+        return self.client.embeddings.create(input=[text], model=self.model).data[0].embedding
+
+# Backend padrão atual – com fallback inteligente
 _default_backend: EmbeddingBackend | None = None
 
 
 def get_default_backend() -> EmbeddingBackend:
     global _default_backend
     if _default_backend is None:
-        _default_backend = DummyHashEmbedding(dim=32)
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
+        
+        if gemini_key:
+            _default_backend = GeminiEmbedding(gemini_key)
+        elif openai_key:
+            _default_backend = OpenAIEmbedding(openai_key)
+        else:
+            _default_backend = DummyHashEmbedding(dim=32)
     return _default_backend
 
 
