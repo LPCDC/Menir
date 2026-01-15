@@ -1,40 +1,64 @@
-version: '3.9'
-
-services:
-  neo4j:
+﻿services:
+  menir-db:
     image: neo4j:5.15-community
-    container_name: menir-neo4j
-    restart: unless-stopped
-    ports:
-      - "7687:7687"
-      - "7474:7474"
+    container_name: menir-db
+    restart: always
+    ports: [ "7474:7474", "7687:7687" ]
     environment:
-      NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PWD:-menir123}"
-      NEO4J_dbms_connector_bolt_listen__address: "0.0.0.0:7687"
-      NEO4J_dbms_connector_bolt_tls__level: "DISABLED"
-    volumes:
-      - ./neo4j_data:/data
-      - ./neo4j_logs:/logs
-      - ./neo4j_import:/import
-      - ./neo4j_plugins:/plugins
-    healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PWD:-menir123}", "RETURN 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - NEO4J_AUTH=neo4j/menir123
+      - NEO4J_PLUGINS=["graph-data-science"]
+    volumes: [ "./data/neo4j:/data" ]
+    networks: [ "menir-net" ]
 
-  # Uncomment and customize when ready for containerized Python environment
-  # menir:
-  #   build:
-  #     context: .
-  #     dockerfile: ./Dockerfile
-  #   container_name: menir-app
-  #   depends_on:
-  #     neo4j:
-  #       condition: service_healthy
-  #   working_dir: /workspace
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - .:/workspace
-  #   command: bash -c "sleep 5 && ./scripts/menir_startup.sh"
+  menir-scribe:
+    image: python:3.11-slim
+    container_name: menir-scribe
+    restart: always
+    ports: [ "8000:8000" ]
+    env_file: .env
+    environment:
+      - NEO4J_URI=bolt://menir-db:7687
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PWD=${NEO4J_PWD:-menir123}
+      - MENIR_API_TOKEN=${MENIR_API_TOKEN:-opal_pilot_token_2025}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER}
+    volumes: [ "./scripts:/app/scripts", "./data:/app/data", "./menir_core:/app/menir_core", "./menir10:/app/menir10" ]
+    working_dir: /app
+    depends_on: [ "menir-db" ]
+    networks: [ "menir-net" ]
+    command: >
+      sh -c "pip install fastapi uvicorn pypdf google-generativeai neo4j Pillow python-multipart jsonlines tavily-python openai &&
+             python scripts/menir_server.py"
+
+  menir-dash:
+    image: python:3.11-slim
+    container_name: menir-dash
+    restart: always
+    ports: [ "8501:8501" ]
+    env_file: .env
+    volumes: [ "./frontend:/app/frontend", "./data:/app/data" ]
+    working_dir: /app
+    networks: [ "menir-net" ]
+    command: >
+      sh -c "pip install streamlit requests pandas streamlit-agraph neo4j &&
+             python -m streamlit run frontend/dashboard.py"
+
+  menir-watcher:
+    image: python:3.11-slim
+    container_name: menir-watcher
+    restart: always
+    env_file: .env
+    volumes: [ "./scripts:/app/scripts", "./data:/app/data", "./menir10:/app/menir10" ]
+    working_dir: /app
+    depends_on: [ "menir-scribe" ]
+    networks: [ "menir-net" ]
+    command: >
+      sh -c "pip install watchdog httpx neo4j &&
+             python menir10/service_watcher.py"
+
+networks:
+  menir-net:
+    driver: bridge
