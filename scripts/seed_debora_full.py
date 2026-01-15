@@ -51,12 +51,12 @@ Lauren anuncia festa no 'The Empire'.
 # 2. Dados dos Personagens (Instagram + Texto)
 CHARACTERS = [
     {
-        "id": "caroline_howell", "name": "Caroline Howell", "role": "Protagonist",
+        "id": "caroline_howell", "name": "Caroline", "role": "Protagonist",
         "archetype": "Home Maker / The Heart", "visual": ["ruiva", "cozy", "blue_pastel"],
         "traits": ["Acolhedora", "Sensível", "Observadora"]
     },
     {
-        "id": "spencer_wolfgang", "name": "Spencer Wolfgang", "role": "Love Interest",
+        "id": "spencer_wolfgang", "name": "Spencer", "role": "Love Interest",
         "archetype": "Broken Boy / Bad Boy Redemption", "visual": ["leather_jacket", "messy_hair", "intense_eyes"],
         "traits": ["Inquieto", "Protetor", "Dualidade"]
     },

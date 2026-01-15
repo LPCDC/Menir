@@ -4,3 +4,11 @@ neo4j==5.15.0
 pytest
 openai>=1.0.0
 fastapi
+
+watchdog==3.0.0
+pypdf==3.17.0
+uvicorn
+jsonlines
+google-generativeai
+tavily-python
+
