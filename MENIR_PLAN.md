@@ -1,47 +1,69 @@
-# MENIR — Plano Geral (MarcoPolo + GatoMia + Visual + Resumos)
+# MENIR V3 Specification: "Honest Mode"
+(Versão 3.5.0 - Final Frozen)
 
-**Objetivo:**  
-Garantir boot padrão por **“Marco”** (resposta “Polo”) ou **“Gato Mia”** (resposta “Miau”), entregando painel-resumo com projetos, reflexões, pendências e ajustes.  
-Unir camada visual leve (NeoDash) com consultas sempre resumidas/seguras, e manter auditoria mínima.
+- Princípio: Sem Auditoria (Sheets) = Sem Sucesso (Archive).
+- Idempotência: SHA-256 local + PROJECT_NAME.
+- Recovery: Se Nó (:Document {sha256, project}) existe no Neo4j, pula IA e repara Sheets.
+- Labels: Person, Organization, Location, Role, DocumentConcept, Project, Asset, Event, Obligation, Risk.
+- Gatekeeper: Apenas .pdf. Texto < 50 chars vai para Quarantine.
 
----
+## Status
+- [x] **Execução V3.0**: 100% Concluída (2026-01-18)
+  - Drive Sync & Archive
+  - Gemini Flash Free Tier
+  - Neo4j Auth Remediation
+  - Audit Hard-Stop
 
-## Camada Visual
-- **NeoDash** conectado ao **Neo4j Aura** (recomendado).  
-- **Bloom** opcional (via Desktop/App, conforme compatibilidade).  
-- Dashboards salvos no banco → painel **MarcoPolo/GatoMia**.
+## Roadmap
+- [x] **V3.1 - Metadata Injection (Completed)**: Enriched graph with advanced metadata & Root Ontology.
+- [x] **Horizon 1: Refinamento Tático (Robustez & Estabilidade)**
+    - **Architecture Hardening**:
+        - **Type Safety**: Implemented `Pydantic` models for all Neo4j Nodes.
+        - **Resilience**: Standardized `tenacity` retry logic across Middlewares.
+        - **CI/CD Hygiene**: Restored GitHub Actions and purged the repository of heavy binaries.
+    - **Sanitization Gate**: Strict PII scrubbing and Tenant-isolation via `TenantAwareDriver`.
 
----
+- [x] **Horizon 2: Cloud Native & Cognitive Speed (The Optimization)**
+    - **Staged Ingestion Pipeline (4-Fases)**: JSONL -> Pydantic Validation -> `UNWIND` Cypher Batching -> SHA-256 Signatures.
+    - **LangGraph Integration**: State-driven workflow base orchestrator established (`langgraph_orchestrator.py`).
+    - **Idempotency**: All Cypher injection scripts migrated from `CREATE` to `MERGE` patterns.
 
-## Diretrizes de Consultas
-- Usar `OPTIONAL MATCH` + `COLLECT[..limite..]` + `LIMIT` nos painéis.  
-- Evitar agregações gigantes sem filtros (lembrar: `LIMIT` não reduz custo de agregação pesada).  
-- Sempre fornecer fallback (“sem projetos ativos”, etc.) para que **o Polo/Miau nunca falhe**.
-
----
-
-## Carga de Dados
-- CSVs devem estar públicos (GitHub Pages/S3/etc.) para `LOAD CSV` no Aura.  
-- Garantir privilégio `LOAD` ativo na instância.
-
----
-
-## Auditoria
-- Hash com `apoc.util.sha256([mensagem])` para assinar execuções críticas.  
-- Registrar logs de reflexões e ajustes de parâmetros no grafo (`Reflexao` → `Parametro`).
-
----
-
-## Alias de Ativação
-- **“Marco”** → resposta: **“Polo”** (painel-resumo).  
-- **“Gato Mia”** → resposta: **“Miau”** (mesma função, versão lúdica/brasileira).  
-- Ambos acionam o mesmo seed/dashboard.
+- [x] **Horizon 3: Fronteira de Inovação (Inteligência Cognitiva Operacional)**
+    - **Módulo GatoMia**: Audits structural graph shapes (e.g. cycles) for Fraud Rings (`forensic_auditor.py`).
+    - **Módulo Livro Débora**: Transforms plots into `(:Scene)-[:NEXT_SCENE]->(:Scene)` Linked-Lists, blocking logic errors via TLA+ style backwards traversals.
+    - **Módulo Otani**: Evaluates agnostic Building Geometries mathematically against building codes (SHACL).
+    - **Observability e HITL**: RAGAS tracker with manual human-in-the-loop locks over high risk prompts.
 
 ---
 
-## Processo Operacional
-- Sempre que houver commit/push, o assistente fornecerá **Summary exato** para colar no GitHub Desktop.  
-- Minimizar esforço do usuário: passos claros, comandos prontos, sem retrabalho.  
-- Checkpoints periódicos (`checkpoint.md`) para consolidar estado.  
+## ROADMAP V4.0: THE OMNI-INGESTOR
 
----
+**(Status: Planning / Architecture Phase)**
+
+### 1. SUBSYSTEM: THE TRUTH ARBITER (Metadata & Hierarchy)
+- **Problem:** "The Trojan Horse" (Conflict between file metadata and text content).
+- **Theory:** "Trust Tiering" with **Sanitization Gate**.
+- **Mechanism:** 
+    - **Sanitization:** Metadata checks against a "Generic Blacklist" (e.g., "Microsoft User", "Admin"). Only specific names are trusted.
+    - **Tiering:** `Blockchain` > `Digital Signature` > `Sanitized Metadata` > `OCR Text`. 
+    - **Conflict:** When conflicts arise, create a `:Conflict` node for human arbitration.
+
+### 2. SUBSYSTEM: ADAPTIVE ONTOLOGY (Structured Data Defense)
+- **Problem:** "Tower of Babel" (Schema Drift in Excel/CSV sources).
+- **Theory:** "Medallion Graph Layering".
+- **Mechanism:** Ingest data in layers:
+    - **Bronze Layer:** Raw data nodes exactly as they appear in the source.
+    - **Silver Layer:** AI-mapped schema (using embeddings to map "Qty" to "Quantity").
+    - **Gold Layer:** Curated, strict ontology for the final application.
+
+### 3. SUBSYSTEM: THE LAZY AUDITOR PROTOCOL (Visual Defense)
+- **Problem:** "The Mirage" (AI hallucinations) & "The Bill" (API Quotas).
+- **Theory:** "Probabilistic Invocation".
+- **Mechanism:** Default to Text/OCR (Low Cost).
+    - **Trigger:** Vision AI is ONLY triggered if "Visual Anchors" (e.g., "Figure X", "See Chart") are detected in text AND OCR fails to parse.
+    - **Validation:** If cost permits, cross-reference Narrative vs. Data. Otherwise, flag complex visuals as `:NeedsReview` with a link to the raw image.
+
+### 4. SUBSYSTEM: TEMPORAL PROVENANCE (Web & Live Data Defense)
+- **Problem:** "Ghost Ship" (Dead links and changing web content).
+- **Theory:** "Snapshotting & TTL (Time-To-Live)".
+- **Mechanism:** The Graph never indexes a raw URL as a source of truth. It indexes a `(:Snapshot {timestamp: T})`. Web nodes have an `expires_at` property. When expired, the crawler revisits. If content changed, a new version node is created and linked via `[:UPDATED_FROM]`, preserving historical truth.
