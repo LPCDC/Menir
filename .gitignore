@@ -77,3 +77,4 @@ neo4j_import/
 neo4j_plugins/
 .menir_state
 data/
+user_data/

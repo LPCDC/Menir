@@ -1,0 +1,58 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.2, pytest-9.0.1, pluggy-1.5.0 -- C:\ProgramData\miniconda3\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Pichau\Repos\MenirVital\Menir
+configfile: pytest.ini
+plugins: anyio-4.12.0, mock-3.15.1
+collecting ... collected 5 items
+
+src/v3/mcp/test_mcp_tools.py::test_pii_redaction PASSED                  [ 20%]
+src/v3/mcp/test_mcp_tools.py::test_log_redaction PASSED                  [ 40%]
+src/v3/mcp/test_mcp_tools.py::test_get_strict_schema FAILED              [ 60%]
+src/v3/mcp/test_mcp_tools.py::test_search_logs_mock FAILED               [ 80%]
+src/v3/mcp/test_mcp_tools.py::test_explain_node_timeout FAILED           [100%]
+
+================================== FAILURES ===================================
+___________________________ test_get_strict_schema ____________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+____________________________ test_search_logs_mock ____________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+__________________________ test_explain_node_timeout __________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+============================== warnings summary ===============================
+src\v3\mcp\test_mcp_tools.py:37
+  C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\mcp\test_mcp_tools.py:37: PytestUnknownMarkWarning: Unknown pytest.mark.asyncio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.asyncio
+
+src\v3\mcp\test_mcp_tools.py:43
+  C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\mcp\test_mcp_tools.py:43: PytestUnknownMarkWarning: Unknown pytest.mark.asyncio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.asyncio
+
+src\v3\mcp\test_mcp_tools.py:62
+  C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\mcp\test_mcp_tools.py:62: PytestUnknownMarkWarning: Unknown pytest.mark.asyncio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.asyncio
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED src/v3/mcp/test_mcp_tools.py::test_get_strict_schema - Failed: async d...
+FAILED src/v3/mcp/test_mcp_tools.py::test_search_logs_mock - Failed: async de...
+FAILED src/v3/mcp/test_mcp_tools.py::test_explain_node_timeout - Failed: asyn...
+=================== 3 failed, 2 passed, 3 warnings in 2.25s ===================

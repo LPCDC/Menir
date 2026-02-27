@@ -26,9 +26,11 @@ Environment:
 
 import os
 import pytest
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from neo4j.exceptions import Neo4jError
 
+load_dotenv(override=True)
 
 # Configuration (override via environment variables)
 URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
