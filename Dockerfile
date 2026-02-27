@@ -1,23 +1,49 @@
-﻿# Usar Python leve
+﻿
+# 🐳 Menir V5 Universal Dockerfile
+# Base Image: Python 3.11 Slim (Debian-based) for balance of size and compatibility.
+
 FROM python:3.11-slim
 
-# Configurar diretório de trabalho
+# Set environment variables
+# PYTHONDONTWRITEBYTECODE: Prevents Python from writing pyc files to disc
+# PYTHONUNBUFFERED: Prevents Python from buffering stdout and stderr
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Create a non-root user "menir"
+RUN useradd -m -s /bin/bash menir
+
+# Set work directory
 WORKDIR /app
 
-# Instalar dependências do sistema (se precisar)
+# Install system dependencies (curl for healthchecks if needed, git for some pip packages)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
+    curl \
+    git \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar e instalar requirements
+# Copy Requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar todo o código do projeto
-COPY . .
+# Install Python Dependencies
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install watchdog tenacity google-generativeai
 
-# Definir variáveis de ambiente para Python
-ENV PYTHONUNBUFFERED=1
+# Copy Critical Scripts & Source Code
+# Note: In dev mode, we usually bind mount /app/src, but copying ensures the image is standalone.
+COPY src/ /app/src/
+COPY verify_docker.py /app/verify_docker.py
+COPY .env.example /app/.env.example
 
-# Comando padrão (será sobrescrito pelo docker-compose, mas bom ter)
-CMD ["python", "-m", "menir10.service_watcher"]
+# Create Directories for Volumes and set permissions
+RUN mkdir -p /app/Menir_Inbox /app/logs && \
+    chown -R menir:menir /app/Menir_Inbox /app/logs /app/src
+
+# Remove root privileges
+USER menir
+
+# Default Command (Overridden by docker-compose)
+CMD ["python", "verify_docker.py"]
