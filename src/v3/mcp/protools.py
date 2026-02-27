@@ -9,29 +9,13 @@ import asyncio
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP
-import mcp.types as types
-
+import mcp.types
 from src.v3.graph_schema import STRICT_SCHEMA
 from src.v3.menir_bridge import MenirBridge
 from src.v3.mcp.security import PiiFilter
 
 # Initialize Helper Logger
 logger = logging.getLogger("MenirMCPTools")
-
-# ==========================================
-# Input Models (Pydantic)
-# ==========================================
-
-class SearchLogsInput(BaseModel):
-    limit: int = Field(100, ge=1, le=500, description="Number of last lines to read")
-    keyword: Optional[str] = Field(None, description="Optional keyword to filter lines")
-
-class ExplainNodeInput(BaseModel):
-    uuid: str = Field(..., description="UUID of the node to explain")
-    show_pii: bool = Field(False, description="Request visibility of PII (Logs attempt)")
-
-class CheckQuarantineInput(BaseModel):
-    days: int = Field(7, description="Lookback window in days")
 
 # ==========================================
 # Tool Logic

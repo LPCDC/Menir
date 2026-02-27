@@ -41,20 +41,6 @@ class MenirBridge:
     def close(self):
         self.driver.close()
 
-    def init_constraints(self):
-        """Ensures logical integrity of the graph."""
-        queries = [
-            "CREATE CONSTRAINT project_name IF NOT EXISTS FOR (p:Project) REQUIRE p.name IS UNIQUE",
-            "CREATE CONSTRAINT doc_sha256 IF NOT EXISTS FOR (d:Document) REQUIRE (d.sha256, d.project) IS UNIQUE",
-        ]
-        with self.driver.session() as session:
-            for q in queries:
-                try:
-                    session.run(q)
-                    logger.info(f"Constraint Applied: {q}")
-                except Exception as e:
-                    logger.warning(f"Constraint Warning: {e}")
-
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),

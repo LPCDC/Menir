@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 from mcp.server.fastmcp import FastMCP
-from src.v3.mcp.protools import MenirTools, SearchLogsInput, ExplainNodeInput, CheckQuarantineInput
+from src.v3.mcp.protools import MenirTools
 
 # Configure Logging (StdErr to not corrupt StdOut MCP transport)
 logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
