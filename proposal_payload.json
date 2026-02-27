@@ -1,0 +1,14 @@
+{
+    "project_id": "pilot_2",
+    "type": "create_node",
+    "source_metadata": {
+        "channel": "opal_app"
+    },
+    "payload": {
+        "label": "PilotTest",
+        "properties": {
+            "message": "Hello Opal",
+            "timestamp": "now"
+        }
+    }
+}
