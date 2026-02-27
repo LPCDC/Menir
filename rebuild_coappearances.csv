@@ -1,0 +1,14 @@
+char1,char2,sharedCount,sceneIds
+Caroline Howell,Lauren,2,"['scene_04', 'scene_02']"
+Caroline Howell,Dean Bellini,2,"['scene_04', 'scene_03']"
+Andy Howell,Olivia Howell,1,['scene_01']
+Andy Howell,Caroline Howell,1,['scene_01']
+Caroline Howell,Matt,1,['scene_04']
+Caroline Howell,Sr. O'Donnel,1,['scene_03']
+Caroline Howell,Diretor Smith,1,['scene_02']
+Caroline Howell,Olivia Howell,1,['scene_01']
+Dean Bellini,Matt,1,['scene_04']
+Dean Bellini,Lauren,1,['scene_04']
+Dean Bellini,Sr. O'Donnel,1,['scene_03']
+Diretor Smith,Lauren,1,['scene_02']
+Lauren,Matt,1,['scene_04']

@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-12-06T22:57:56.844931",
+  "database": "bolt://localhost:7687",
+  "tests": {
+    "connection": {
+      "passed": true,
+      "message": "\u2705 Conectado"
+    },
+    "schema": {
+      "passed": true,
+      "message": "All 11 labels present"
+    },
+    "ingest": {
+      "passed": true,
+      "message": "Test data created"
+    },
+    "counts": {
+      "passed": true,
+      "message": "Minimum counts satisfied",
+      "details": {
+        "Work": 2,
+        "Chapter": 2,
+        "Character": 9,
+        "Scene": 4,
+        "Event": 13,
+        "Total": 30
+      }
+    },
+    "orphans": {
+      "passed": true,
+      "message": "Orphan count: 1",
+      "count": 1
+    },
+    "scenes_without_events": {
+      "passed": true,
+      "message": "All scenes have events",
+      "count": 0
+    },
+    "cleanup": {
+      "passed": true,
+      "message": "Cleanup done"
+    }
+  },
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "status": "\u2705 OK"
+  }
+}
