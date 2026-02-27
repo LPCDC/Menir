@@ -11,6 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="google.generativ
 
 import google.generativeai as genai
 from unidecode import unidecode
+from tenacity import retry, stop_after_attempt, stop_after_delay, wait_exponential, retry_if_exception_type, before_sleep_log
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,11 @@ class MenirIntel:
             "Concept", "Year", "Month", "Day"
         }
 
+    @retry(
+        stop=(stop_after_attempt(3) | stop_after_delay(60)),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        before_sleep=before_sleep_log(logger, logging.WARNING)
+    )
     def generate_embedding(self, text: str) -> list[float]:
         """
         Generates 768-dim vector using Gemini text-embedding-004.
@@ -39,7 +45,8 @@ class MenirIntel:
             result = genai.embed_content(
                 model="models/text-embedding-004",
                 content=text,
-                task_type="retrieval_document" # Optimized for storage
+                task_type="retrieval_document", # Optimized for storage
+                request_options={"timeout": 60.0}
             )
             return result['embedding']
         except Exception as e:
@@ -73,6 +80,11 @@ class MenirIntel:
                 clean_props[k] = v
         return clean_props
 
+    @retry(
+        stop=(stop_after_attempt(4) | stop_after_delay(120)),
+        wait=wait_exponential(multiplier=2, min=4, max=15),
+        before_sleep=before_sleep_log(logger, logging.WARNING)
+    )
     def extract(self, text, project_name, doc_hash):
         """
         Extrai grafo, valida schema e injeta escopo (Project/Hash).
@@ -97,7 +109,8 @@ class MenirIntel:
         try:
             response = self.model.generate_content(
                 f"{system_prompt}\n\nTEXTO:\n{text}",
-                generation_config={"response_mime_type": "application/json"}
+                generation_config={"response_mime_type": "application/json"},
+                request_options={"timeout": 90.0}
             )
             
             raw_data = json.loads(response.text)
