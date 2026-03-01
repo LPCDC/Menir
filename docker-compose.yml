@@ -5,15 +5,21 @@ services:
   menir-runner:
     build: .
     container_name: menir-runner
-    command: python -m src.v3.menir_runner
+    command: bash scripts/entrypoint.sh
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "scripts/healthcheck.py" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     volumes:
-      - ./Menir_Inbox:/app/Menir_Inbox # Hot Folder
-      - ./logs:/app/logs # Audit Logs
-      - ./src:/app/src # Live Code Reload (Dev Mode)
-      - ./.env:/app/.env # Secrets
-      - ./token.json:/app/token.json
-      - ./tests:/app/tests # Tests for CI/CD
+      - ./Menir_Inbox:/app/Menir_Inbox # Hot Folder (Writable)
+      - ./logs:/app/logs # Audit Logs (Writable)
+      - ./Menir_Archive:/app/Menir_Archive # Archive Dump (Writable)
+      - ./src:/app/src:ro # Live Code Reload (Read-Only Guardrail)
+      - ./.env:/app/.env:ro # Secrets (Read-Only)
+      - ./token.json:/app/token.json:ro
+      - ./tests:/app/tests:ro # Tests for CI/CD
     environment:
       - PYTHONUNBUFFERED=1
     depends_on:
@@ -27,5 +33,5 @@ services:
     command: python verify_docker.py
     volumes:
       - ./Menir_Inbox:/app/Menir_Inbox
-      - ./.env:/app/.env
+      - ./.env:/app/.env:ro
     restart: "no" # Run once and die

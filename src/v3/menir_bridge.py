@@ -252,7 +252,8 @@ class MenirBridge:
         query = f"""
         MATCH (d:Document:`{safe_tenant}` {{sha256: $doc_sha}})
         MERGE (c:Chunk:`{safe_tenant}` {{uid: $uid}})
-        SET c.text = $text, 
+        SET c.name = $uid,
+            c.text = $text, 
             c.embedding = $embedding,
             c.generated_at = datetime()
         MERGE (c)-[:BELONGS_TO]->(d)
