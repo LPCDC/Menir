@@ -85,13 +85,25 @@ class MenirIntel:
         wait=wait_exponential(multiplier=2, min=4, max=15),
         before_sleep=before_sleep_log(logger, logging.WARNING)
     )
-    async def structured_inference(self, prompt: str, image_path: str = None, response_schema=None):
+    async def structured_inference(self, prompt: str, image_path: str = None, response_schema=None, few_shot_examples: list[dict] = None):
         """
         Inferência Bimodal Unificada e Agnóstica baseada em Schema Pydantic.
         Substitui a antiga ontologia fixa BFO/SKOS, servindo a qualquer Skill de Extração nativamente.
+        Pode ser dinamicamente 'ancorada' com Semantic Few-Shot Examples.
         """
         import asyncio
-        contents = [prompt]
+        contents = []
+        
+        # O Motor Semântico: Semantic LoRA (Few-Shot)
+        if few_shot_examples:
+            logger.info(f"⚓ Ancoragem Semântica Ativada: Injetando {len(few_shot_examples)} Exemplos de Ouro no Vertex Context.")
+            system_prompt = "INSTRUÇÃO MESTRA (SEMANTIC ANCHORING - STYLE LORA): Você deve mimetizar EXATAMENTE o estilo de formato e o tom estrito dos exemplos perfeitos de extração abaixo. NUNCA desvie desta ancoragem.\n\n"
+            for idx, ex in enumerate(few_shot_examples):
+                system_prompt += f"--- EXEMPLO DE OURO {idx+1} ---\n[INPUT ORIGINAL]\n{ex.get('input_text')}\n\n[OUTPUT ESPERADO]\n{ex.get('ideal_json')}\n\n"
+            system_prompt += f"--- FIM DOS EXEMPLOS ---\n\n### TAREFA ATUAL ###\n{prompt}"
+            contents.append(system_prompt)
+        else:
+            contents.append(prompt)
         
         if image_path and os.path.exists(image_path):
             try:
