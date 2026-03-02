@@ -131,7 +131,7 @@ class MenirAsyncRunner:
                     logger.info("➡️ Roteando para a InvoiceSkill (Faturamento).")
                     result = await self.invoice_skill.process_document(file_path, tenant)
 
-                # Roteamento Físico Dinâmico (Compliance vs Entropia)
+                # Roteamento Físico Dinâmico (Compliance vs Anomaly Routing)
                 if result.success:
                     self._archive_document(file_path, tenant)
                 else:
