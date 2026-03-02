@@ -1,1 +1,0 @@
-SHOW INDEXES WHERE type = 'VECTOR'
