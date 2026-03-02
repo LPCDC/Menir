@@ -87,6 +87,29 @@ class MenirAsyncRunner:
         except Exception as e:
             logger.error(f"⚠️ Erro ao arquivar o documento {file_path}: {e}")
 
+    def _quarantine_document(self, file_path: str, tenant: str):
+        """
+        Move o arquivo reprovado para a pasta Quarentena.
+        Isso retira a fatura corrompida do Loop do Watchdog, evitando Deadlocks de I/O.
+        Path: Menir_Inbox/Quarantine/{Tenant}/{Ano}/
+        """
+        try:
+            current_year = str(datetime.now().year)
+            quarantine_dir = os.path.join("Menir_Inbox", "Quarantine", tenant, current_year)
+            os.makedirs(quarantine_dir, exist_ok=True)
+            
+            filename = os.path.basename(file_path)
+            dest_path = os.path.join(quarantine_dir, filename)
+            
+            if os.path.exists(dest_path):
+                name, ext = os.path.splitext(filename)
+                dest_path = os.path.join(quarantine_dir, f"{name}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}")
+                
+            shutil.move(file_path, dest_path)
+            logger.warning(f"☣️ [Quarantine] Arquivo isolado fisicamente devido a Anomalia: {dest_path}")
+        except Exception as e:
+            logger.error(f"⚠️ Erro Crítico de I/O ao mover para Quarentena {file_path}: {e}")
+
     async def _process_single_file(self, file_path: str, tenant: str):
         """
         Worker isolado protegido por semáforo para processamento de um (1) documento.
@@ -108,13 +131,12 @@ class MenirAsyncRunner:
                     logger.info("➡️ Roteando para a InvoiceSkill (Faturamento).")
                     result = await self.invoice_skill.process_document(file_path, tenant)
 
-                # Arquivamento (Mesmo se falhou, arquivamos para a Quarentena ou Compliance dependendo do Success)
-                # Observação: Para simplificar, movemos sempre. Numa versão real, success=False vai para Quarantine_Inbox.
+                # Roteamento Físico Dinâmico (Compliance vs Entropia)
                 if result.success:
                     self._archive_document(file_path, tenant)
                 else:
                     logger.warning(f"❌ Falha de Skill no arquivo {file_path}: {result.message}")
-                    # Ideia futura: shutil.move para pasta Menir_Quarantine
+                    self._quarantine_document(file_path, tenant)
                     
             except Exception as e:
                 logger.error(f"Erro catastrófico no Worker para {file_path}: {e}")

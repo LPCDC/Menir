@@ -132,10 +132,22 @@ class InvoiceSkill:
 
     async def process_document(self, file_path: str, tenant: str = "BECO") -> SkillResult:
         """
-        Rotina Bimodal de Ingestão e Validação.
+        Rotina Bimodal de Ingestão e Validação Sismográfica.
         """
+        import hashlib
+        import json
+        from pydantic import ValidationError
+        
         logger.info(f"🧾 Iniciando processamento de Invoice: {file_path}")
         
+        # 0. HASHING FISICO (A Identidade Única do Fóssil)
+        try:
+            with open(file_path, "rb") as f:
+                file_hash = hashlib.sha256(f.read()).hexdigest()
+        except Exception as e:
+            logger.error(f"Erro ao computar hash do documento {file_path}: {e}")
+            return SkillResult(success=False, message=str(e), nodes_and_edges=[])
+            
         try:
             # 1. TRIAGEM PELA VELOCIDADE E COMPLEXIDADE DO ARQUIVO
             lane = self.dispatcher.analyze_payload(file_path)
@@ -162,14 +174,21 @@ class InvoiceSkill:
                 
             elif lane == "SLOW_LANE":
                 logger.info("🐢 Invoice triada para SLOW_LANE: Acionando Gemini Vision LLM + ReflexiveAgent (Oráculo).")
-                # Ler o base64 da imagem e invocar o LLM com as Âncoras Semânticas:
-                # result = await self.intel.structured_inference(
-                #     prompt="Extraia os dados desta fatura. Siga as regras contábeis.",
-                #     image_path=file_path,
-                #     response_schema=InvoiceData,
-                #     few_shot_examples=golden_examples
-                # )
-                pass
+                try:
+                    # Roteamento real omitido para brevidade; simulando a captura do caos
+                    # result = await self.intel.structured_inference(...)
+                    pass
+                except json.JSONDecodeError as e:
+                    logger.error(f"SPOF 1 - Caos Transdimensional (Pré-Pydantic) em {file_path}")
+                    self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "ExtractionError", str(e), 1)
+                    return SkillResult(success=False, message="Falha estrutural de OCR/Image Parsing", nodes_and_edges=[])
+                except ValidationError as e:
+                    # Contar quantos erros agrupados existem no ErrorWrapper
+                    error_count = len(e.errors())
+                    error_dump = e.json()
+                    logger.error(f"SPOF 2 - Caos Pydantic ({error_count} erros matemáticos/TDFN) em {file_path}")
+                    self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "MathValidationError", error_dump, error_count)
+                    return SkillResult(success=False, message=f"Fatura reprovada em {error_count} regras Fiduciárias", nodes_and_edges=[])
 
             # 5. RETORNO (Mockado para o esqueleto)
             return SkillResult(
@@ -179,7 +198,7 @@ class InvoiceSkill:
             )
             
         except Exception as e:
-            logger.error(f"Erro ao processar Fatura: {e}")
+            logger.error(f"Erro Genérico ao processar Fatura: {e}")
             return SkillResult(
                 success=False,
                 nodes_and_edges=[],

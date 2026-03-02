@@ -144,6 +144,50 @@ class MenirOntologyManager:
             logger.info(f"✨ Recuperados {len(golden)} Exemplos de Ouro no Grafo para o Mimetismo do Tenant {tenant_name}.")
         return golden
 
+    def inject_entropy_anomaly(self, tenant: str, file_hash: str, error_type: str, raw_errors: str, error_count: int, agent_name: str = "Nicole/BECO"):
+        """
+        O Injetor do Sismógrafo Forense (Topologia da Entropia).
+        Consolida N erros de um documento num único Nó :Anomaly via HMAC idempotente.
+        Isso cria um histórico passível de Analytics para quantificar Incompetência Burocrática, 
+        sem gerar "Clipping" de transações independentes no Neo4j.
+        """
+        query = """
+        // 1. O Recipiente do Fóssil (A Fatura que deu problema)
+        // Mesmo falhando, criamos um placeholder :Invoice para ancorar a Anomalia real no espaço-tempo.
+        MERGE (i:Invoice:`{tenant_safe}` {file_hash: $file_hash})
+        ON CREATE SET i.status = 'QUARANTINED', i.ingested_at = datetime()
+        
+        // 2. O Evento de Entropia (O Nó Anomalia consolidado)
+        MERGE (a:Anomaly {file_hash: $file_hash})
+        SET a.type = $error_type,
+            a.count = $error_count,
+            a.details = $raw_errors,
+            a.timestamp = datetime(),
+            a.severity = "High"
+            
+        // 3. A Assinatura de Inépcia (Quem causou?)
+        MERGE (ag:Agent {name: $agent_name})
+        MERGE (ag)-[:GENERATED_ANOMALY]->(a)
+        
+        // 4. Conexão Origem-Destino
+        MERGE (i)-[:HAS_ANOMALY]->(a)
+        """
+        safe_tenant = tenant.replace("`", "")
+        params = {
+            "tenant_safe": safe_tenant,
+            "file_hash": file_hash,
+            "error_type": error_type,
+            "error_count": error_count,
+            "raw_errors": raw_errors,
+            "agent_name": agent_name
+        }
+        try:
+            with self.driver.session() as session:
+                session.run(query.replace("{tenant_safe}", safe_tenant), **params)
+            logger.warning(f"☢️ [Sismógrafo Ativo] Anomalia ({error_type}) com {error_count} erros gravada no Grafo (Tenant: {tenant}).")
+        except Exception as e:
+            logger.error(f"Erro brutal ao injetar Anomalia no Grafo para arquivo {file_hash}: {e}")
+
 if __name__ == "__main__":
     import os
     from dotenv import load_dotenv
