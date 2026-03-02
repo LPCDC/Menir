@@ -141,23 +141,22 @@ class MenirOntologyManager:
                 })
         
         if golden:
-            logger.info(f"✨ Recuperados {len(golden)} Exemplos de Ouro no Grafo para o Mimetismo do Tenant {tenant_name}.")
+            logger.info(f"✨ Retrieved {len(golden)} GoldenExamples from Graph for Tenant {tenant_name}.")
         return golden
 
     def inject_entropy_anomaly(self, tenant: str, file_hash: str, error_type: str, raw_errors: str, error_count: int, agent_name: str = "Nicole/BECO"):
         """
-        O Injetor do Sismógrafo Forense (Topologia da Entropia).
-        Consolida N erros de um documento num único Nó :Anomaly via HMAC idempotente.
-        Isso cria um histórico passível de Analytics para quantificar Incompetência Burocrática, 
-        sem gerar "Clipping" de transações independentes no Neo4j.
+        Injects anomaly data into Neo4j.
+        Consolidates multiple errors into a single :Anomaly node per document via file hashing
+        to prevent database transaction overhead.
         """
         query = """
-        // 1. O Recipiente do Fóssil (A Fatura que deu problema)
-        // Mesmo falhando, criamos um placeholder :Invoice para ancorar a Anomalia real no espaço-tempo.
+        // 1. The Origin Document (The failed Invoice)
+        // Even on failure, create an :Invoice placeholder to anchor the anomaly context.
         MERGE (i:Invoice:`{tenant_safe}` {file_hash: $file_hash})
         ON CREATE SET i.status = 'QUARANTINED', i.ingested_at = datetime()
         
-        // 2. O Evento de Entropia (O Nó Anomalia consolidado)
+        // 2. The Anomaly Event (Consolidated Anomaly Node)
         MERGE (a:Anomaly {file_hash: $file_hash})
         SET a.type = $error_type,
             a.count = $error_count,
@@ -184,9 +183,9 @@ class MenirOntologyManager:
         try:
             with self.driver.session() as session:
                 session.run(query.replace("{tenant_safe}", safe_tenant), **params)
-            logger.warning(f"☢️ [Sismógrafo Ativo] Anomalia ({error_type}) com {error_count} erros gravada no Grafo (Tenant: {tenant}).")
+            logger.warning(f"☢️ Anomaly ({error_type}) with {error_count} errors injected into Graph (Tenant: {tenant}).")
         except Exception as e:
-            logger.error(f"Erro brutal ao injetar Anomalia no Grafo para arquivo {file_hash}: {e}")
+            logger.error(f"Failed to inject anomaly into graph for file {file_hash}: {e}")
 
 if __name__ == "__main__":
     import os

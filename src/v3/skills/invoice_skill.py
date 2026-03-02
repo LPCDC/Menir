@@ -132,7 +132,7 @@ class InvoiceSkill:
 
     async def process_document(self, file_path: str, tenant: str = "BECO") -> SkillResult:
         """
-        Rotina Bimodal de Ingestão e Validação Sismográfica.
+        Rotina Bimodal de Ingestão e Validação.
         """
         import hashlib
         import json
@@ -140,7 +140,7 @@ class InvoiceSkill:
         
         logger.info(f"🧾 Iniciando processamento de Invoice: {file_path}")
         
-        # 0. HASHING FISICO (A Identidade Única do Fóssil)
+        # 0. COMPUTING FILE HASH (Unique Document Identifier)
         try:
             with open(file_path, "rb") as f:
                 file_hash = hashlib.sha256(f.read()).hexdigest()
@@ -179,14 +179,14 @@ class InvoiceSkill:
                     # result = await self.intel.structured_inference(...)
                     pass
                 except json.JSONDecodeError as e:
-                    logger.error(f"SPOF 1 - Caos Transdimensional (Pré-Pydantic) em {file_path}")
+                    logger.error(f"JSONDecodeError - Invalid JSON format from LLM extraction for document {file_path}")
                     self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "ExtractionError", str(e), 1)
                     return SkillResult(success=False, message="Falha estrutural de OCR/Image Parsing", nodes_and_edges=[])
                 except ValidationError as e:
                     # Contar quantos erros agrupados existem no ErrorWrapper
                     error_count = len(e.errors())
                     error_dump = e.json()
-                    logger.error(f"SPOF 2 - Caos Pydantic ({error_count} erros matemáticos/TDFN) em {file_path}")
+                    logger.error(f"ValidationError - Pydantic validation failed with {error_count} errors for document {file_path}")
                     self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "MathValidationError", error_dump, error_count)
                     return SkillResult(success=False, message=f"Fatura reprovada em {error_count} regras Fiduciárias", nodes_and_edges=[])
 

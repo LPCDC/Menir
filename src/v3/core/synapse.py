@@ -25,12 +25,12 @@ class PrioritizedCommand:
 class MenirSynapse:
     def __init__(self, runner, intel_instance=None):
         """
-        Injeta a referência do Runner para introspecção e do Intel para o Córtex NLP.
+        Injects Runner reference for introspection and MenirIntel for NLP parsing.
         """
         self.runner = runner
         self.logos = MenirLogos(intel_instance) if intel_instance else None
         
-        # O Fio Condutor: Queue Assíncrona Prioritizada
+        # Primary Async Priority Queue
         self.command_bus = asyncio.PriorityQueue()
         
         # AIOHTTP Application
@@ -44,10 +44,10 @@ class MenirSynapse:
 
     def _get_priority_weight(self, origin: str) -> int:
         """
-        Hierarquia Absoluta.
-        0 = CLI_LOCAL (Root NAS, Interrupção imediata)
-        1 = AI_ORACLE (Supervisor de Sistema)
-        2 = WEB_UI (Contador Fiduciário - Espera na fila)
+        Defines priority weighting.
+        0 = CLI_LOCAL (Immediate interruption)
+        1 = AI_ORACLE (System Supervisor)
+        2 = WEB_UI (Standard prioritization)
         """
         mapping = {"CLI_LOCAL": 0, "AI_ORACLE": 1, "WEB_UI": 2, "CRON": 3}
         return mapping.get(origin, 99)
@@ -55,25 +55,25 @@ class MenirSynapse:
     def _format_response(self, payload: CommandPayload) -> str:
         """Sintetiza a resposta baseada em quem perguntou."""
         if payload.origin == "CLI_LOCAL":
-            # Retorno para o Bash/SSH do Administrador Pano
+            # Response formatting for CLI_LOCAL
             return f"\n[CLI ACK] {payload.command_id}\nACTION: {payload.action}\nCONFIDENCE: {payload.confidence_score*100}%\nRATIONALE: {payload.rationale}\nSTATUS: Enqueued with Priority {self._get_priority_weight(payload.origin)}\n"
         elif payload.origin == "AI_ORACLE":
-            # Retorno otimizado (Hash) para Agentes API
+            # Optimized Hash response
             return f"ACK_HASH:{payload.command_id}|{payload.action}"
         else:
-            # Retorno canônico JSON para FrontEnd / WEB_UI
+            # Canonical JSON response for frontends
             return json.dumps(payload.model_dump())
 
     async def _queue_command(self, raw_input: str, origin: str, tenant_id: str = "BECO") -> str:
         """
-        O Núcleo de Processamento de Intenção Logos -> Bus.
+        Core NLP intent to Bus enqueueing.
         """
         if not self.logos:
-            return "ERROR: Logos Cortex offline (No MenirIntel instance provided)."
+            return "ERROR: MenirLogos offline (No MenirIntel instance provided)."
             
         payload: CommandPayload = await self.logos.interpret_intent(raw_input, origin, tenant_id=tenant_id)
         
-        # Encapsula na matriz de prioridade e despacha para o event_loop
+        # Enqueue with strict priority
         priority = self._get_priority_weight(origin)
         cmd = PrioritizedCommand(priority=priority, timestamp=time.time(), payload=payload)
         

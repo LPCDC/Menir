@@ -41,7 +41,7 @@ class MenirIntel:
             if not api_key:
                 api_key = os.getenv("GOOGLE_API_KEY")
             if not api_key:
-                raise ValueError("Nenhum VERTEX_PROJECT_ID ou GOOGLE_API_KEY fornecido. O Motor Intelectual não pode inicializar.")
+                raise ValueError("Nenhum VERTEX_PROJECT_ID ou GOOGLE_API_KEY fornecido. Initialization failed.")
                 
             logger.warning("⚠️ [Development Mode] Inicializando Gemini API Pública. Não processar dados PII sensíveis nFADP aqui.")
             genai.configure(api_key=api_key)
@@ -94,12 +94,12 @@ class MenirIntel:
         import asyncio
         contents = []
         
-        # O Motor Semântico: Semantic LoRA (Few-Shot)
+        # Semantic Few-Shot Formatting
         if few_shot_examples:
-            logger.info(f"⚓ Ancoragem Semântica Ativada: Injetando {len(few_shot_examples)} Exemplos de Ouro no Vertex Context.")
-            system_prompt = "INSTRUÇÃO MESTRA (SEMANTIC ANCHORING - STYLE LORA): Você deve mimetizar EXATAMENTE o estilo de formato e o tom estrito dos exemplos perfeitos de extração abaixo. NUNCA desvie desta ancoragem.\n\n"
+            logger.info(f"⚓ Injecting {len(few_shot_examples)} GoldenExamples into context.")
+            system_prompt = "SYSTEM INSTRUCTION: You must strictly replicate the format and structure of the following extraction examples.\n\n"
             for idx, ex in enumerate(few_shot_examples):
-                system_prompt += f"--- EXEMPLO DE OURO {idx+1} ---\n[INPUT ORIGINAL]\n{ex.get('input_text')}\n\n[OUTPUT ESPERADO]\n{ex.get('ideal_json')}\n\n"
+                system_prompt += f"--- EXAMPLE {idx+1} ---\n[INPUT ORIGINAL]\n{ex.get('input_text')}\n\n[OUTPUT ESPERADO]\n{ex.get('ideal_json')}\n\n"
             system_prompt += f"--- FIM DOS EXEMPLOS ---\n\n### TAREFA ATUAL ###\n{prompt}"
             contents.append(system_prompt)
         else:
@@ -123,7 +123,7 @@ class MenirIntel:
         try:
             # Separating IO Watchdog from Inference: Wrapped in the Intel Semaphore
             async with self.intel_semaphore:
-                # Envolve a inferência em I/O Thread para evitar Starvation no AsyncRunner Event Loop
+                # Wraps inference in I/O Thread to prevent Event Loop blocking
                 response = await asyncio.to_thread(
                     self.model.generate_content,
                     contents,
@@ -132,7 +132,7 @@ class MenirIntel:
             
             raw_text = response.text
             
-            # Limpar blocos encadeados de markdown se a API ignorar o mime_type e vomitar backticks.
+            # Clean markdown formatting if the API ignores response_mime_type.
             if raw_text.startswith("```"):
                 lines = raw_text.splitlines()
                 if lines[0].startswith("```"):
