@@ -1,37 +1,21 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
-  # 🧠 The Cortex (Ingestion & Logic)
-  menir-runner:
+  menir_cortex:
     build: .
-    container_name: menir-runner
-    command: bash scripts/entrypoint.sh
+    container_name: menir_v5_2
     restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "python", "scripts/healthcheck.py" ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+    env_file:
+      - .env
     volumes:
-      - ./Menir_Inbox:/app/Menir_Inbox # Hot Folder (Writable)
-      - ./logs:/app/logs # Audit Logs (Writable)
-      - ./Menir_Archive:/app/Menir_Archive # Archive Dump (Writable)
-      - ./src:/app/src:ro # Live Code Reload (Read-Only Guardrail)
-      - ./.env:/app/.env:ro # Secrets (Read-Only)
-      - ./token.json:/app/token.json:ro
-      - ./tests:/app/tests:ro # Tests for CI/CD
-    environment:
-      - PYTHONUNBUFFERED=1
-    depends_on:
-      menir-init:
-        condition: service_completed_successfully
-
-  # 🔍 The Probe (Pre-Flight Check)
-  menir-init:
-    build: .
-    container_name: menir-init
-    command: python verify_docker.py
-    volumes:
+      - ./src:/app/src
       - ./Menir_Inbox:/app/Menir_Inbox
-      - ./.env:/app/.env:ro
-    restart: "no" # Run once and die
+      - ./logs:/app/logs
+    networks:
+      - menir_macvlan
+    ports:
+      - "8080:8080"
+
+networks:
+  menir_macvlan:
+    external: true
