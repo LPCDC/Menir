@@ -149,7 +149,10 @@ class InvoiceSkill:
             logger.info("Consulta Temporal de Impostos (Neo4j/LRU Cache) ativada...")
             active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
             
-            # Se fosse produção: Passaríamos active_rules.get("active_rules", []) no prompt do Oráculo.
+            # 3.5 ÂNCORA SEMÂNTICA - BUSCAR EXEMPLOS DE OURO (STYLE LORA)
+            golden_examples = self.ontology_manager.get_golden_examples(tenant)
+            
+            # Se fosse produção: Passaríamos active_rules no prompt do Oráculo.
 
             # 4. ROTEAMENTO DE COMPUTAÇÃO
             if lane == "FAST_LANE":
@@ -159,9 +162,13 @@ class InvoiceSkill:
                 
             elif lane == "SLOW_LANE":
                 logger.info("🐢 Invoice triada para SLOW_LANE: Acionando Gemini Vision LLM + ReflexiveAgent (Oráculo).")
-                # Ler o base64 da imagem
-                # Chamar o StateGraph
-                # del imagem_base64  <-- HIGIENE DE MEMÓRIA ESTRITA
+                # Ler o base64 da imagem e invocar o LLM com as Âncoras Semânticas:
+                # result = await self.intel.structured_inference(
+                #     prompt="Extraia os dados desta fatura. Siga as regras contábeis.",
+                #     image_path=file_path,
+                #     response_schema=InvoiceData,
+                #     few_shot_examples=golden_examples
+                # )
                 pass
 
             # 5. RETORNO (Mockado para o esqueleto)

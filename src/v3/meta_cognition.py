@@ -115,6 +115,35 @@ class MenirOntologyManager:
             
         return context_payload
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        retry=retry_if_exception_type((exceptions.ServiceUnavailable, exceptions.TransientError, exceptions.SessionExpired))
+    )
+    @cached(cache=TTLCache(maxsize=100, ttl=3600))
+    def get_golden_examples(self, tenant_name: str) -> list[dict]:
+        """
+        Retorna os nós :GoldenExample para o Tenant específico.
+        Usado para ancoragem semântica (Few-Shot Prompting / Style LoRA) para redução de alucinações.
+        (Cached for 1 hour to prevent DB load)
+        """
+        query = """
+        MATCH (g:GoldenExample {tenant: $tenant_name})
+        RETURN g.input_text AS input_text, g.ideal_json AS ideal_json
+        """
+        golden = []
+        with self.driver.session() as session:
+            result = session.run(query, tenant_name=tenant_name)
+            for record in result:
+                golden.append({
+                    "input_text": record.get("input_text", ""),
+                    "ideal_json": record.get("ideal_json", "")
+                })
+        
+        if golden:
+            logger.info(f"✨ Recuperados {len(golden)} Exemplos de Ouro no Grafo para o Mimetismo do Tenant {tenant_name}.")
+        return golden
+
 if __name__ == "__main__":
     import os
     from dotenv import load_dotenv
