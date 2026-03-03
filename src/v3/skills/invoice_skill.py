@@ -165,95 +165,106 @@ class InvoiceSkill:
             logger.info(f"✅ Fatura injetada no Grafo (Fornecedor: {data.vendor_name}, Total: {data.total_amount:.2f} {data.currency})")
 
     async def process_document(self, file_path: str, tenant: str = "BECO") -> SkillResult:
-        """
-        Rotina Bimodal de Ingestão e Validação.
-        """
         import hashlib
         import json
+        import asyncio
+        import base64
         from pydantic import ValidationError
-        
-        logger.info(f"🧾 Iniciando processamento de Invoice: {file_path}")
-        
+        from pypdf import PdfReader
+
         PRODUCTION_READY = os.getenv("MENIR_INVOICE_LIVE", "false").lower() == "true"
         if not PRODUCTION_READY:
-            logger.warning(
-                "⚠️ InvoiceSkill em modo STUB. "
-                "Defina MENIR_INVOICE_LIVE=true no .env para ativar extração real."
-            )
-            return SkillResult(
-                success=False,
-                nodes_and_edges=[],
-                message="STUB_MODE: Invoice não processada. MENIR_INVOICE_LIVE não ativado."
-            )
-        
-        # 0. COMPUTING FILE HASH (Unique Document Identifier)
+            logger.warning("⚠️ InvoiceSkill em modo STUB. Defina MENIR_INVOICE_LIVE=true para ativar.")
+            return SkillResult(success=False, nodes_and_edges=[], message="STUB_MODE: MENIR_INVOICE_LIVE não ativado.")
+
+        logger.info(f"🧾 Iniciando processamento de Invoice: {file_path}")
+
         try:
             with open(file_path, "rb") as f:
-                file_hash = hashlib.sha256(f.read()).hexdigest()
+                file_bytes = f.read()
+                file_hash = hashlib.sha256(file_bytes).hexdigest()
         except Exception as e:
-            logger.error(f"Erro ao computar hash do documento {file_path}: {e}")
-            return SkillResult(success=False, message=str(e), nodes_and_edges=[])
-            
+            return SkillResult(success=False, nodes_and_edges=[], message=str(e))
+
         try:
-            # 1. TRIAGEM PELA VELOCIDADE E COMPLEXIDADE DO ARQUIVO
             lane = self.dispatcher.analyze_payload(file_path)
-            
             from datetime import date
             placeholder_date = date.today().isoformat()
-            logger.info("Consulta Temporal de Impostos (Neo4j/LRU Cache) ativada...")
             active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
-            
-            # 3.5 ÂNCORA SEMÂNTICA - BUSCAR EXEMPLOS DE OURO (STYLE LORA)
-            golden_examples = self.ontology_manager.get_golden_examples(tenant)
-            
-            # Se fosse produção: Passaríamos active_rules no prompt do Oráculo.
 
-            # 4. ROTEAMENTO DE COMPUTAÇÃO
+            EXTRACTION_PROMPT = """Você é um auditor financeiro suíço. Extraia os dados desta fatura.
+Retorne SOMENTE JSON válido, sem texto adicional, sem blocos markdown.
+Schema obrigatório:
+{
+  "vendor_name": "string",
+  "vendor_uid": "string ou null",
+  "vendor_iban": "string ou null",
+  "currency": "CHF ou EUR",
+  "issue_date": "YYYY-MM-DD",
+  "subtotal": 0.0,
+  "tip_or_unregulated_amount": 0.0,
+  "total_amount": 0.0,
+  "items": [{"description": "string", "gross_amount": 0.0, "tva_rate_applied": null}],
+  "requires_manual_justification": false
+}"""
+
             if lane == "FAST_LANE":
-                logger.info("⚡ Invoice triada para FAST_LANE: Iniciando PyMuPDF/Regex + Extraction rápida.")
-                # Lógica de extração baseada em texto OCR nativo ou parse XML (camt.053 adaptado/etc)
-                pass
-                
-            elif lane == "SLOW_LANE":
-                logger.info("🐢 Invoice triada para SLOW_LANE: Acionando Gemini Vision LLM + ReflexiveAgent (Oráculo).")
-                try:
-                    # SIMULATING LLM HALLUCINATION FOR PIPELINE TESTING
-                    # Intentionally creating a mathematical imbalance (100 != 500)
-                    bad_data = {
-                        "vendor_name": "Test Vendor",
-                        "currency": "CHF",
-                        "issue_date": "2024-05-15",
-                        "subtotal": 100.0,
-                        "tip_or_unregulated_amount": 0.0,
-                        "total_amount": 500.0, 
-                        "items": [
-                            {"description": "Item 1", "gross_amount": 100.0}
-                        ]
-                    }
-                    InvoiceData.model_validate(bad_data)
-                except json.JSONDecodeError as e:
-                    logger.error(f"JSONDecodeError - Invalid JSON format from LLM extraction for document {file_path}")
-                    self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "ExtractionError", str(e), 1)
-                    return SkillResult(success=False, message="Falha estrutural de OCR/Image Parsing", nodes_and_edges=[])
-                except ValidationError as e:
-                    # Contar quantos erros agrupados existem no ErrorWrapper
-                    error_count = len(e.errors())
-                    error_dump = e.json()
-                    logger.error(f"ValidationError - Pydantic validation failed with {error_count} errors for document {file_path}")
-                    self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "MathValidationError", error_dump, error_count)
-                    return SkillResult(success=False, message=f"Fatura reprovada em {error_count} regras Fiduciárias", nodes_and_edges=[])
+                logger.info("⚡ FAST_LANE: Extraindo texto nativo via pypdf.")
+                reader = PdfReader(file_path)
+                raw_text = "\n".join(
+                    page.extract_text() or "" for page in reader.pages
+                )
+                contents = [EXTRACTION_PROMPT + "\n\nTEXTO DA FATURA:\n" + raw_text]
 
-            # 5. RETORNO (Mockado para o esqueleto)
+            else:
+                logger.info("🐢 SLOW_LANE: Enviando arquivo para Gemini Vision.")
+                ext = file_path.lower().rsplit('.', 1)[-1]
+                mime_map = {
+                    "pdf": "application/pdf",
+                    "png": "image/png",
+                    "jpg": "image/jpeg",
+                    "jpeg": "image/jpeg"
+                }
+                mime_type = mime_map.get(ext, "application/pdf")
+                b64_data = base64.b64encode(file_bytes).decode()
+                contents = [
+                    {"mime_type": mime_type, "data": b64_data},
+                    EXTRACTION_PROMPT
+                ]
+
+            async with self.intel.intel_semaphore:
+                response = await asyncio.to_thread(
+                    self.intel.model.generate_content,
+                    contents
+                )
+
+            raw_json = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+            invoice_dict = json.loads(raw_json)
+
+            validated = InvoiceData.model_validate(
+                invoice_dict,
+                context={"valid_tva_rates": active_rules.get("tva_rates", [8.1, 2.6, 0.0])}
+            )
+
+            self._inject_into_graph(validated, tenant, file_hash)
+
             return SkillResult(
                 success=True,
                 nodes_and_edges=[],
-                message="Invoice processada (Esqueleto)"
+                message=f"Fatura processada: {validated.vendor_name} | {validated.total_amount:.2f} {validated.currency}"
             )
-            
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSONDecodeError: {e}")
+            self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "JSONDecodeError", str(e), 1)
+            return SkillResult(success=False, nodes_and_edges=[], message=f"LLM retornou JSON inválido: {e}")
+
+        except ValidationError as e:
+            error_count = len(e.errors())
+            logger.error(f"ValidationError: {error_count} erros de validação fiduciária")
+            self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "MathValidationError", e.json(), error_count)
+            return SkillResult(success=False, nodes_and_edges=[], message=f"Fatura reprovada em {error_count} regras fiduciárias")
+
         except Exception as e:
-            logger.error(f"Erro Genérico ao processar Fatura: {e}")
-            return SkillResult(
-                success=False,
-                nodes_and_edges=[],
-                message=f"Falha de processamento estrutural: {e}"
-            )
+            logger.error(f"Erro genérico no InvoiceSkill: {e}")
+            return SkillResult(success=False, nodes_and_edges=[], message=f"Falha estrutural: {e}")
