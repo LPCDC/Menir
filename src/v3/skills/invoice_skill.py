@@ -124,7 +124,7 @@ class InvoiceSkill:
         
         query = f"""
         // 1. Fornecedor (Vendor) - Evita duplicação pelo nome/IBAN
-        MERGE (v:Vendor {{name: $vendor_name}})
+        MERGE (v:Vendor:`{safe_tenant}` {{name: $vendor_name}})
         SET v.iban = $vendor_iban, v.project = $tenant
         
         // 2. Fatura (Invoice) - Idempotência absoluta pelo HASH do arquivo
