@@ -2,6 +2,7 @@
 Menir Core V5.1 - Invoice Processing Skill
 Extracts accounting data using bimodal NLP/Vision routing and strict Pydantic mathematical validation.
 """
+import os
 import math
 import logging
 from typing import List, Optional, Literal
@@ -172,6 +173,18 @@ class InvoiceSkill:
         from pydantic import ValidationError
         
         logger.info(f"🧾 Iniciando processamento de Invoice: {file_path}")
+        
+        PRODUCTION_READY = os.getenv("MENIR_INVOICE_LIVE", "false").lower() == "true"
+        if not PRODUCTION_READY:
+            logger.warning(
+                "⚠️ InvoiceSkill em modo STUB. "
+                "Defina MENIR_INVOICE_LIVE=true no .env para ativar extração real."
+            )
+            return SkillResult(
+                success=False,
+                nodes_and_edges=[],
+                message="STUB_MODE: Invoice não processada. MENIR_INVOICE_LIVE não ativado."
+            )
         
         # 0. COMPUTING FILE HASH (Unique Document Identifier)
         try:
