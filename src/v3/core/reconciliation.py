@@ -38,7 +38,7 @@ class ReconciliationEngine:
           AND tr.amount IS NOT NULL AND tr.booking_date IS NOT NULL
 
         // Constraints
-        WITH i, tr, abs(i.total_amount - tr.amount) AS delta,
+        WITH i, tr, abs(i.total_amount - abs(tr.amount)) AS delta,
              duration.inDays(date(i.issue_date), date(tr.booking_date)).days AS days_diff
              
         WHERE delta <= 0.05 
@@ -73,7 +73,7 @@ class ReconciliationEngine:
           AND tr.amount IS NOT NULL AND tr.booking_date IS NOT NULL
 
         // Constraints
-        WITH i, tr, abs(i.total_amount - tr.amount) AS delta,
+        WITH i, tr, abs(i.total_amount - abs(tr.amount)) AS delta,
              duration.inDays(date(i.issue_date), date(tr.booking_date)).days AS days_diff
              
         // Fuzzy margin: delta <= 5% of invoice total
