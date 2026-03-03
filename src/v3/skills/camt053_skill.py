@@ -52,6 +52,7 @@ class Camt053Skill:
                 booking_date = (
                     entry.findtext('ns:BookgDt/ns:Dt', namespaces=ns)
                     or (entry.findtext('ns:BookgDt/ns:DtTm', namespaces=ns) or "")[:10]
+                    or entry.findtext('ns:Dt', namespaces=ns)
                 )
                 remittance = entry.findtext('.//ns:RmtInf/ns:Ustrd', namespaces=ns) or ""
                 debtor_iban = entry.findtext('.//ns:Dbtr/ns:FinInstnId/ns:IBAN', namespaces=ns) or ""
