@@ -6,7 +6,7 @@ Zero Intelligence (No LLM). Pure Cypher componentization.
 import os
 import logging
 import xml.etree.ElementTree as ET
-from src.v3.menir_runner import SkillResult
+from src.v3.core.menir_runner import SkillResult
 from src.v3.meta_cognition import MenirOntologyManager
 
 logger = logging.getLogger("Camt053Skill")

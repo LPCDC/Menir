@@ -16,13 +16,14 @@ class MenirOntologyManager:
     directly within the Neo4j instance to ensure the Oracles remain 
     grounded physically and temporally.
     """
-    def __init__(self, uri: str, auth: tuple):
+    def __init__(self, uri: str, auth: tuple, db_name: str = "neo4j"):
         self.driver = GraphDatabase.driver(
             uri, 
             auth=auth,
             max_connection_pool_size=50,
             connection_acquisition_timeout=60.0    
         )
+        self.db_name = db_name
         
     def close(self):
         self.driver.close()
@@ -41,10 +42,33 @@ class MenirOntologyManager:
         logger.info("Initializing Meta-Cognition: Bootstrapping System Ontology...")
         
         query = """
-        // 1. A Arquitetura Fundacional
+        // 1. A Arquitetura Fundacional (Kernel Ontology - Phase 32)
         MERGE (dev:Developer {name: "Luiz Oak", role: "Arquiteto Chefe"})
-        MERGE (core:Core {name: "Menir", version: "5.1", engine: "Metacognitive Oracle"})
+        MERGE (core:CoreSystem {name: "Menir", version: "5.2", engine: "Metacognitive Oracle"})
         MERGE (dev)-[:ARCHITECTED]->(core)
+
+        // Mapeando Pipelines e Dependências Vitais
+        MERGE (p_runner:Pipeline {name: "WatchdogDispatcher", type: "Async_Ingestion"})
+        MERGE (p_mcp:Pipeline {name: "WebMCP_Gateway", type: "JSON_RPC_Interceptor"})
+        
+        MERGE (d_neo:Dependency {name: "AuraDB", criticality: "FATAL"})
+        ON CREATE SET d_neo.is_active = true
+        MERGE (d_llm:Dependency {name: "VertexAI", criticality: "FATAL"})
+        ON CREATE SET d_llm.is_active = true
+        
+        // Regras Operacionais (Rules)
+        MERGE (r_iso:Rule {name: "GalvanicIsolation", type: "Tenant_Boundary"})
+        MERGE (r_anti:Rule {name: "ZeroBloat", type: "Architectural_Constraint"})
+
+        // Conectando o Sistema Nervoso
+        MERGE (core)-[:EXECUTES]->(p_runner)
+        MERGE (core)-[:EXECUTES]->(p_mcp)
+        MERGE (p_runner)-[:DEPENDS_ON]->(d_neo)
+        MERGE (p_runner)-[:DEPENDS_ON]->(d_llm)
+        MERGE (p_mcp)-[:DEPENDS_ON]->(d_neo)
+        
+        MERGE (core)-[:MUST_OBEY]->(r_iso)
+        MERGE (core)-[:MUST_OBEY]->(r_anti)
 
         // 2. O Tenant BECO e as Leis Suiças (Temporalidade Ativa - Crésus ERP)
         MERGE (tenant:Tenant {name: "BECO", target_erp: "Crésus"})
@@ -69,9 +93,9 @@ class MenirOntologyManager:
 
         RETURN core.name, tenant.name
         """
-        with self.driver.session() as session:
+        with self.driver.session(database=self.db_name) as session:
             session.run(query)
-            logger.info("✅ Core Ontology & Swiss Tax Rules (Temporal) successfully injected into the Graph.")
+            logger.info("✅ Core System Ontology (Kernel) & Swiss Tax Rules successfully injected into the Graph.")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -101,7 +125,7 @@ class MenirOntologyManager:
             "active_rules": []
         }
         
-        with self.driver.session() as session:
+        with self.driver.session(database=self.db_name) as session:
             result = session.run(query, tenant_name=tenant_name, invoice_date=invoice_date)
             for record in result:
                 context_payload["active_rules"].append({
@@ -132,7 +156,7 @@ class MenirOntologyManager:
         RETURN g.input_text AS input_text, g.ideal_json AS ideal_json
         """
         golden = []
-        with self.driver.session() as session:
+        with self.driver.session(database=self.db_name) as session:
             result = session.run(query, tenant_name=tenant_name)
             for record in result:
                 golden.append({
@@ -144,6 +168,41 @@ class MenirOntologyManager:
             logger.info(f"✨ Retrieved {len(golden)} GoldenExamples from Graph for Tenant {tenant_name}.")
         return golden
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=3),
+        retry=retry_if_exception_type((exceptions.ServiceUnavailable, exceptions.TransientError, exceptions.SessionExpired))
+    )
+    def check_system_health(self) -> bool:
+        """
+        Preemptive Meta-Diagnostic (Phase 32).
+        The architecture queries its own topology to verify if all FATAL dependencies 
+        are marked as active before execution continues.
+        Acts as a 'Circuit Breaker' to prevent executing costly LLM APIs when infra is failing.
+        """
+        query = """
+        MATCH (core:CoreSystem)-[:EXECUTES]->(p:Pipeline)-[:DEPENDS_ON]->(d:Dependency)
+        WHERE d.is_active = false AND d.criticality = 'FATAL'
+        RETURN p.name AS pipeline, d.name AS dependency
+        """
+        with self.driver.session(database=self.db_name) as session:
+            result = session.run(query)
+            failures = [{"pipeline": record["pipeline"], "dependency": record["dependency"]} for record in result]
+            
+            if failures:
+                logger.error(f"❌ KERNEL PANIC: System Health Check failed! Dead dependencies found: {failures}")
+                logger.error("Circuit Breaker Tripped. Standby enforced.")
+                return False
+                
+            logger.debug("✅ Kernel Health Check: All FATAL dependencies are active.")
+            return True
+
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type((exceptions.ServiceUnavailable, exceptions.TransientError, exceptions.SessionExpired)),
+        before_sleep=before_sleep_log(logger, logging.WARNING)
+    )
     def inject_entropy_anomaly(self, tenant: str, file_hash: str, error_type: str, raw_errors: str, error_count: int, agent_name: str = "Nicole/BECO"):
         """
         Injects anomaly data into Neo4j.
@@ -168,8 +227,9 @@ class MenirOntologyManager:
         MERGE (ag:Agent {name: $agent_name})
         MERGE (ag)-[:GENERATED_ANOMALY]->(a)
         
-        // 4. Conexão Origem-Destino
-        MERGE (i)-[:HAS_ANOMALY]->(a)
+        // 4. Conexão Origem-Destino (Rule 12: Errors mapped via RECONCILED)
+        MERGE (i)-[r:RECONCILED]->(a)
+        SET r.status = 'FAILED_VALIDATION'
         """
         safe_tenant = tenant.replace("`", "")
         params = {
@@ -190,16 +250,17 @@ class MenirOntologyManager:
 if __name__ == "__main__":
     import os
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
     
     uri = os.getenv("NEO4J_URI")
     user = os.getenv("NEO4J_USER", "neo4j")
     pwd = os.getenv("NEO4J_PASSWORD") or os.getenv("NEO4J_PWD")
+    db = os.getenv("NEO4J_DB", "neo4j")
     
     if not uri or not pwd:
         print("Missing credentials to run Ontology test.")
     else:
-        manager = MenirOntologyManager(uri, (user, pwd))
+        manager = MenirOntologyManager(uri, (user, pwd), db_name=db)
         print("🚀 Executing Base Ontology Bootstrap...")
         manager.bootstrap_system_graph()
         
@@ -212,4 +273,7 @@ if __name__ == "__main__":
         ctx_old = manager.get_tenant_active_context("BECO", "1999-01-01")
         print(json.dumps(ctx_old, indent=2))
         
+        print("\\n🩺 Running Kernel Health Check...")
+        manager.check_system_health()
+
         manager.close()

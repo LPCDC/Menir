@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from aiohttp import web
 
 from src.v3.core.logos import MenirLogos, CommandPayload
+from src.v3.mcp_server import MenirMCPServer
 
 logger = logging.getLogger("MenirSynapse")
 
@@ -33,11 +34,15 @@ class MenirSynapse:
         # Primary Async Priority Queue
         self.command_bus = asyncio.PriorityQueue()
         
+        # Secondary Interface: WebMCP Autonomous Agents
+        self.mcp_server = MenirMCPServer(self.runner)
+        
         # AIOHTTP Application
         self.app = web.Application()
         self.app.add_routes([
             web.get('/status', self.handle_status_http),
-            web.post('/command', self.handle_command_http)
+            web.post('/command', self.handle_command_http),
+            web.post('/mcp', self.mcp_server.handle_mcp_request)
         ])
         self.http_site = None
         self.socket_server = None
