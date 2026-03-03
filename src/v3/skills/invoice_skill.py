@@ -198,12 +198,8 @@ class InvoiceSkill:
             # 1. TRIAGEM PELA VELOCIDADE E COMPLEXIDADE DO ARQUIVO
             lane = self.dispatcher.analyze_payload(file_path)
             
-            # 2. DEFINIR DATA CONTEXTUAL (Placeholder até extração/análise preliminar)
-            # Idealmente, poderíamos tentar achar uma data via regex antes de bater no banco para caching.
-            # Se for impossível, bater no Neo4j com data coringa ou a data extraída num pre-parsing.
-            placeholder_date = "2024-05-15" 
-            
-            # 3. MIRA TELESCÓPICA - BUSCAR REGRAS DE IMPOSTO NO BANCO/CACHE (LRU)
+            from datetime import date
+            placeholder_date = date.today().isoformat()
             logger.info("Consulta Temporal de Impostos (Neo4j/LRU Cache) ativada...")
             active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
             
