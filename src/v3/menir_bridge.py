@@ -63,7 +63,6 @@ class MenirBridge:
             if result and result["exists"]:
                 logger.info(f"Recovery Hit: {sha256[:8]}... exists in {project}.")
                 return True
-                return True
             return False
 
     def check_document_exists(self, sha256: str, tenant_id: str = None) -> bool:
