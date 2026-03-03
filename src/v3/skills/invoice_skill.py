@@ -38,32 +38,45 @@ class InvoiceData(BaseModel):
 
     @model_validator(mode="after")
     def validate_accounting_math(self, info) -> "InvoiceData":
-        """
-        Escudo Matemático Dinâmico (TDFN-Aware): 
-        Força o LLM a acertar as contas. O `subtotal` + (gorjeta) + (impostos das linhas) = `total_amount`.
-        Adicionalmente, se as alíquotas extraídas não constarem no contexto dinâmico do banco (Tenant Rules),
-        rejeita a extração e manda para a Quarentena.
-        """
-        # Extrai as regras de TVA passadas em tempo de runtime pelo AsyncRunner -> InvoiceSkill -> Pydantic
         context_data = info.context or {}
-        allowed_tva_rates = context_data.get("valid_tva_rates", [8.1, 2.6, 0.0]) # Fallback genérico suíço
-        
-        # Teste 1: A soma crua das linhas com a gorjeta bate com o Total Amount (Contabilidade Básica)?
-        calculated_total = sum(item.gross_amount for item in self.items) + self.tip_or_unregulated_amount
-        
-        if not math.isclose(calculated_total, self.total_amount, abs_tol=0.05):
-            raise ValueError(f"CRITICAL MATH ERROR: A soma dos itens ({calculated_total:.2f}) não bate com o total_amount ({self.total_amount:.2f}).")
-            
-        # Teste 2: Alucinação de Taxa (TDFN)
+        allowed_tva_rates = context_data.get("valid_tva_rates", [8.1, 2.6, 0.0])
+
+        # TESTE 1: Soma dos itens deve bater com o subtotal
+        calculated_subtotal = sum(item.gross_amount for item in self.items)
+        if not math.isclose(calculated_subtotal, self.subtotal, abs_tol=0.05):
+            raise ValueError(
+                f"ITEMS vs SUBTOTAL: soma dos itens ({calculated_subtotal:.2f}) "
+                f"não bate com subtotal ({self.subtotal:.2f})."
+            )
+
+        # TESTE 2: subtotal + TVA calculado deve bater com total_amount
+        # Aceita qualquer alíquota permitida — verifica qual fecha a conta
+        tva_closes = False
+        for rate in allowed_tva_rates:
+            tva = round(self.subtotal * rate / 100, 2)
+            if math.isclose(self.subtotal + tva + self.tip_or_unregulated_amount, self.total_amount, abs_tol=0.10):
+                tva_closes = True
+                break
+
+        # Também aceita se total == subtotal + gorjeta (documento sem TVA)
+        if not tva_closes:
+            if not math.isclose(self.subtotal + self.tip_or_unregulated_amount, self.total_amount, abs_tol=0.10):
+                raise ValueError(
+                    f"SUBTOTAL + TVA vs TOTAL: nenhuma alíquota permitida ({allowed_tva_rates}) "
+                    f"explica o total de {self.total_amount:.2f} "
+                    f"a partir do subtotal {self.subtotal:.2f}."
+                )
+
+        # TESTE 3: Alíquotas alucinadas (TDFN)
         for idx, item in enumerate(self.items):
             if item.tva_rate_applied is not None:
-                # Arredondamos para 1 casa decimal para evitar float flutuation ex: 5.30000001
                 rate = round(item.tva_rate_applied, 1)
-                
-                # Permite a taxa se estiver nas permitidas ou se for perfeitamente 0
                 if rate not in allowed_tva_rates and not math.isclose(rate, 0.0, abs_tol=0.01):
-                    raise ValueError(f"TVA ALUCINATTION FATAL: A taxa de IVA de {rate}% no item {idx} não é válida para este Tenant/Data. Taxas permitidas no Neo4j: {allowed_tva_rates}")
-            
+                    raise ValueError(
+                        f"TVA HALLUCINATION: alíquota {rate}% no item {idx} "
+                        f"não está nas permitidas: {allowed_tva_rates}."
+                    )
+
         return self
 
     @model_validator(mode="after")
