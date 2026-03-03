@@ -36,27 +36,45 @@ class Camt053Skill:
             # Namespace typical de CAMT.053
             ns = {'ns': 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02'}
             
-            # Mock de transações extraídas (O parsing real varreria as tags Ntry)
-            transactions = [
-                {
-                    "tx_id": f"tx_mock_{os.path.basename(file_path)}_1",
-                    "amount": 1500.0,
-                    "currency": "CHF",
-                    "booking_date": "2024-05-15",
-                    "debtor_iban": "CH9300000000000000000",
-                    "creditor_iban": "CH9311111111111111111",
-                    "remittance_info": "Pagamento Fatura 101"
-                },
-                {
-                    "tx_id": f"tx_mock_{os.path.basename(file_path)}_2",
-                    "amount": -300.50,
-                    "currency": "CHF",
-                    "booking_date": "2024-05-16",
-                    "debtor_iban": "CH9311111111111111111",
-                    "creditor_iban": "CH9322222222222222222",
-                    "remittance_info": "Taxas de Administração"
-                }
-            ]
+            transactions = []
+            acct_iban = root.findtext(
+                './/ns:Acct/ns:Id/ns:IBAN', namespaces=ns
+            ) or "UNKNOWN_IBAN"
+
+            for entry in root.findall('.//ns:Ntry', namespaces=ns):
+                tx_id = (
+                    entry.findtext('ns:NtryRef', namespaces=ns)
+                    or entry.findtext('ns:AcctSvcrRef', namespaces=ns)
+                    or entry.findtext('ns:AddtlNtryInf', namespaces=ns)
+                )
+                amount_str = entry.findtext('ns:Amt', namespaces=ns) or "0"
+                cd_ind = entry.findtext('.//ns:CdtDbtInd', namespaces=ns) or "CRDT"
+                booking_date = entry.findtext('ns:BookgDt/ns:Dt', namespaces=ns)
+                remittance = entry.findtext('.//ns:RmtInf/ns:Ustrd', namespaces=ns) or ""
+                debtor_iban = entry.findtext('.//ns:Dbtr/ns:FinInstnId/ns:IBAN', namespaces=ns) or ""
+                creditor_iban = entry.findtext('.//ns:Cdtr/ns:FinInstnId/ns:IBAN', namespaces=ns) or ""
+
+                try:
+                    amount = float(amount_str)
+                except ValueError:
+                    amount = 0.0
+
+                if cd_ind == "DBIT":
+                    amount = -amount
+
+                if tx_id:
+                    transactions.append({
+                        "tx_id": tx_id,
+                        "amount": amount,
+                        "currency": "CHF",
+                        "booking_date": booking_date or "",
+                        "debtor_iban": debtor_iban,
+                        "creditor_iban": creditor_iban,
+                        "remittance_info": remittance,
+                        "acct_iban": acct_iban,
+                    })
+                else:
+                    logger.warning("Entrada sem tx_id ignorada — sem NtryRef nem AcctSvcrRef.")
             
             # 2. Injeção Idempotente no Neo4j
             if transactions:
@@ -93,7 +111,7 @@ class Camt053Skill:
         // Assume-se neste mock que o debtor ou creditor da nossa visão reflete nossa conta base
         // Iremos generalizar a BankAccount baseada no IBAN do Tenant extraído do cabeçalho do XML.
         // Simulando a extração do cabeçalho para amarrar as transações:
-        MERGE (ba:BankAccount:`{safe_tenant}` {{iban: "CH_BASE_BECO_ACCOUNT"}})
+        MERGE (ba:BankAccount:`{safe_tenant}` {{iban: tx.acct_iban}})
         MERGE (t)-[:OWNS_ACCOUNT]->(ba)
 
         // 3. A Transação de forma Idempotente (Pelo tx_id bancário)
