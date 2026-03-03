@@ -49,7 +49,10 @@ class Camt053Skill:
                 )
                 amount_str = entry.findtext('ns:Amt', namespaces=ns) or "0"
                 cd_ind = entry.findtext('.//ns:CdtDbtInd', namespaces=ns) or "CRDT"
-                booking_date = entry.findtext('ns:BookgDt/ns:Dt', namespaces=ns)
+                booking_date = (
+                    entry.findtext('ns:BookgDt/ns:Dt', namespaces=ns)
+                    or (entry.findtext('ns:BookgDt/ns:DtTm', namespaces=ns) or "")[:10]
+                )
                 remittance = entry.findtext('.//ns:RmtInf/ns:Ustrd', namespaces=ns) or ""
                 debtor_iban = entry.findtext('.//ns:Dbtr/ns:FinInstnId/ns:IBAN', namespaces=ns) or ""
                 creditor_iban = entry.findtext('.//ns:Cdtr/ns:FinInstnId/ns:IBAN', namespaces=ns) or ""
