@@ -5,6 +5,18 @@ from datetime import datetime
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
 
+import warnings
+warnings.warn(
+    "ingest_email.py está DEPRECATED e viola o isolamento de tenant (nFADP). "
+    "Use o pipeline v3 com TenantAwareDriver. Este arquivo será removido na v4.",
+    DeprecationWarning,
+    stacklevel=2
+)
+raise RuntimeError(
+    "ingest_email.py desabilitado por segurança. "
+    "Violação de isolamento multi-tenant detectada. Migre para src/v3/."
+)
+
 # Carrega ambiente
 load_dotenv()
 
