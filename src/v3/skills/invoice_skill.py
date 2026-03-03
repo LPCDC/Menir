@@ -7,7 +7,7 @@ import logging
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field, model_validator
 
-from src.v3.menir_runner import SkillResult
+from src.v3.core.menir_runner import SkillResult
 from src.v3.menir_intel import MenirIntel
 from src.v3.core.dispatcher import DocumentDispatcher
 from src.v3.meta_cognition import MenirOntologyManager
@@ -23,6 +23,7 @@ class InvoiceLineItem(BaseModel):
 
 class InvoiceData(BaseModel):
     vendor_name: str = Field(description="Nome do fornecedor que emitiu a fatura.")
+    vendor_uid: Optional[str] = Field(default=None, description="Número UID Suíço com a extensão de IVA se aplicável (ex: CHE-123.456.789 TVA).")
     vendor_iban: Optional[str] = Field(default=None, description="IBAN suíço ou europeu na fatura.")
     currency: Literal["CHF", "EUR"] = Field(description="A moeda oficial do documento.")
     issue_date: str = Field(description="Data de emissão no formato YYYY-MM-DD.")
@@ -61,6 +62,38 @@ class InvoiceData(BaseModel):
                 # Permite a taxa se estiver nas permitidas ou se for perfeitamente 0
                 if rate not in allowed_tva_rates and not math.isclose(rate, 0.0, abs_tol=0.01):
                     raise ValueError(f"TVA ALUCINATTION FATAL: A taxa de IVA de {rate}% no item {idx} não é válida para este Tenant/Data. Taxas permitidas no Neo4j: {allowed_tva_rates}")
+            
+        return self
+
+    @model_validator(mode="after")
+    def validate_swiss_uid(self) -> "InvoiceData":
+        """
+        Escudo de Anomalias contra Fraude ou Alucinação: Validação Aritmética MOD11 do UID.
+        """
+        if not self.vendor_uid:
+            return self
+            
+        import re
+        # Extrai apenas os números (Removendo CHE, ., -, TVA, MWST)
+        raw_digits = re.sub(r'\D', '', self.vendor_uid)
+        
+        # O Base do UID suíço TEM que ter 9 dígitos
+        if len(raw_digits) != 9:
+            raise ValueError(f"ANOMALY DETECTED: UID Suíço inválido (Tamanho incorreto): {self.vendor_uid}. São exigidos exatamente 9 dígitos numéricos (IDE).")
+            
+        # Pesos oficiais do Governo Suíço para MOD11
+        weights = [5, 4, 3, 2, 7, 6, 5, 4]
+        total_sum = sum(int(digit) * weight for digit, weight in zip(raw_digits[:8], weights))
+        
+        expected_checksum = 11 - (total_sum % 11)
+        if expected_checksum == 11:
+            expected_checksum = 0
+        elif expected_checksum == 10:
+            raise ValueError(f"ANOMALY DETECTED: UID Suíço MOD11 falhou estruturalmente (Check=10) para {self.vendor_uid}")
+            
+        actual_checksum = int(raw_digits[8])
+        if expected_checksum != actual_checksum:
+            raise ValueError(f"FRAUD/HALLUCINATION DETECTED: UID Suíço {self.vendor_uid} falhou na validação de Integridade MOD11. O dígito final {actual_checksum} deveria ser {expected_checksum}.")
             
         return self
 
@@ -175,9 +208,20 @@ class InvoiceSkill:
             elif lane == "SLOW_LANE":
                 logger.info("🐢 Invoice triada para SLOW_LANE: Acionando Gemini Vision LLM + ReflexiveAgent (Oráculo).")
                 try:
-                    # Roteamento real omitido para brevidade; simulando a captura do caos
-                    # result = await self.intel.structured_inference(...)
-                    pass
+                    # SIMULATING LLM HALLUCINATION FOR PIPELINE TESTING
+                    # Intentionally creating a mathematical imbalance (100 != 500)
+                    bad_data = {
+                        "vendor_name": "Test Vendor",
+                        "currency": "CHF",
+                        "issue_date": "2024-05-15",
+                        "subtotal": 100.0,
+                        "tip_or_unregulated_amount": 0.0,
+                        "total_amount": 500.0, 
+                        "items": [
+                            {"description": "Item 1", "gross_amount": 100.0}
+                        ]
+                    }
+                    InvoiceData.model_validate(bad_data)
                 except json.JSONDecodeError as e:
                     logger.error(f"JSONDecodeError - Invalid JSON format from LLM extraction for document {file_path}")
                     self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "ExtractionError", str(e), 1)

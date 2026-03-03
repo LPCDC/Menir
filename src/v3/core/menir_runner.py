@@ -11,6 +11,15 @@ import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
+from dataclasses import dataclass
+from typing import Any, List
+
+@dataclass
+class SkillResult:
+    success: bool
+    nodes_and_edges: List[Any]
+    message: str = ""
+
 # --- O SIDECHAIN COMPRESSION (Logs) ---
 # Impede que os arquivos de log engulam o HD do NAS rodopiando aos 50MB
 os.makedirs("logs", exist_ok=True)
@@ -32,8 +41,7 @@ from src.v3.menir_intel import MenirIntel
 from src.v3.meta_cognition import MenirOntologyManager
 from src.v3.core.dispatcher import DocumentDispatcher
 from src.v3.core.reconciliation import ReconciliationEngine
-from src.v3.skills.invoice_skill import InvoiceSkill
-from src.v3.skills.camt053_skill import Camt053Skill
+# Imported Locally inside MenirAsyncRunner.__init__ to prevent Circular Imports
 
 logger = logging.getLogger("AsyncRunner")
 
@@ -51,6 +59,9 @@ class MenirAsyncRunner:
         self.dispatcher = DocumentDispatcher()
         
         # 2. Habilidades de Processamento Genérico
+        from src.v3.skills.invoice_skill import InvoiceSkill
+        from src.v3.skills.camt053_skill import Camt053Skill
+        
         self.invoice_skill = InvoiceSkill(self.intel, self.ontology_manager)
         self.camt053_skill = Camt053Skill(self.ontology_manager)
         
@@ -167,6 +178,14 @@ class MenirAsyncRunner:
                 
                 if pending_files:
                     logger.info(f"📥 Detectados {len(pending_files)} novos documentos em {inbox_dir}")
+                    
+                    # 0. The Circuit Breaker (Phase 32)
+                    # Verifica a resiliência estrutural antes de gastar cota LLM
+                    is_healthy = await asyncio.to_thread(self.ontology_manager.check_system_health)
+                    if not is_healthy:
+                        logger.error("🛑 WATCHDOG HALTED: System is operating with dead FATAL dependencies. Skipping processing cycle.")
+                        await asyncio.sleep(15) # Penalidade de tempo antes de re-tentar
+                        continue
                     
                     # 1. Concorrência: TaskGroup isola o lançamento dos processos atrelados ao I/O (Semaphore(10))
                     # Enquanto a LLM é controlada internamente pelo Semaphore(50) no intel
