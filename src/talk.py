@@ -1,98 +1,116 @@
-﻿import os
-import sys
-import glob
-import json
-import google.generativeai as genai
+﻿"""
+talk.py — Interface de Consulta ao Grafo Menir
+AVISO: Este módulo é legado e será substituído por uma MCP Tool na Seção B.
+       Mantido aqui apenas para compatibilidade operacional imediata.
+"""
+
+import os
+import logging
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
+from google import genai as genai_client
 
-# CONFIGURAÇÕES (Puxa do ambiente ou define fixo)
-MY_KEY = "REVOKED_KEY_SEE_ENV" # Sua Chave
-NEO4J_URI = "bolt://menir-neo4j:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASS = "menir123"
-OUTBOX_DIR = "/app/data/outbox"
+load_dotenv()
 
-# Configura IA
-genai.configure(api_key=MY_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash')
+logger = logging.getLogger("menir.talk")
 
-def get_latest_dossier():
-    """Pega o último arquivo processado (Memória de Curto Prazo)"""
+# --- Configuração via ambiente (NUNCA hardcode) ---
+NEO4J_URI  = os.getenv("NEO4J_URI",  "bolt://localhost:7687")
+NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+NEO4J_PASS = os.getenv("NEO4J_PASSWORD") or os.getenv("NEO4J_PWD")
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+OUTBOX_DIR = os.getenv("MENIR_OUTBOX_DIR", "Menir_Outbox")
+
+if not NEO4J_PASS:
+    raise ValueError("NEO4J_PASSWORD não definido no .env")
+if not GEMINI_KEY:
+    raise ValueError("GEMINI_API_KEY não definido no .env")
+
+_client = genai_client.Client(api_key=GEMINI_KEY)
+
+
+def query_memory(search_term: str) -> str:
+    """Consulta o Grafo Neo4j por contexto relacionado ao termo."""
+    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASS))
     try:
-        list_of_files = glob.glob(f'{OUTBOX_DIR}/*.md')
-        if not list_of_files: return None
-        latest_file = max(list_of_files, key=os.path.getctime)
-        with open(latest_file, 'r', encoding='utf-8') as f:
-            return f.read()
-    except: return None
-
-def query_memory(search_term):
-    """Consulta o Neo4j (Memória de Longo Prazo)"""
-    try:
-        driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASS))
         data = []
         with driver.session() as session:
-            # Busca genérica por qualquer coisa parecida com o termo
-            result = session.run("""
-                MATCH (e:Entity)-[r]->(d:Document)
-                WHERE e.name CONTAINS $term OR d.summary CONTAINS $term
-                RETURN e.name, type(r), d.summary
-                LIMIT 5
-            """, term=search_term)
+            result = session.run(
+                """
+                MATCH (n)
+                WHERE toLower(n.name) CONTAINS toLower($term)
+                   OR toLower(n.description) CONTAINS toLower($term)
+                RETURN labels(n)[0] AS type, n.name AS name,
+                       n.description AS desc
+                LIMIT 10
+                """,
+                term=search_term
+            )
             for record in result:
-                data.append(f"{record['e.name']} ({record['type(r)']}) no doc: {record['d.summary'][:100]}...")
+                data.append(f"[{record['type']}] {record['name']}: {record['desc']}")
+        return "\n".join(data) if data else "Nenhum contexto encontrado no Grafo."
+    except Exception:
+        logger.exception(f"Falha ao consultar memória para: {search_term}")
+        return ""
+    finally:
         driver.close()
-        return "\n".join(data)
-    except: return ""
 
-def main():
-    print("\n" + "="*40)
-    print("   ALÔ MENIR - CANAL DE COMANDO")
-    print("="*40)
-    print("Digite 'sair' para fechar.\n")
 
-    # Contexto Inicial
-    latest = get_latest_dossier()
-    if latest:
-        print(f" [Contexto Ativo]: Último arquivo processado carregado na memória.\n")
-    
-    history = []
+def get_latest_dossier(outbox_dir: str = OUTBOX_DIR) -> str:
+    """Lê o dossier mais recente da pasta de saída."""
+    try:
+        files = sorted(
+            [f for f in os.listdir(outbox_dir) if f.endswith(".txt")],
+            reverse=True
+        )
+        if not files:
+            return ""
+        with open(os.path.join(outbox_dir, files[0]), "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        logger.exception(f"Falha ao ler dossier em: {outbox_dir}")
+        return ""
 
-    while True:
-        user_input = input("VOCÊ: ")
-        if user_input.lower() in ['sair', 'exit', 'tchau']: break
-        
-        # Monta o Prompt Dinâmico
-        prompt_parts = ["Você é o Menir, um assistente pessoal inteligente."]
-        
-        # 1. Injeta Memória Recente
-        if latest:
-            prompt_parts.append(f"CONTEXTO RECENTE (Último Arquivo):\n{latest}")
-        
-        # 2. Injeta Histórico da Conversa
-        if history:
-            prompt_parts.append(f"HISTÓRICO:\n{history[-3:]}")
 
-        # 3. Tenta buscar Memória Longa se o usuário perguntar de alguém específico
-        # (Lógica simples: se tem letra maiúscula, tenta buscar no banco)
-        potential_entities = [w for w in user_input.split() if w[0].isupper() and len(w)>3]
-        for ent in potential_entities:
-            mem = query_memory(ent)
-            if mem: prompt_parts.append(f"MEMÓRIA DE LONGO PRAZO SOBRE '{ent}':\n{mem}")
+def chat(user_input: str) -> str:
+    """Consulta o Grafo e gera resposta contextualizada via Gemini."""
+    memory = query_memory(user_input)
+    dossier = get_latest_dossier()
 
-        # 4. A Pergunta
-        prompt_parts.append(f"USUÁRIO: {user_input}")
-        prompt_parts.append("MENIR (Seja direto e útil):")
+    prompt = f"""Você é o assistente do sistema Menir, especializado em
+contabilidade e gestão de documentos financeiros suíços.
 
-        # Gera Resposta
-        try:
-            response = model.generate_content(prompt_parts)
-            reply = response.text
-            print(f"\nMENIR: {reply}\n")
-            print("-" * 40)
-            history.append(f"User: {user_input}\nMenir: {reply}")
-        except Exception as e:
-            print(f" Erro de conexão: {e}")
+CONTEXTO DO GRAFO:
+{memory}
+
+DOSSIER RECENTE:
+{dossier}
+
+PERGUNTA DO OPERADOR:
+{user_input}
+
+Responda de forma precisa e objetiva."""
+
+    try:
+        response = _client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
+        return response.text
+    except Exception:
+        logger.exception("Falha na chamada ao Gemini em talk.chat()")
+        return "Erro ao processar consulta."
+
 
 if __name__ == "__main__":
-    main()
+    print("Menir Talk Interface (Legado)")
+    print("AVISO: Use as MCP Tools via Synapse para acesso seguro multi-tenant.")
+    while True:
+        try:
+            user_input = input("\\nVocê: ").strip()
+            if user_input.lower() in ["sair", "exit", "quit"]:
+                break
+            response = chat(user_input)
+            print(f"\\nMenir: {response}")
+        except KeyboardInterrupt:
+            break
