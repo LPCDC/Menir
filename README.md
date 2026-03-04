@@ -10,7 +10,15 @@
 <br>
 
 > *"Data acts as a vector; logic acts as a scalar."* — **The Menir Manifesto**
+> 
+## ⚙️ Technical Paradigm
 
+Menir bridges the gap between the fluid (Generative AI) and the concrete (Graph Mathematics).
+
+* **Graph Source of Truth:** `Neo4j` dictates everything. If the API hallucinates an entity name, the strict Cypher merge layer forces it back into conformity based on known UUIDs and Aliases.
+* **A.I. Engine:** Google `gemini-2.5-flash` natively integrated with forced JSON structured inference. 
+* **Validation:** Explicit Python `pydantic` validators governing everything from MOD11 Swiss VAT checks to human relationship deduplication.
+* **Environment:**
 ## 📖 The "Immortal" Second Brain
 
 **Menir** is not an app, a simple LLM wrapper, or merely a financial script. It is a **Sovereign, Self-Hosted Graph Intelligence** built to be the absolute, immutable "Second Brain" of its creator and their encompassing ecosystems. 
@@ -40,14 +48,7 @@ Because the core engine is so mathematically rigid and contextually aware, Menir
 
 ---
 
-## ⚙️ Technical Paradigm
-
-Menir bridges the gap between the fluid (Generative AI) and the concrete (Graph Mathematics).
-
-* **Graph Source of Truth:** `Neo4j` dictates everything. If the API hallucinates an entity name, the strict Cypher merge layer forces it back into conformity based on known UUIDs and Aliases.
-* **A.I. Engine:** Google `gemini-2.5-flash` natively integrated with forced JSON structured inference. 
-* **Validation:** Explicit Python `pydantic` validators governing everything from MOD11 Swiss VAT checks to human relationship deduplication.
-* **Environment:** Python 3.12, Docker-Compose (hardened read-only volumes for sovereignty).
+ Python 3.12, Docker-Compose (hardened read-only volumes for sovereignty).
 
 ---
 
