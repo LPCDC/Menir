@@ -114,27 +114,38 @@ class MenirOntologyManager:
         :param invoice_date: String in format 'YYYY-MM-DD'
         :return: A dictionary containing the effective tax rates and framework properties.
         """
-        query = """
+        query_rules = """
         MATCH (t:Tenant {name: $tenant_name})-[r:ENFORCES_TAX_POLICY]->(rule:TaxRule)
         WHERE r.valid_from <= $invoice_date AND r.valid_to >= $invoice_date
         RETURN rule.name AS rule_name, rule.authority AS authority, properties(r) AS active_properties
         """
+        query_tva = """
+        MATCH (t:Tenant {name: $tenant_name})-[:HAS_TVA_RATE]->(tr:TVARate)
+        RETURN tr.rate AS rate, tr.label AS label
+        """
         context_payload = {
             "query_date": invoice_date,
             "tenant": tenant_name,
-            "active_rules": []
+            "active_rules": [],
+            "tva_rates": []
         }
         
         with self.driver.session(database=self.db_name) as session:
-            result = session.run(query, tenant_name=tenant_name, invoice_date=invoice_date)
+            # Fetch generic temporal rules
+            result = session.run(query_rules, tenant_name=tenant_name, invoice_date=invoice_date)
             for record in result:
                 context_payload["active_rules"].append({
                     "rule_name": record["rule_name"],
                     "authority": record["authority"],
                     "parameters": record["active_properties"]
                 })
+            
+            # Fetch explicit TVA rates
+            result_tva = session.run(query_tva, tenant_name=tenant_name)
+            for record in result_tva:
+                context_payload["tva_rates"].append(float(record["rate"]))
                 
-        if not context_payload["active_rules"]:
+        if not context_payload["active_rules"] and not context_payload["tva_rates"]:
             logger.warning(f"⚠️ NO ACTIVE TAX CONTEXT found for {tenant_name} on date {invoice_date}. Oracle will operate in the dark!")
             
         return context_payload

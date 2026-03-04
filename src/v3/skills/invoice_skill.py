@@ -39,7 +39,10 @@ class InvoiceData(BaseModel):
     @model_validator(mode="after")
     def validate_accounting_math(self, info) -> "InvoiceData":
         context_data = info.context or {}
-        allowed_tva_rates = context_data.get("valid_tva_rates", [8.1, 2.6, 0.0])
+        allowed_tva_rates = context_data.get("valid_tva_rates", [])
+        
+        if not allowed_tva_rates:
+            raise ValueError("CRITICAL: Nenhuma taxa de IVA (TVA) foi injetada pelo KERNEL Neo4j. Ontologia comprometida.")
 
         # TESTE 1: Soma dos itens deve bater com o subtotal
         calculated_subtotal = sum(item.gross_amount for item in self.items)
@@ -256,7 +259,7 @@ Schema obrigatório:
 
             validated = InvoiceData.model_validate(
                 invoice_dict,
-                context={"valid_tva_rates": active_rules.get("tva_rates", [8.1, 2.6, 0.0])}
+                context={"valid_tva_rates": active_rules.get("tva_rates", [])}
             )
 
             self._inject_into_graph(validated, tenant, file_hash)
