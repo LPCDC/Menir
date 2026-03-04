@@ -2,147 +2,50 @@
 Menir Core V5.1 - Invoice Processing Skill
 Extracts accounting data using bimodal NLP/Vision routing and strict Pydantic mathematical validation.
 """
-import os
-import math
-import logging
-from typing import List, Optional, Literal
-from pydantic import BaseModel, Field, model_validator
 
-from src.v3.core.menir_runner import SkillResult
-from src.v3.menir_intel import MenirIntel
+import logging
+import os
+from typing import Any
+
 from src.v3.core.dispatcher import DocumentDispatcher
+from src.v3.core.menir_runner import SkillResult
+from src.v3.core.schemas import InvoiceData
+from src.v3.menir_intel import MenirIntel
 from src.v3.meta_cognition import MenirOntologyManager
 
 logger = logging.getLogger("InvoiceSkill")
 
-# --- ACCOUNTING ONTOLOGY SCHEMAS ---
-
-class InvoiceLineItem(BaseModel):
-    description: str = Field(description="Descrição clara do item, serviço ou produto.")
-    gross_amount: float = Field(description="Valor bruto da linha.")
-    tva_rate_applied: Optional[float] = Field(default=None, description="Taxa de imposto aplicada à linha (ex: 8.1, 2.6). Se não especificada, deixe nulo.")
-
-class InvoiceData(BaseModel):
-    vendor_name: str = Field(description="Nome do fornecedor que emitiu a fatura.")
-    vendor_uid: Optional[str] = Field(default=None, description="Número UID Suíço com a extensão de IVA se aplicável (ex: CHE-123.456.789 TVA).")
-    vendor_iban: Optional[str] = Field(default=None, description="IBAN suíço ou europeu na fatura.")
-    currency: Literal["CHF", "EUR"] = Field(description="A moeda oficial do documento.")
-    issue_date: str = Field(description="Data de emissão no formato YYYY-MM-DD.")
-    
-    subtotal: float = Field(description="Soma do valor líquido sem impostos de todas as linhas.")
-    tip_or_unregulated_amount: float = Field(default=0.0, description="Gorjetas (Pourboire) ou valores não tributados.")
-    total_amount: float = Field(description="Valor total a pagar exigido no documento.")
-    
-    items: List[InvoiceLineItem] = Field(description="Lista com todos os itens extraídos.")
-    requires_manual_justification: bool = Field(default=False, description="Flag: Marcar como TRUTH se for um recibo de restaurante ou despesa de representação que exija justificativa do contador.")
-
-    @model_validator(mode="after")
-    def validate_accounting_math(self, info) -> "InvoiceData":
-        context_data = info.context or {}
-        allowed_tva_rates = context_data.get("valid_tva_rates", [])
-        
-        if not allowed_tva_rates:
-            raise ValueError("CRITICAL: Nenhuma taxa de IVA (TVA) foi injetada pelo KERNEL Neo4j. Ontologia comprometida.")
-
-        # TESTE 1: Soma dos itens deve bater com o subtotal
-        calculated_subtotal = sum(item.gross_amount for item in self.items)
-        if not math.isclose(calculated_subtotal, self.subtotal, abs_tol=0.05):
-            raise ValueError(
-                f"ITEMS vs SUBTOTAL: soma dos itens ({calculated_subtotal:.2f}) "
-                f"não bate com subtotal ({self.subtotal:.2f})."
-            )
-
-        # TESTE 2: subtotal + TVA calculado deve bater com total_amount
-        # Aceita qualquer alíquota permitida — verifica qual fecha a conta
-        tva_closes = False
-        for rate in allowed_tva_rates:
-            tva = round(self.subtotal * rate / 100, 2)
-            if math.isclose(self.subtotal + tva + self.tip_or_unregulated_amount, self.total_amount, abs_tol=0.10):
-                tva_closes = True
-                break
-
-        # Também aceita se total == subtotal + gorjeta (documento sem TVA)
-        if not tva_closes:
-            if not math.isclose(self.subtotal + self.tip_or_unregulated_amount, self.total_amount, abs_tol=0.10):
-                raise ValueError(
-                    f"SUBTOTAL + TVA vs TOTAL: nenhuma alíquota permitida ({allowed_tva_rates}) "
-                    f"explica o total de {self.total_amount:.2f} "
-                    f"a partir do subtotal {self.subtotal:.2f}."
-                )
-
-        # TESTE 3: Alíquotas alucinadas (TDFN)
-        for idx, item in enumerate(self.items):
-            if item.tva_rate_applied is not None:
-                rate = round(item.tva_rate_applied, 1)
-                if rate not in allowed_tva_rates and not math.isclose(rate, 0.0, abs_tol=0.01):
-                    raise ValueError(
-                        f"TVA HALLUCINATION: alíquota {rate}% no item {idx} "
-                        f"não está nas permitidas: {allowed_tva_rates}."
-                    )
-
-        return self
-
-    @model_validator(mode="after")
-    def validate_swiss_uid(self) -> "InvoiceData":
-        """
-        Escudo de Anomalias contra Fraude ou Alucinação: Validação Aritmética MOD11 do UID.
-        """
-        if not self.vendor_uid:
-            return self
-            
-        import re
-        # Extrai apenas os números (Removendo CHE, ., -, TVA, MWST)
-        raw_digits = re.sub(r'\D', '', self.vendor_uid)
-        
-        # O Base do UID suíço TEM que ter 9 dígitos
-        if len(raw_digits) != 9:
-            raise ValueError(f"ANOMALY DETECTED: UID Suíço inválido (Tamanho incorreto): {self.vendor_uid}. São exigidos exatamente 9 dígitos numéricos (IDE).")
-            
-        # Pesos oficiais do Governo Suíço para MOD11
-        weights = [5, 4, 3, 2, 7, 6, 5, 4]
-        total_sum = sum(int(digit) * weight for digit, weight in zip(raw_digits[:8], weights))
-        
-        expected_checksum = 11 - (total_sum % 11)
-        if expected_checksum == 11:
-            expected_checksum = 0
-        elif expected_checksum == 10:
-            raise ValueError(f"ANOMALY DETECTED: UID Suíço MOD11 falhou estruturalmente (Check=10) para {self.vendor_uid}")
-            
-        actual_checksum = int(raw_digits[8])
-        if expected_checksum != actual_checksum:
-            raise ValueError(f"FRAUD/HALLUCINATION DETECTED: UID Suíço {self.vendor_uid} falhou na validação de Integridade MOD11. O dígito final {actual_checksum} deveria ser {expected_checksum}.")
-            
-        return self
-
 # --- INVOICE SKILL CLASS ---
+
 
 class InvoiceSkill:
     """
     Skill de processamento de faturas (Swiss Crésus ERP Pipeline).
     """
+
     def __init__(self, intel: MenirIntel, ontology_manager: MenirOntologyManager):
         self.intel = intel
         self.ontology_manager = ontology_manager
         self.dispatcher = DocumentDispatcher()
-        
+
     def _inject_into_graph(self, data: InvoiceData, tenant: str, file_hash: str):
         """
         Materializa a ontologia em memória (InvoiceData) no motor Neo4j.
         Transação Cypher rigorosa com idempotência via MERGE.
         """
         import json
-        
+
         # Serializar os itens de linha em uma string JSON para não poluir o Grafo com milhares de micro-nós abstratos.
         line_items_dict = [item.model_dump() for item in data.items]
         line_items_json = json.dumps(line_items_dict, ensure_ascii=False)
-        
+
         safe_tenant = tenant.replace("`", "")
-        
+
         query = f"""
         // 1. Fornecedor (Vendor) - Evita duplicação pelo nome/IBAN
         MERGE (v:Vendor:`{safe_tenant}` {{name: $vendor_name}})
         SET v.iban = $vendor_iban, v.project = $tenant
-        
+          # noqa: W293
         // 2. Fatura (Invoice) - Idempotência absoluta pelo HASH do arquivo
         MERGE (i:Invoice:`{safe_tenant}` {{file_hash: $file_hash}})
         SET i.issue_date = $issue_date,
@@ -153,18 +56,19 @@ class InvoiceSkill:
             i.requires_justification = $requires_justification,
             i.line_items_json = $line_items_json,
             i.ingested_at = datetime()
-            
+              # noqa: W293
         // 3. Relacionamento Fornecedor -> Emite -> Fatura
         MERGE (v)-[:ISSUED]->(i)
-        
+          # noqa: W293
         // 4. Relacionamento Tenant -> Recebe -> Fatura
-        MERGE (t:Tenant {{name: $tenant}})
+        MERGE (t:Tenant {{name: $tenant_safe}})
         MERGE (t)-[:RECEIVED]->(i)
         """
-        
-        params = {
-            "tenant": tenant,
+
+        params: dict[str, Any] = {
+            "tenant_safe": safe_tenant,
             "vendor_name": data.vendor_name,
+            "vendor_uid": data.vendor_uid,
             "vendor_iban": data.vendor_iban,
             "file_hash": file_hash,
             "issue_date": data.issue_date,
@@ -173,25 +77,34 @@ class InvoiceSkill:
             "subtotal": data.subtotal,
             "tips": data.tip_or_unregulated_amount,
             "requires_justification": data.requires_manual_justification,
-            "line_items_json": line_items_json
+            "line_items_json": line_items_json,
         }
-        
+
         with self.ontology_manager.driver.session() as session:
             session.run(query, **params)
-            logger.info(f"✅ Fatura injetada no Grafo (Fornecedor: {data.vendor_name}, Total: {data.total_amount:.2f} {data.currency})")
+            logger.info(
+                f"✅ Fatura injetada no Grafo (Fornecedor: {data.vendor_name}, Total: {data.total_amount:.2f} {data.currency})"
+            )
 
     async def process_document(self, file_path: str, tenant: str = "BECO") -> SkillResult:
-        import hashlib
-        import json
         import asyncio
         import base64
+        import hashlib
+        import json
+
         from pydantic import ValidationError
         from pypdf import PdfReader
 
         PRODUCTION_READY = os.getenv("MENIR_INVOICE_LIVE", "false").lower() == "true"
         if not PRODUCTION_READY:
-            logger.warning("⚠️ InvoiceSkill em modo STUB. Defina MENIR_INVOICE_LIVE=true para ativar.")
-            return SkillResult(success=False, nodes_and_edges=[], message="STUB_MODE: MENIR_INVOICE_LIVE não ativado.")
+            logger.warning(
+                "⚠️ InvoiceSkill em modo STUB. Defina MENIR_INVOICE_LIVE=true para ativar."
+            )
+            return SkillResult(
+                success=False,
+                nodes_and_edges=[],
+                message="STUB_MODE: MENIR_INVOICE_LIVE não ativado.",
+            )
 
         logger.info(f"🧾 Iniciando processamento de Invoice: {file_path}")
 
@@ -205,6 +118,7 @@ class InvoiceSkill:
         try:
             lane = self.dispatcher.analyze_payload(file_path)
             from datetime import date
+
             placeholder_date = date.today().isoformat()
             active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
 
@@ -224,42 +138,37 @@ Schema obrigatório:
   "requires_manual_justification": false
 }"""
 
+            from typing import Any
+            contents: list[Any]
+
             if lane == "FAST_LANE":
                 logger.info("⚡ FAST_LANE: Extraindo texto nativo via pypdf.")
                 reader = PdfReader(file_path)
-                raw_text = "\n".join(
-                    page.extract_text() or "" for page in reader.pages
-                )
+                raw_text = "\n".join(page.extract_text() or "" for page in reader.pages)
                 contents = [EXTRACTION_PROMPT + "\n\nTEXTO DA FATURA:\n" + raw_text]
 
             else:
                 logger.info("🐢 SLOW_LANE: Enviando arquivo para Gemini Vision.")
-                ext = file_path.lower().rsplit('.', 1)[-1]
+                ext = file_path.lower().rsplit(".", 1)[-1]
                 mime_map = {
                     "pdf": "application/pdf",
                     "png": "image/png",
                     "jpg": "image/jpeg",
-                    "jpeg": "image/jpeg"
+                    "jpeg": "image/jpeg",
                 }
                 mime_type = mime_map.get(ext, "application/pdf")
                 b64_data = base64.b64encode(file_bytes).decode()
-                contents = [
-                    {"mime_type": mime_type, "data": b64_data},
-                    EXTRACTION_PROMPT
-                ]
+                contents = [{"mime_type": mime_type, "data": b64_data}, EXTRACTION_PROMPT]
 
             async with self.intel.intel_semaphore:
-                response = await asyncio.to_thread(
-                    self.intel.model.generate_content,
-                    contents
-                )
+                active_model = self.intel._get_active_model()
+                response = await asyncio.to_thread(active_model.generate_content, contents)
 
             raw_json = response.text.strip().removeprefix("```json").removesuffix("```").strip()
             invoice_dict = json.loads(raw_json)
 
             validated = InvoiceData.model_validate(
-                invoice_dict,
-                context={"valid_tva_rates": active_rules.get("tva_rates", [])}
+                invoice_dict, context={"valid_tva_rates": active_rules.get("tva_rates", [])}
             )
 
             self._inject_into_graph(validated, tenant, file_hash)
@@ -267,19 +176,29 @@ Schema obrigatório:
             return SkillResult(
                 success=True,
                 nodes_and_edges=[],
-                message=f"Fatura processada: {validated.vendor_name} | {validated.total_amount:.2f} {validated.currency}"
+                message=f"Fatura processada: {validated.vendor_name} | {validated.total_amount:.2f} {validated.currency}",
             )
 
         except json.JSONDecodeError as e:
             logger.error(f"JSONDecodeError: {e}")
-            self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "JSONDecodeError", str(e), 1)
-            return SkillResult(success=False, nodes_and_edges=[], message=f"LLM retornou JSON inválido: {e}")
+            self.ontology_manager.inject_entropy_anomaly(
+                tenant, file_hash, "JSONDecodeError", str(e), 1
+            )
+            return SkillResult(
+                success=False, nodes_and_edges=[], message=f"LLM retornou JSON inválido: {e}"
+            )
 
         except ValidationError as e:
             error_count = len(e.errors())
             logger.error(f"ValidationError: {error_count} erros de validação fiduciária")
-            self.ontology_manager.inject_entropy_anomaly(tenant, file_hash, "MathValidationError", e.json(), error_count)
-            return SkillResult(success=False, nodes_and_edges=[], message=f"Fatura reprovada em {error_count} regras fiduciárias")
+            self.ontology_manager.inject_entropy_anomaly(
+                tenant, file_hash, "MathValidationError", e.json(), error_count
+            )
+            return SkillResult(
+                success=False,
+                nodes_and_edges=[],
+                message=f"Fatura reprovada em {error_count} regras fiduciárias",
+            )
 
         except Exception as e:
             logger.error(f"Erro genérico no InvoiceSkill: {e}")

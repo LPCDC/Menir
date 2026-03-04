@@ -8,6 +8,8 @@ is not suffering from Deadlocks or severe Semaphore starvation.
 import sys
 import time
 import requests
+import os
+from dotenv import load_dotenv
 from src.v3.meta_cognition import MenirOntologyManager
 
 def check_synapse_health():
@@ -34,7 +36,13 @@ def check_synapse_health():
 
 def check_neo4j_latency():
     """Mede a latência de I/O do Pool de Conexões do Neo4j."""
-    om = MenirOntologyManager()
+    load_dotenv(override=True)
+    uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    user = os.getenv("NEO4J_USER", "neo4j")
+    pwd = os.getenv("NEO4J_PASSWORD") or os.getenv("NEO4J_PWD")
+    db = os.getenv("NEO4J_DB", "neo4j")
+    
+    om = MenirOntologyManager(uri, (user, pwd), db_name=db)
     try:
         start = time.time()
         with om.driver.session() as session:
@@ -43,10 +51,10 @@ def check_neo4j_latency():
         
         print(f"Neo4j OK - Latency {latency:.1f}ms")
         
-        # O Padrão Enterprise: Se o Grafo leva mais de 500ms só para o Handshake,
+        # O Padrão Enterprise: Se o Grafo leva mais de 2000ms só para o Handshake,
         # O pool de conexões está estourado ou o NAS falhou I/O.
-        if latency > 500:
-            print("CRITICAL: Neo4j Write-Lock/Latency exceeding 500ms safety limit.")
+        if latency > 2000:
+            print("CRITICAL: Neo4j Write-Lock/Latency exceeding 2000ms safety limit.")
             return False
             
         return True

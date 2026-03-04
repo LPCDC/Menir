@@ -2,17 +2,15 @@
 Menir MCP Professional Tools
 Implements the core observational capabilities for the Agent.
 """
-import os
-import json
-import logging
+
 import asyncio
-from typing import List, Optional
-from pydantic import BaseModel, Field
-from mcp.server.fastmcp import FastMCP
-import mcp.types
+import logging
+import os
+from typing import Any
+
 from src.v3.graph_schema import STRICT_SCHEMA
-from src.v3.menir_bridge import MenirBridge
 from src.v3.mcp.security import PiiFilter
+from src.v3.menir_bridge import MenirBridge
 
 # Initialize Helper Logger
 logger = logging.getLogger("MenirMCPTools")
@@ -21,6 +19,7 @@ logger = logging.getLogger("MenirMCPTools")
 # Tool Logic
 # ==========================================
 
+
 class MenirTools:
     def __init__(self):
         # We initialize Bridge lazily or per-request to avoid keeping connections open?
@@ -28,54 +27,54 @@ class MenirTools:
         pass
 
     @staticmethod
-    async def get_strict_schema() -> dict:
+    async def get_strict_schema() -> dict[str, Any]:
         """Returns the official Graph Schema for Menir."""
-        return STRICT_SCHEMA
+        return STRICT_SCHEMA  # type: ignore[no-any-return]
 
     @staticmethod
-    async def search_logs(limit: int = 100, keyword: str = None) -> List[str]:
+    async def search_logs(limit: int = 100, keyword: str | None = None) -> list[str]:
         """
         Reads the last N lines of menir.log.
         Applies horizontal truncation (>500 chars) and PII redaction.
         """
-        log_path = os.path.join(os.getcwd(), 'logs', 'menir.log')
+        log_path = os.path.join(os.getcwd(), "logs", "menir.log")
         if not os.path.exists(log_path):
-             return ["Log file not found."]
+            return ["Log file not found."]
 
         results = []
         try:
             # Efficient tailing for large files is complex in pure Python without deps,
             # but usually reading lines and taking last N is fine for <100MB logs.
-            with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
+            with open(log_path, encoding="utf-8", errors="replace") as f:
                 lines = f.readlines()
-                
+
             # Filter first
             if keyword:
-                lines = [l for l in lines if keyword.lower() in l.lower()]
-            
+                lines = [l for l in lines if keyword.lower() in l.lower()]  # noqa: E741
+
             # Slice last N
             last_lines = lines[-limit:]
-            
+
             for line in last_lines:
                 # 1. PII Redaction
                 clean_line = PiiFilter.redact_log_line(line)
-                
+
                 # 2. Horizontal Truncation
                 if len(clean_line) > 500:
                     clean_line = clean_line[:500] + "...[TRUNCATED]"
-                
+
                 results.append(clean_line.strip())
-                
+
             return results
         except Exception as e:
-            return [f"Error reading logs: {str(e)}"]
+            return [f"Error reading logs: {e!s}"]
 
     @staticmethod
-    async def explain_node(uuid: str, show_pii: bool = False) -> dict:
+    async def explain_node(uuid: str, show_pii: bool = False) -> dict[str, Any]:
         """
         Fetches Node properties + 1-Hop Relationships with 5s Timeout.
         """
-        bridge = MenirBridge() # Assuming Env Vars are set
+        bridge = MenirBridge()  # Assuming Env Vars are set
         try:
             # Enforce 5s Timeout on Neo4j Operation
             async def _fetch():
@@ -86,22 +85,22 @@ class MenirTools:
                 return await asyncio.to_thread(_get_node_data, bridge, uuid)
 
             data = await asyncio.wait_for(_fetch(), timeout=5.0)
-            
+
             # Redact PII
             if not show_pii:
-                data['properties'] = PiiFilter.redact_node(data.get('properties', {}))
-                
-            return data
+                data["properties"] = PiiFilter.redact_node(data.get("properties", {}))
 
-        except asyncio.TimeoutError:
+            return data  # type: ignore[no-any-return]
+
+        except TimeoutError:
             return {"error": "Database timeout (5s)", "status": "offline"}
         except Exception as e:
-             return {"error": f"Database Error: {str(e)}", "status": "error"}
+            return {"error": f"Database Error: {e!s}", "status": "error"}
         finally:
             bridge.close()
 
     @staticmethod
-    async def check_quarantine_reasons(days: int = 7) -> List[dict]:
+    async def check_quarantine_reasons(days: int = 7) -> list[dict]:
         """
         Analyzes nodes in 'quarantine' status.
         """
@@ -113,19 +112,24 @@ class MenirTools:
         LIMIT 50
         """
         try:
+
             async def _run_query():
-                 with bridge.driver.session() as session:
-                     result = session.run(query, days=days)
-                     return [{"file": r["file"], "hash": r["hash"], "error": r.get("error", "Unknown")} for r in result]
+                with bridge.driver.session() as session:
+                    result = session.run(query, days=days)
+                    return [
+                        {"file": r["file"], "hash": r["hash"], "error": r.get("error", "Unknown")}
+                        for r in result
+                    ]
 
             return await asyncio.wait_for(_run_query(), timeout=5.0)
 
-        except asyncio.TimeoutError:
-             return [{"error": "Database timeout checking quarantine"}]
+        except TimeoutError:
+            return [{"error": "Database timeout checking quarantine"}]
         except Exception as e:
-             return [{"error": str(e)}]
+            return [{"error": str(e)}]
         finally:
             bridge.close()
+
 
 # Internal Helper for Explain Node
 def _get_node_data(bridge, uuid):
@@ -133,10 +137,10 @@ def _get_node_data(bridge, uuid):
         # 1. Fetch Node
         node_q = "MATCH (n {uid: $uid}) RETURN labels(n) as labels, properties(n) as props"
         node_res = session.run(node_q, uid=uuid).single()
-        
+
         if not node_res:
             return {"error": "Node not found"}
-            
+
         # 2. Fetch 1-Hop Rels (Incoming & Outgoing)
         # Limit to 20 rels to avoid massive dumps
         rel_q = """
@@ -145,21 +149,23 @@ def _get_node_data(bridge, uuid):
         LIMIT 20
         """
         rel_res = session.run(rel_q, uid=uuid)
-        
+
         relationships = []
         for r in rel_res:
             direction = "OUT" if r["is_start"] else "IN"
-            relationships.append({
-                "type": r["type"],
-                "direction": direction,
-                "target_label": r["other_labels"][0] if r["other_labels"] else "Unknown",
-                "target_name": r["other_name"] or "Unnamed",
-                "target_uid": r["other_uid"]
-            })
-            
+            relationships.append(
+                {
+                    "type": r["type"],
+                    "direction": direction,
+                    "target_label": r["other_labels"][0] if r["other_labels"] else "Unknown",
+                    "target_name": r["other_name"] or "Unnamed",
+                    "target_uid": r["other_uid"],
+                }
+            )
+
         return {
             "uid": uuid,
             "labels": node_res["labels"],
             "properties": node_res["props"],
-            "relationships": relationships
+            "relationships": relationships,
         }
