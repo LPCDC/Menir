@@ -2,19 +2,28 @@
 Menir MCP Server (Python)
 Entry point for the Menir Model Context Protocol integration.
 """
+
+import logging
 import os
 import sys
-import logging
+
 from dotenv import load_dotenv
 
 # Ensure we are in the path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+)
 
 from mcp.server.fastmcp import FastMCP
+
 from src.v3.mcp.protools import MenirTools
 
 # Configure Logging (StdErr to not corrupt StdOut MCP transport)
-logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stderr,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger("MenirMCP")
 
 # Load Config
@@ -31,7 +40,9 @@ if reader_pwd:
     os.environ["NEO4J_USER"] = reader_user
     os.environ["NEO4J_PASSWORD"] = reader_pwd
 else:
-    logger.warning("⚠️  Security Warning: NEO4J_READER_PASSWORD not found. Using default credentials (potentially Admin).")
+    logger.warning(
+        "⚠️  Security Warning: NEO4J_READER_PASSWORD not found. Using default credentials (potentially Admin)."
+    )
 
 # Initialize FastMCP
 mcp = FastMCP("Menir Vital Graph")
@@ -39,6 +50,7 @@ mcp = FastMCP("Menir Vital Graph")
 # ==========================================
 # Tool Registration
 # ==========================================
+
 
 @mcp.tool()
 async def get_strict_schema() -> dict:
@@ -48,16 +60,19 @@ async def get_strict_schema() -> dict:
     """
     return await MenirTools.get_strict_schema()
 
+
 @mcp.tool()
-async def search_logs(limit: int = 100, keyword: str = None) -> list[str]:
+async def search_logs(limit: int = 100, keyword: str | None = None) -> list[str]:
     """
     Reads the last N lines of the system log (menir.log).
     Useful for debugging errors or checking ingestion status.
     """
     # Simply delegate (Input validation handled by Pydantic in ProTools if we used the classes directly,
     # but FastMCP handles basic types. Validating ranges manually here or via helper)
-    if limit > 200: limit = 200 # Enforce hard cap
+    if limit > 200:
+        limit = 200  # Enforce hard cap
     return await MenirTools.search_logs(limit, keyword)
+
 
 @mcp.tool()
 async def explain_node(uuid: str, show_pii: bool = False) -> dict:
@@ -68,6 +83,7 @@ async def explain_node(uuid: str, show_pii: bool = False) -> dict:
     """
     return await MenirTools.explain_node(uuid, show_pii)
 
+
 @mcp.tool()
 async def check_quarantine_reasons(days: int = 7) -> list[dict]:
     """
@@ -75,6 +91,7 @@ async def check_quarantine_reasons(days: int = 7) -> list[dict]:
     Returns filename, hash, and error message.
     """
     return await MenirTools.check_quarantine_reasons(days)
+
 
 if __name__ == "__main__":
     logger.info("🚀 Menir MCP Server Starting...")

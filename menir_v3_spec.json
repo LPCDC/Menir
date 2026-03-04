@@ -1,0 +1,531 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Menir Core API",
+    "version": "5.2.0",
+    "description": "Control Plane Open Protocol for Menir Zero-Trust Architecture.",
+    "contact": {
+      "name": "LibLabs Architecture Team"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Tenant JWT used for Galvanic Isolation Context propagation (e.g. SANTOS vs BECO)."
+      }
+    },
+    "schemas": {
+      "Tenant": {
+        "description": "O N\u00f3 principal de Context Isolation.",
+        "properties": {
+          "uid": {
+            "title": "Uid",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "labels": {
+            "default": [
+              "Tenant"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "name": {
+            "description": "A Enumera\u00e7\u00e3o r\u00edgida dos Tenants permitidos na arquitetura.",
+            "enum": [
+              "BECO",
+              "SANTOS"
+            ],
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uid",
+          "project",
+          "name"
+        ],
+        "title": "Tenant",
+        "type": "object"
+      },
+      "User": {
+        "properties": {
+          "uid": {
+            "title": "Uid",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "labels": {
+            "default": [
+              "User",
+              "Person"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "name": {
+            "description": "O nome do Usu\u00e1rio.",
+            "title": "Name",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Email"
+          },
+          "role": {
+            "default": "USER",
+            "enum": [
+              "ADMIN",
+              "AUDITOR",
+              "USER"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uid",
+          "project",
+          "name"
+        ],
+        "title": "User",
+        "type": "object"
+      },
+      "Session": {
+        "description": "Usado futuramente no JWT parsing para o Zero-Trust Middleware.",
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "tenant_id": {
+            "enum": [
+              "BECO",
+              "SANTOS"
+            ],
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "token",
+          "tenant_id",
+          "user_id"
+        ],
+        "title": "Session",
+        "type": "object"
+      },
+      "Person": {
+        "properties": {
+          "uid": {
+            "title": "Uid",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "labels": {
+            "default": [
+              "Person"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Email"
+          }
+        },
+        "required": [
+          "uid",
+          "project",
+          "name"
+        ],
+        "title": "Person",
+        "type": "object"
+      },
+      "Organization": {
+        "properties": {
+          "uid": {
+            "title": "Uid",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "labels": {
+            "default": [
+              "Organization"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uid",
+          "project",
+          "name"
+        ],
+        "title": "Organization",
+        "type": "object"
+      },
+      "InvoiceLineItem": {
+        "properties": {
+          "description": {
+            "description": "Descri\u00e7\u00e3o clara do item, servi\u00e7o ou produto.",
+            "title": "Description",
+            "type": "string"
+          },
+          "gross_amount": {
+            "description": "Valor bruto da linha.",
+            "title": "Gross Amount",
+            "type": "number"
+          },
+          "tva_rate_applied": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Taxa de imposto aplicada \u00e0 linha (ex: 8.1, 2.6). Se n\u00e3o especificada, deixe nulo.",
+            "title": "Tva Rate Applied"
+          }
+        },
+        "required": [
+          "description",
+          "gross_amount"
+        ],
+        "title": "InvoiceLineItem",
+        "type": "object"
+      },
+      "InvoiceData": {
+        "properties": {
+          "uid": {
+            "title": "Uid",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "labels": {
+            "default": [
+              "Invoice",
+              "Document"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "vendor_name": {
+            "description": "Nome do fornecedor que emitiu a fatura.",
+            "title": "Vendor Name",
+            "type": "string"
+          },
+          "vendor_uid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "N\u00famero UID Su\u00ed\u00e7o com a extens\u00e3o de IVA se aplic\u00e1vel (ex: CHE-123.456.789 TVA).",
+            "title": "Vendor Uid"
+          },
+          "vendor_iban": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "IBAN su\u00ed\u00e7o ou europeu na fatura.",
+            "title": "Vendor Iban"
+          },
+          "currency": {
+            "description": "A moeda oficial do documento.",
+            "enum": [
+              "CHF",
+              "EUR"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "issue_date": {
+            "description": "Data de emiss\u00e3o no formato YYYY-MM-DD.",
+            "title": "Issue Date",
+            "type": "string"
+          },
+          "subtotal": {
+            "description": "Soma do valor l\u00edquido sem impostos de todas as linhas.",
+            "title": "Subtotal",
+            "type": "number"
+          },
+          "tip_or_unregulated_amount": {
+            "default": 0.0,
+            "description": "Gorjetas (Pourboire) ou valores n\u00e3o tributados.",
+            "title": "Tip Or Unregulated Amount",
+            "type": "number"
+          },
+          "total_amount": {
+            "description": "Valor total a pagar exigido no documento.",
+            "title": "Total Amount",
+            "type": "number"
+          },
+          "items": {
+            "description": "Lista com todos os itens extra\u00eddos.",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceLineItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "requires_manual_justification": {
+            "default": false,
+            "description": "Flag: Marcar como TRUTH se for um recibo de restaurante ou despesa de representa\u00e7\u00e3o que exija justificativa do contador.",
+            "title": "Requires Manual Justification",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "uid",
+          "project",
+          "vendor_name",
+          "currency",
+          "issue_date",
+          "subtotal",
+          "total_amount",
+          "items"
+        ],
+        "title": "InvoiceData",
+        "type": "object"
+      },
+      "SystemPersonaPayload": {
+        "description": "Strict validation for the System Persona extracted from the Graph\nbefore it initializes the LLM Context Window.",
+        "properties": {
+          "name": {
+            "description": "The Persona designation (e.g. DEFAULT_MENIR)",
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "description": "The semantic version of the Persona",
+            "title": "Version",
+            "type": "string"
+          },
+          "system_prompt": {
+            "description": "The actual cognitive directive for the LLM",
+            "minLength": 20,
+            "title": "System Prompt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "system_prompt"
+        ],
+        "title": "SystemPersonaPayload",
+        "type": "object"
+      },
+      "Heartbeat": {
+        "description": "System internal status check payload.",
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "uptime_seconds": {
+            "title": "Uptime Seconds",
+            "type": "integer"
+          },
+          "memory_usage_mb": {
+            "title": "Memory Usage Mb",
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "uptime_seconds",
+          "memory_usage_mb"
+        ],
+        "title": "Heartbeat",
+        "type": "object"
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/status": {
+      "get": {
+        "summary": "Health and Concurrency Status",
+        "description": "Returns the Watchdog and Semaphore queue saturation limits.",
+        "responses": {
+          "200": {
+            "description": "System Online Payload"
+          }
+        }
+      }
+    },
+    "/auth/token": {
+      "post": {
+        "summary": "JWT Session Generation",
+        "description": "Authenticates a user and returns a Galvanic Isolation JWT token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "username",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/command": {
+      "post": {
+        "summary": "Unified Command Pipeline",
+        "description": "Executes a multi-modal payload through MenirLogos into the Semaphore command bus.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "type": "string"
+                  },
+                  "origin": {
+                    "type": "string",
+                    "default": "WEB_UI"
+                  }
+                },
+                "required": [
+                  "intent"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Command Enqueued"
+          },
+          "403": {
+            "description": "Tenant Forgery/Isolation Breach"
+          },
+          "504": {
+            "description": "Semaphore Exhaustion (30s TTL)"
+          }
+        }
+      }
+    }
+  }
+}

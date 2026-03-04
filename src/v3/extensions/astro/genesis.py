@@ -1,22 +1,25 @@
-
 """
 Genesis Astro
 Seeds the Menir Graph with Static Astrological Data.
 Also introduces "Daniella Badinni" to the system.
 """
+
 import logging
+
+from src.v3.core.schemas import Person
 from src.v3.menir_bridge import MenirBridge
-from .schema import CelestialBody, ZodiacSign, House
-from src.v3.schema import Person
+
+from .schema import CelestialBody, House, ZodiacSign
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GenesisAstro")
 
+
 def seed_static_data(bridge: MenirBridge):
     """Creates Planets, Signs, and Houses."""
     project = "MenirAstro"
-    
+
     # 1. Celestial Bodies
     bodies = [
         {"name": "Sun", "archetype": "The Hero/Central Self"},
@@ -31,14 +34,14 @@ def seed_static_data(bridge: MenirBridge):
         {"name": "Pluto", "archetype": "The Alchemist/Transformation"},
         {"name": "Chiron", "archetype": "The Wounded Healer"},
         {"name": "North Node", "archetype": "Destiny"},
-        {"name": "South Node", "archetype": "Karma"}
+        {"name": "South Node", "archetype": "Karma"},
     ]
-    
+
     logger.info("🌌 Seeding Celestial Bodies...")
     for b in bodies:
         node = CelestialBody(name=b["name"], archetype=b["archetype"], project=project)
         bridge.merge_node(node)
-        
+
     # 2. Zodiac Signs
     signs = [
         ("Aries", "Fire", "Cardinal", "Mars"),
@@ -52,37 +55,50 @@ def seed_static_data(bridge: MenirBridge):
         ("Sagittarius", "Fire", "Mutable", "Jupiter"),
         ("Capricorn", "Earth", "Cardinal", "Saturn"),
         ("Aquarius", "Air", "Fixed", "Saturn/Uranus"),
-        ("Pisces", "Water", "Mutable", "Jupiter/Neptune")
+        ("Pisces", "Water", "Mutable", "Jupiter/Neptune"),
     ]
-    
+
     logger.info("♈ Seeding Zodiac Signs...")
     for s in signs:
-        node = ZodiacSign(name=s[0], element=s[1], modality=s[2], ruler=s[3], project=project)
-        bridge.merge_node(node)
-        
+        sign_node = ZodiacSign(name=s[0], element=s[1], modality=s[2], ruler=s[3], project=project)
+        bridge.merge_node(sign_node)
+
     # 3. Houses
     logger.info("🏠 Seeding Houses...")
     house_domains = [
-        "Identity", "Values", "Communication", "Home/Roots", "Creativity/Children", "Service/Health",
-        "Relationships", "Transformation/Shared Assets", "Philosophy/Travel", "Career/Public Image",
-        "Community/Hopes", "Subconscious/Closure"
+        "Identity",
+        "Values",
+        "Communication",
+        "Home/Roots",
+        "Creativity/Children",
+        "Service/Health",
+        "Relationships",
+        "Transformation/Shared Assets",
+        "Philosophy/Travel",
+        "Career/Public Image",
+        "Community/Hopes",
+        "Subconscious/Closure",
     ]
     for i, domain in enumerate(house_domains, 1):
-        node = House(number=i, domain=domain, project=project, name=f"House {i}") # Added name explicitly
-        bridge.merge_node(node)
+        house_node = House(
+            number=i, domain=domain, project=project, name=f"House {i}"
+        )  # Added name explicitly
+        bridge.merge_node(house_node)
+
 
 def ingest_daniella(bridge: MenirBridge):
     """Ingests User Request: Daniella Badinni."""
     logger.info("👤 Ingesting New Friend: Daniella Badinni...")
-    daniella = Person(
-        name="Daniella Badinni", 
-        role="Friend", 
-        is_real=True, 
-        context="Real World", 
-        project="MenirVital"
-    )
+    daniella = Person.model_validate({
+        "name": "Daniella Badinni",
+        "project": "MenirVital",
+        "role": "Friend",
+        "is_real": True,
+        "context": "Real World"
+    })
     bridge.merge_node(daniella)
     logger.info("✅ Daniella is now in the Graph.")
+
 
 def main():
     bridge = MenirBridge()
@@ -92,6 +108,7 @@ def main():
         logger.info("✨ Genesis Complete.")
     finally:
         bridge.close()
+
 
 if __name__ == "__main__":
     main()
