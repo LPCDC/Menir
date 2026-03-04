@@ -104,7 +104,7 @@ class CresusExporter:
                 # Cast the driver iterable to a native RAM list to free the pool
                 return [record.data() for record in result]
         except Exception as e:
-            logger.error(f"Failed Cypher Reconciled Extraction: {e}")
+            logger.exception(f"Failed Cypher Reconciled Extraction: {e}")
             return []
 
 

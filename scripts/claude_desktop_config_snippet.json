@@ -1,0 +1,16 @@
+{
+    "mcpServers": {
+        "menir-neo4j": {
+            "type": "stdio",
+            "command": "neo4j-mcp",
+            "args": [],
+            "env": {
+                "NEO4J_URI": "neo4j+s://7ac789d0.databases.neo4j.io",
+                "NEO4J_USERNAME": "7ac789d0",
+                "NEO4J_PASSWORD": "hVGagIkcYHw-kXqDtvBMvhvKmXWjVmO7Iu66upqIb68",
+                "NEO4J_DATABASE": "neo4j",
+                "NEO4J_READ_ONLY": "true"
+            }
+        }
+    }
+}

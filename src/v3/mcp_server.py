@@ -29,6 +29,18 @@ class MenirMCPServer:
                 },
                 "allowed_tenants": ["BECO", "SANTOS"],
             },
+            "query_memory": {
+                "name": "query_memory",
+                "description": "Executa uma query Cypher de leitura (MATCH/RETURN) no Neo4j. Deve ser usada para recuperar contexto histórico ou relacional. Assegure-se de incluir a label do Tenant (ex: :`BECO`) nos MATCHes.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "cypher_query": {"type": "string", "description": "Query Cypher RAW."}
+                    },
+                    "required": ["cypher_query"],
+                },
+                "allowed_tenants": ["BECO", "SANTOS", "ROOT"],
+            },
             "export_cresus_tabular": {
                 "name": "export_cresus_tabular",
                 "description": "Exporta as transações financeiras reconciliadas do Tenant ativo para formato tabular .txt do ERP Crésus.",
@@ -84,6 +96,11 @@ class MenirMCPServer:
             # Placeholder MOD11 logic para o Agent (O algoritmo MOD11 real deve viver dentro da Skill no futuro)
             vat = arguments.get("vat_number", "")
             return {"vat": vat, "is_valid": True, "method": "MOD11_MOCK_CHECK"}
+            
+        elif tool_name == "query_memory":
+            from src.v3.mcp.protools import MenirTools
+            cypher = arguments.get("cypher_query", "")
+            return await MenirTools.query_memory(tenant_id, cypher)
 
         elif tool_name == "export_cresus_tabular":
             # Na versão integrada, chamaria o CresusExporter

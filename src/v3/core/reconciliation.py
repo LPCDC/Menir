@@ -11,14 +11,20 @@ from src.v3.meta_cognition import MenirOntologyManager
 logger = logging.getLogger("ReconciliationEngine")
 
 
+from src.v3.core.schemas.identity import TenantContext
+
 class ReconciliationEngine:
     def __init__(self, ontology_manager: MenirOntologyManager):
         self.ontology_manager = ontology_manager
 
-    def run_matching_cycle(self, tenant: str):
+    def run_matching_cycle(self):
         """
         Executes the hierarchical Cypher cascading match between Invoices and Transactions.
         """
+        tenant = TenantContext.get()
+        if not tenant:
+            raise ValueError("Reconciliation requires an active TenantContext.")
+            
         logger.info(f"🔄 Iniciando Ciclo de Reconciliação para o Tenant: {tenant}")
         self._tier_1_exact_match(tenant)
         self._tier_2_fuzzy_match(tenant)
@@ -47,6 +53,7 @@ class ReconciliationEngine:
         WHERE delta <= 0.05   # noqa: W291
           AND days_diff >= 0   # noqa: W291
           AND days_diff <= 30
+          AND i.currency = tr.currency
 
         // Materialize
         MERGE (i)-[r:RECONCILED]->(tr)
@@ -83,6 +90,7 @@ class ReconciliationEngine:
         WHERE delta <= (i.total_amount * 0.05)
           AND days_diff >= 0   # noqa: W291
           AND days_diff <= 45
+          AND i.currency = tr.currency
 
         // Materialize
         MERGE (i)-[r:RECONCILED_NEEDS_REVIEW]->(tr)
@@ -95,12 +103,16 @@ class ReconciliationEngine:
             count = result["matched_count"] if result else 0
             logger.info(f"⚠️ [TIER 2] Fuzzy Matches encaminhados para revisão: {count}")
 
-    def get_quarantine_nodes(self, tenant: str) -> dict:
+    def get_quarantine_nodes(self) -> dict:
         """
         TIER 3 (Quarantine / Orphans):
         Returns Invoices and Transactions older than 45 days without reconciliation,
         or those with critical extraction failures (missing amounts/dates).
         """
+        tenant = TenantContext.get()
+        if not tenant:
+            raise ValueError("Quarantine scan requires an active TenantContext.")
+            
         safe_tenant = tenant.replace("`", "")
 
         invoice_query = f"""
@@ -138,7 +150,7 @@ class ReconciliationEngine:
                 tx_result = session.run(tx_query, tenant=tenant)
                 payload["orphaned_transactions"] = [r["properties"] for r in tx_result]
         except Exception as e:
-            logger.error(f"Failed to query quarantine nodes: {e}")
+            logger.exception(f"Failed to query quarantine nodes: {e}")
 
         logger.info(
             f"☣️ [TIER 3] Quarentena isolou {len(payload['orphaned_invoices'])} Invoices e {len(payload['orphaned_transactions'])} Transactions órfãs."

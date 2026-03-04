@@ -7,8 +7,9 @@ import logging
 import os
 from typing import Any
 
-from src.v3.core.dispatcher import DocumentDispatcher
 from src.v3.core.menir_runner import SkillResult
+from src.v3.core.compressor import PayloadCompressor
+from google.genai import types as genai_types
 from src.v3.core.schemas import InvoiceData
 from src.v3.menir_intel import MenirIntel
 from src.v3.meta_cognition import MenirOntologyManager
@@ -26,9 +27,8 @@ class InvoiceSkill:
     def __init__(self, intel: MenirIntel, ontology_manager: MenirOntologyManager):
         self.intel = intel
         self.ontology_manager = ontology_manager
-        self.dispatcher = DocumentDispatcher()
 
-    def _inject_into_graph(self, data: InvoiceData, tenant: str, file_hash: str):
+    def _inject_into_graph(self, data: InvoiceData, file_hash: str):
         """
         Materializa a ontologia em memória (InvoiceData) no motor Neo4j.
         Transação Cypher rigorosa com idempotência via MERGE.
@@ -39,6 +39,12 @@ class InvoiceSkill:
         line_items_dict = [item.model_dump() for item in data.items]
         line_items_json = json.dumps(line_items_dict, ensure_ascii=False)
 
+        from src.v3.core.schemas.identity import TenantContext
+        
+        tenant = TenantContext.get()
+        if not tenant:
+            raise ValueError("Isolamento violado. Nenhum Tenant ativo configurado.")
+            
         safe_tenant = tenant.replace("`", "")
 
         query = f"""
@@ -86,7 +92,7 @@ class InvoiceSkill:
                 f"✅ Fatura injetada no Grafo (Fornecedor: {data.vendor_name}, Total: {data.total_amount:.2f} {data.currency})"
             )
 
-    async def process_document(self, file_path: str, tenant: str = "BECO") -> SkillResult:
+    async def process_document(self, file_path: str) -> SkillResult:
         import asyncio
         import base64
         import hashlib
@@ -116,9 +122,10 @@ class InvoiceSkill:
             return SkillResult(success=False, nodes_and_edges=[], message=str(e))
 
         try:
-            lane = self.dispatcher.analyze_payload(file_path)
             from datetime import date
-
+            from src.v3.core.schemas.identity import TenantContext
+            
+            tenant = TenantContext.get() or "BECO"
             placeholder_date = date.today().isoformat()
             active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
 
@@ -139,30 +146,49 @@ Schema obrigatório:
 }"""
 
             from typing import Any
-            contents: list[Any]
+            compressor = PayloadCompressor()
 
             if lane == "FAST_LANE":
                 logger.info("⚡ FAST_LANE: Extraindo texto nativo via pypdf.")
                 reader = PdfReader(file_path)
                 raw_text = "\n".join(page.extract_text() or "" for page in reader.pages)
-                contents = [EXTRACTION_PROMPT + "\n\nTEXTO DA FATURA:\n" + raw_text]
+                api_contents = [EXTRACTION_PROMPT + "\n\nTEXTO DA FATURA:\n" + raw_text]
 
             else:
-                logger.info("🐢 SLOW_LANE: Enviando arquivo para Gemini Vision.")
-                ext = file_path.lower().rsplit(".", 1)[-1]
-                mime_map = {
-                    "pdf": "application/pdf",
-                    "png": "image/png",
-                    "jpg": "image/jpeg",
-                    "jpeg": "image/jpeg",
-                }
-                mime_type = mime_map.get(ext, "application/pdf")
-                b64_data = base64.b64encode(file_bytes).decode()
-                contents = [{"mime_type": mime_type, "data": b64_data}, EXTRACTION_PROMPT]
+                logger.info("🐢 SLOW_LANE: Redimensionando e enviando arquivo para Gemini Vision.")
+                try:
+                    optimized_path = await asyncio.to_thread(
+                        compressor.compress_for_vision, file_path
+                    )
+                    with open(optimized_path, "rb") as opt_f:
+                        compressed_bytes = opt_f.read()
+                    mime_type = "image/jpeg"
+                except Exception:
+                    logger.exception(
+                        f"PayloadCompressor falhou para {file_path}. "
+                        f"Abortando SLOW_LANE — enviando para quarentena."
+                    )
+                    raise
+
+                api_contents = [
+                    genai_types.Part.from_bytes(
+                        data=compressed_bytes,
+                        mime_type=mime_type,
+                    ),
+                    EXTRACTION_PROMPT,
+                ]
 
             async with self.intel.intel_semaphore:
-                active_model = self.intel._get_active_model()
-                response = await asyncio.to_thread(active_model.generate_content, contents)
+                # Need to use the new synchronous client in async wrapper or proper async client
+                def _generate():
+                    return self.intel.client.models.generate_content(
+                        model=self.intel.model_id,
+                        contents=api_contents,
+                        config=genai_types.GenerateContentConfig(
+                            response_mime_type="application/json"
+                        ),
+                    )
+                response = await asyncio.to_thread(_generate)
 
             raw_json = response.text.strip().removeprefix("```json").removesuffix("```").strip()
             invoice_dict = json.loads(raw_json)
@@ -171,7 +197,7 @@ Schema obrigatório:
                 invoice_dict, context={"valid_tva_rates": active_rules.get("tva_rates", [])}
             )
 
-            self._inject_into_graph(validated, tenant, file_hash)
+            self._inject_into_graph(validated, file_hash)
 
             return SkillResult(
                 success=True,
@@ -180,7 +206,7 @@ Schema obrigatório:
             )
 
         except json.JSONDecodeError as e:
-            logger.error(f"JSONDecodeError: {e}")
+            logger.exception(f"JSONDecodeError: {e}")
             self.ontology_manager.inject_entropy_anomaly(
                 tenant, file_hash, "JSONDecodeError", str(e), 1
             )
@@ -201,5 +227,5 @@ Schema obrigatório:
             )
 
         except Exception as e:
-            logger.error(f"Erro genérico no InvoiceSkill: {e}")
+            logger.exception(f"Erro genérico no InvoiceSkill: {e}")
             return SkillResult(success=False, nodes_and_edges=[], message=f"Falha estrutural: {e}")

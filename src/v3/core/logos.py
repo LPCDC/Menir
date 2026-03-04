@@ -141,7 +141,7 @@ class MenirLogos:
             return parsed_intent
 
         except Exception as e:
-            logger.error(f"🚨 Falha Catastrófica no Logos Cortex: {e}")
+            logger.exception(f"🚨 Falha Catastrófica no Logos Cortex: {e}")
             return CommandPayload(
                 command_id="ERR_500",
                 origin=cast(Literal["CLI_LOCAL", "WEB_UI", "AI_ORACLE", "CRON"], origin),

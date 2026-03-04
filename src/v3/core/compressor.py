@@ -79,7 +79,7 @@ class PayloadCompressor:
                 # Salvar agressivamente
                 img.save(out_path, format="JPEG", quality=self.jpeg_quality, optimize=True)
         except Exception as e:
-            logger.error(f"Falha ao comprimir Imagem {in_path}: {e}")
+            logger.exception(f"Falha ao comprimir Imagem {in_path}: {e}")
             raise RuntimeError(f"Compressão Imagem Falhou: {e}")  # noqa: B904
 
     def _compress_pdf(self, in_path: str, out_path: str):
@@ -108,7 +108,7 @@ class PayloadCompressor:
 
             doc.close()
         except Exception as e:
-            logger.error(f"Falha ao comprimir PDF {in_path}: {e}")
+            logger.exception(f"Falha ao comprimir PDF {in_path}: {e}")
             raise RuntimeError(f"Compressão PDF Falhou: {e}")  # noqa: B904
 
 

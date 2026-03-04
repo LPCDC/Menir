@@ -81,7 +81,12 @@ def measure_graph_latency():
     Avalia se a injestão Write-Lock degradou o banco de dados.
     """
     logger.info("⏱️ Coletando métricas do Event Loop vs Graph Write-Locks...")
-    om = MenirOntologyManager()
+    from dotenv import load_dotenv
+    load_dotenv()
+    uri  = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+    user = os.environ.get("NEO4J_USER", "neo4j")
+    pwd  = os.environ.get("NEO4J_PASSWORD") or os.environ.get("NEO4J_PWD")
+    om = MenirOntologyManager(uri=uri, auth=(user, pwd))
     
     # We query to see the density of nodes
     try:
@@ -97,6 +102,8 @@ def measure_graph_latency():
             logger.info("=========================================")
     except Exception as e:
         logger.error(f"Falha ao medir a Latência Cíclica do Grafo: {e}")
+    finally:
+        om.close()
 
 async def run_chaos():
     """ Orquestra a injeção concorrente no MenirAsyncRunner """

@@ -8,7 +8,7 @@ import logging
 from typing import TYPE_CHECKING, TypeVar
 
 from cachetools import TTLCache, cached
-from neo4j import GraphDatabase, exceptions
+from neo4j import exceptions
 from tenacity import (
     before_sleep_log,
     retry,
@@ -16,6 +16,7 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
+from src.v3.core.neo4j_pool import get_shared_driver
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -32,15 +33,13 @@ class MenirOntologyManager:
     grounded physically and temporally.
     """
 
-    def __init__(self, uri: str, auth: tuple, db_name: str = "neo4j"):
-        self.driver = GraphDatabase.driver(
-            uri, auth=auth, max_connection_pool_size=50, connection_acquisition_timeout=60.0
-        )
-        self.db_name = db_name
+    def __init__(self, uri: str = None, auth: tuple = None, db_name: str = "neo4j"):
+        self.driver = get_shared_driver()
         self.db_name = db_name
 
     def close(self):
-        self.driver.close()
+        # Pool manager handles actual shutdown
+        pass
 
     def from_neo4j(self, node_data: dict, model: type[T]) -> T:
         """
@@ -51,7 +50,7 @@ class MenirOntologyManager:
             instance = model.model_validate(node_data, strict=True)
             return instance
         except Exception as e:
-            logger.error(f"❌ Failed Strict OGM parsing for {model.__name__}: {e}")
+            logger.exception(f"❌ Failed Strict OGM parsing for {model.__name__}: {e}")
             raise
 
     @retry(
@@ -319,7 +318,7 @@ class MenirOntologyManager:
                 f"☢️ Anomaly ({error_type}) with {error_count} errors injected into Graph (Tenant: {tenant})."
             )
         except Exception as e:
-            logger.error(f"Failed to inject anomaly into graph for file {file_hash}: {e}")
+            logger.exception(f"Failed to inject anomaly into graph for file {file_hash}: {e}")
 
 
 if __name__ == "__main__":

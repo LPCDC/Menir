@@ -15,6 +15,18 @@ from src.v3.menir_bridge import MenirBridge
 # Initialize Helper Logger
 logger = logging.getLogger("MenirMCPTools")
 
+_bridge_singleton: "MenirBridge | None" = None
+
+def _get_bridge() -> "MenirBridge":
+    """
+    Retorna instância singleton do MenirBridge.
+    Evita abrir novo pool de 50 conexões Neo4j por request.
+    """
+    global _bridge_singleton
+    if _bridge_singleton is None:
+        _bridge_singleton = MenirBridge()
+    return _bridge_singleton
+
 # ==========================================
 # Tool Logic
 # ==========================================
@@ -74,7 +86,7 @@ class MenirTools:
         """
         Fetches Node properties + 1-Hop Relationships with 5s Timeout.
         """
-        bridge = MenirBridge()  # Assuming Env Vars are set
+        bridge = _get_bridge()  # Assuming Env Vars are set
         try:
             # Enforce 5s Timeout on Neo4j Operation
             async def _fetch():
@@ -96,8 +108,6 @@ class MenirTools:
             return {"error": "Database timeout (5s)", "status": "offline"}
         except Exception as e:
             return {"error": f"Database Error: {e!s}", "status": "error"}
-        finally:
-            bridge.close()
 
     @staticmethod
     async def check_quarantine_reasons(days: int = 7) -> list[dict]:
@@ -105,8 +115,9 @@ class MenirTools:
         Analyzes nodes in 'quarantine' status.
         """
         bridge = MenirBridge()
-        query = """
-        MATCH (n:Document {status: 'quarantine'})
+        from src.v3.core.schemas.base import DocumentStatus
+        query = f"""
+        MATCH (n:Document {{status: '{DocumentStatus.QUARANTINE.value}'}})
         WHERE n.ingested_at >= datetime() - duration({days: $days})
         RETURN n.filename as file, n.sha256 as hash, n.error_msg as error
         LIMIT 50
@@ -127,8 +138,37 @@ class MenirTools:
             return [{"error": "Database timeout checking quarantine"}]
         except Exception as e:
             return [{"error": str(e)}]
-        finally:
-            bridge.close()
+
+    @staticmethod
+    async def query_memory(tenant_id: str, cypher_query: str) -> list[dict]:
+        """
+        Substitui o antigo talk.py. Permite que Agentes WebMCP façam queries
+        diretas no grafo, garantindo que operações destrutivas sejam bloqueadas,
+        a menos que o Agente seja altamente privilegiado.
+        """
+        if not tenant_id:
+            raise ValueError("Tenant_ID é obrigatório para query_memory.")
+
+        upper_query = cypher_query.upper()
+        # Fast-fail safety against destructive queries in standard layer
+        destructive_keywords = ["DELETE", "DETACH", "REMOVE", "DROP", "CREATE INDEX"]
+        if tenant_id != "ROOT" and any(k in upper_query for k in destructive_keywords):
+            raise PermissionError(
+                f"Isolamento: O Tenant {tenant_id} não tem permissão para queries destrutivas via MCP."
+            )
+
+        def _run():
+            bridge = _get_bridge()
+            with bridge.driver.session() as session:
+                # Na v6.0 introduziremos Neo4j Role-Based Access Control por Tenant real.
+                result = session.run(cypher_query)
+                return [record.data() for record in result]
+
+        try:
+            return await asyncio.to_thread(_run)
+        except Exception as e:
+            logger.exception("Falha ao executar query_memory via MCP.")
+            return [{"error": str(e)}]
 
 
 # Internal Helper for Explain Node

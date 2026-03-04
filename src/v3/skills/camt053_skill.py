@@ -101,12 +101,12 @@ class Camt053Skill:
             )
 
         except ET.ParseError as e:
-            logger.error(f"Erro de Parse XML fatal: {e}")
+            logger.exception(f"Erro de Parse XML fatal: {e}")
             return SkillResult(
                 success=False, nodes_and_edges=[], message=f"Formato XML corrompido: {e}"
             )
         except Exception as e:
-            logger.error(f"Erro ao processar Camt053: {e}")
+            logger.exception(f"Erro ao processar Camt053: {e}")
             return SkillResult(success=False, nodes_and_edges=[], message=f"Erro estrutural: {e}")
 
     def _inject_transactions_into_graph(self, transactions: list, tenant: str):

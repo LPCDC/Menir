@@ -11,6 +11,8 @@ from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 
+import uuid
+
 from .schema import BirthChart, Placement
 
 
@@ -36,6 +38,7 @@ class MenirAstro:
 
         # 3. Create Chart Node
         chart_node = BirthChart(
+            uid=str(uuid.uuid4()),
             name=f"Chart: {dt.isoformat()}",
             timestamp=dt.isoformat(),
             latitude=lat,
@@ -50,6 +53,7 @@ class MenirAstro:
             obj = chart.get(body_id)
 
             p = Placement(
+                uid=str(uuid.uuid4()),
                 name=f"{body_id} Placement",
                 longitude=float(obj.lon),
                 degree_in_sign=float(obj.lon % 30),

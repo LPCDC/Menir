@@ -39,7 +39,6 @@ logging.basicConfig(
 )
 
 # Importações Nucleares
-from src.v3.core.dispatcher import DocumentDispatcher  # noqa: E402
 from src.v3.core.reconciliation import ReconciliationEngine  # noqa: E402
 from src.v3.menir_intel import MenirIntel  # noqa: E402
 from src.v3.meta_cognition import MenirOntologyManager  # noqa: E402
@@ -61,7 +60,7 @@ class MenirAsyncRunner:
         self.ontology_manager = ontology_manager
 
         # 1. Triagem e Roteamento
-        self.dispatcher = DocumentDispatcher()
+        # (Desativado B-04: Lógica movida diretamente para o worker de extensão)
 
         # 2. Habilidades de Processamento Genérico
         from src.v3.skills.camt053_skill import Camt053Skill
@@ -104,7 +103,7 @@ class MenirAsyncRunner:
             shutil.move(file_path, dest_path)
             logger.info(f"📁 Arquivo arquivado em compliance: {dest_path}")
         except Exception as e:
-            logger.error(f"⚠️ Erro ao arquivar o documento {file_path}: {e}")
+            logger.exception(f"⚠️ Erro ao arquivar o documento {file_path}: {e}")
 
     def _quarantine_document(self, file_path: str, tenant: str):
         """
@@ -130,15 +129,26 @@ class MenirAsyncRunner:
             logger.warning(
                 f"☣️ [Quarantine] Arquivo isolado fisicamente devido a Anomalia: {dest_path}"
             )
+            
+            # C-04: Quarentena Dupla (File + Graph Node)
+            # Use hash as best-effort if available, else filename
+            file_hash = filename.split('_')[0] if '_' in filename else filename
+            self.ontology_manager.inject_entropy_anomaly(
+                tenant, file_hash, "QuarantineEvent", f"Moved to {dest_path}", 1
+            )
+            
         except Exception as e:
-            logger.error(f"⚠️ Erro Crítico de I/O ao mover para Quarentena {file_path}: {e}")
+            logger.exception(f"⚠️ Erro Crítico de I/O ao mover para Quarentena {file_path}: {e}")
 
     async def _process_single_file(self, file_path: str, tenant: str):
         """
         Worker isolado protegido por semáforo para processamento de um (1) documento.
         """
-        async with self.concurrency_limit:
-            logger.info(f"⚙️ Processando Worker: {file_path}")
+        from src.v3.core.schemas.identity import locked_tenant_context
+        
+        with locked_tenant_context(tenant):
+            async with self.concurrency_limit:
+                logger.info(f"⚙️ Processando Worker: {file_path}")
             try:
                 # O Dispatcher nos diz o que é (FAST_LANE ou SLOW_LANE), mas a inteligência de saber
                 # se é XML de banco ou Fatura fica a critério das extensões cruas primárias
@@ -149,10 +159,11 @@ class MenirAsyncRunner:
 
                 if ext in ["xml", "camt053"]:
                     logger.info("➡️ Roteando para a Camt053Skill (Banco).")
-                    result = await self.camt053_skill.process_statement(file_path, tenant)
+                    # Tenant passado apenas no root do context
+                    result = await self.camt053_skill.process_statement(file_path)
                 else:
                     logger.info("➡️ Roteando para a InvoiceSkill (Faturamento).")
-                    result = await self.invoice_skill.process_document(file_path, tenant)
+                    result = await self.invoice_skill.process_document(file_path)
 
                 # Roteamento Físico Dinâmico (Compliance vs Anomaly Routing)
                 if result.success:
@@ -162,7 +173,7 @@ class MenirAsyncRunner:
                     self._quarantine_document(file_path, tenant)
 
             except Exception as e:
-                logger.error(f"Erro catastrófico no Worker para {file_path}: {e}")
+                logger.exception(f"Erro catastrófico no Worker para {file_path}: {e}")
 
     async def start_watchdog(self, inbox_dir: str, tenant: str):
         """
@@ -173,7 +184,7 @@ class MenirAsyncRunner:
         try:
             await self.synapse.start_servers(http_port=8080, socket_port=8081)
         except Exception as e:
-            logger.error(f"Failed to start Synapse Control Plane Servers: {e}")
+            logger.exception(f"Failed to start Synapse Control Plane Servers: {e}")
 
         logger.info(f"👁️ Iniciando Watchdog para Inbox: {inbox_dir} (Tenant: {tenant})")
 
@@ -213,11 +224,13 @@ class MenirAsyncRunner:
                     logger.info(
                         "🔄 Esvaziamento concluído. Acionando Gatilho de Reconciliação do Lote."
                     )
-                    # Como o Neo4j driver pode ser síncrono ou assíncrono envelopado, chamamos com to_thread.
-                    await asyncio.to_thread(self.reconciliation_engine.run_matching_cycle, tenant)
+                    from src.v3.core.schemas.identity import locked_tenant_context
+                    
+                    with locked_tenant_context(tenant):
+                        await asyncio.to_thread(self.reconciliation_engine.run_matching_cycle)
 
             except Exception as e:
-                logger.error(f"🚨 Watchdog Loop Crash: {e}")
+                logger.exception(f"🚨 Watchdog Loop Crash: {e}")
 
             # Dorme passivamente aguardando novos drops de arquivos da fiduciária (Cron-Like)
             await asyncio.sleep(5)

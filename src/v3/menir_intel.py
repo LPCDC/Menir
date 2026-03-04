@@ -65,6 +65,9 @@ class MenirIntel:
 
             logger.warning("⚠️ [Development Mode] Inicializando Gemini API Pública.")
             genai.configure(api_key=api_key)
+            from google import genai as genai_v3
+            self.client = genai_v3.Client(api_key=api_key)
+            self.model_id = "gemini-3.1-pro-preview"
 
         # Test bootstrapping the persona
         self._get_active_model()
@@ -97,21 +100,24 @@ class MenirIntel:
         wait=wait_exponential(multiplier=1, min=2, max=10),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    def generate_embedding(self, text: str) -> list[float] | None:
+    def generate_embedding(self, text: str) -> list[float]:
         """
-        Generates 768-dim vector using Gemini text-embedding-004.
+        Gera embedding vetorial (768-dim) via google-genai>=1.0.0.
+        Usa self.client instanciado no __init__ (migração v2).
         """
         try:
-            result = genai.embed_content(
-                model="models/text-embedding-004",
-                content=text,
-                task_type="retrieval_document",  # Optimized for storage
-                request_options={"timeout": 60.0},
+            from google import genai as genai_v3
+            from google.genai import types
+            # Use strict text-embedding-004 to maintain storage compatibility
+            result = self.client.models.embed_content(
+                model="models/gemini-embedding-001",
+                contents=text,
+                config=types.EmbedContentConfig(output_dimensionality=768)
             )
-            return result["embedding"]
-        except Exception as e:
-            logger.error(f"Embedding Gen Error: {e}")
-            return None
+            return result.embeddings[0].values
+        except Exception:
+            logger.exception(f"Falha ao gerar embedding para texto: {text[:80]}...")
+            raise
 
     @cachedmethod(cache=operator.attrgetter("persona_cache"))
     def _fetch_system_persona(self) -> str:
@@ -168,9 +174,48 @@ class MenirIntel:
                 "Não foi possível carregar a Persona do Grafo nem do Fallback local."
             )
 
+    async def _get_active_model_async(self) -> str:
+        """
+        Versão async de _get_active_model.
+        Busca Persona do Neo4j via asyncio.to_thread para não bloquear
+        o event loop durante a expiração do cache de 1h.
+        """
+        import time
+        if hasattr(self, "_persona_cache_ts") and self._persona_cache_ts:
+            if (time.time() - self._persona_cache_ts) < 3600 and getattr(self, "_persona_cache_val", None):
+                return getattr(self, "_persona_cache_val")
+
+        import asyncio
+        try:
+            persona = await asyncio.to_thread(self._fetch_system_persona)
+            self._persona_cache_val = persona
+            self._persona_cache_ts = time.time()
+            return persona
+        except Exception:
+            logger.exception(
+                "Falha ao buscar Persona do Neo4j. "
+                "Usando fallback local. Sistema em ESTADO DEGRADADO."
+            )
+            self._degraded = True
+            # Read fallback directly
+            fallback_path = os.path.join(os.getcwd(), "fallback_persona.json")
+            with open(fallback_path, encoding="utf-8") as f:
+                import json
+                from src.v3.core.schemas import SystemPersonaPayload
+                data = json.load(f)
+                payload = SystemPersonaPayload(**data)
+                return payload.system_prompt
+
     def _get_active_model(self):
         """Builds and returns the GenerativeModel instance using the cached System Persona."""
-        persona_prompt = self._fetch_system_persona()
+        if hasattr(self, "_persona_cache_val") and self._persona_cache_val:
+            persona_prompt = self._persona_cache_val
+        else:
+            persona_prompt = self._fetch_system_persona()
+            self._persona_cache_val = persona_prompt
+            import time
+            self._persona_cache_ts = time.time()
+
         if self.is_enterprise:
             from vertexai.generative_models import GenerativeModel
 
@@ -218,7 +263,7 @@ class MenirIntel:
                 img = Image.open(image_path)
                 contents.append(img)
             except Exception as e:
-                logger.error(f"Erro ao carregar imagem bimodal para Vision LLM: {e}")
+                logger.exception(f"Erro ao carregar imagem bimodal para Vision LLM: {e}")
                 raise
 
         if response_schema:
@@ -231,7 +276,14 @@ class MenirIntel:
 
         try:
             # Separating IO Watchdog from Inference: Wrapped in the Intel Semaphore
-            active_model = self._get_active_model()
+            system_prompt = await self._get_active_model_async()
+
+            # For legacy generate_content backward compatibility
+            active_model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=system_prompt)
+            if self.is_enterprise:
+                from vertexai.generative_models import GenerativeModel
+                active_model = GenerativeModel("gemini-1.5-pro-001", system_instruction=[system_prompt])
+
             async with self.intel_semaphore:
                 # Wraps inference in I/O Thread to prevent Event Loop blocking
                 response = await asyncio.to_thread(
@@ -252,8 +304,15 @@ class MenirIntel:
             json_response = json.loads(raw_text)
 
             # Autoproofing do Pydantic Typecasting
-            if response_schema:
-                return response_schema.model_validate(json_response)
+            if response_schema is not None:
+                try:
+                    return response_schema.model_validate(json_response)
+                except Exception:
+                    logger.exception(
+                        f"Pydantic validation falhou para schema "
+                        f"{response_schema.__name__}. Payload recebido: {json_response}"
+                    )
+                    raise
 
             return json_response
 
@@ -263,5 +322,5 @@ class MenirIntel:
             )
             raise ValueError(f"O modelo injetou quebra de formatação: {j_err}")  # noqa: B904
         except Exception as e:
-            logger.error(f"AI Structured Inference Final Execution Failed: {e}")
+            logger.exception(f"AI Structured Inference Final Execution Failed: {e}")
             raise

@@ -5,6 +5,7 @@ Also introduces "Daniella Badinni" to the system.
 """
 
 import logging
+import uuid
 
 from src.v3.core.schemas import Person
 from src.v3.menir_bridge import MenirBridge
@@ -39,7 +40,7 @@ def seed_static_data(bridge: MenirBridge):
 
     logger.info("🌌 Seeding Celestial Bodies...")
     for b in bodies:
-        node = CelestialBody(name=b["name"], archetype=b["archetype"], project=project)
+        node = CelestialBody(uid=str(uuid.uuid4()), name=b["name"], archetype=b["archetype"], project=project)
         bridge.merge_node(node)
 
     # 2. Zodiac Signs
@@ -60,7 +61,7 @@ def seed_static_data(bridge: MenirBridge):
 
     logger.info("♈ Seeding Zodiac Signs...")
     for s in signs:
-        sign_node = ZodiacSign(name=s[0], element=s[1], modality=s[2], ruler=s[3], project=project)
+        sign_node = ZodiacSign(uid=str(uuid.uuid4()), name=s[0], element=s[1], modality=s[2], ruler=s[3], project=project)
         bridge.merge_node(sign_node)
 
     # 3. Houses
@@ -81,7 +82,7 @@ def seed_static_data(bridge: MenirBridge):
     ]
     for i, domain in enumerate(house_domains, 1):
         house_node = House(
-            number=i, domain=domain, project=project, name=f"House {i}"
+            uid=str(uuid.uuid4()), number=i, domain=domain, project=project, name=f"House {i}"
         )  # Added name explicitly
         bridge.merge_node(house_node)
 
@@ -90,6 +91,7 @@ def ingest_daniella(bridge: MenirBridge):
     """Ingests User Request: Daniella Badinni."""
     logger.info("👤 Ingesting New Friend: Daniella Badinni...")
     daniella = Person.model_validate({
+        "uid": str(uuid.uuid4()),
         "name": "Daniella Badinni",
         "project": "MenirVital",
         "role": "Friend",

@@ -7,7 +7,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from neo4j import GraphDatabase, exceptions
+from neo4j import exceptions
 from tenacity import (
     before_sleep_log,
     retry,
@@ -18,6 +18,7 @@ from tenacity import (
 
 from src.v3.core.schemas import BaseNode, Document, Relationship
 from src.v3.tenant_middleware import TenantAwareDriver
+from src.v3.core.neo4j_pool import get_shared_driver
 
 # Force override to ignore stale shell variables
 load_dotenv(override=True)
@@ -26,27 +27,14 @@ logger = logging.getLogger("MenirBridge")
 
 class MenirBridge:
     def __init__(self, uri=None, auth=None):
-        if uri is None:
-            uri = os.getenv("NEO4J_URI")
-        if auth is None:
-            user = os.getenv("NEO4J_USER", "neo4j")
-            pwd = os.getenv("NEO4J_PASSWORD") or os.getenv("NEO4J_PWD")
-            auth = (user, pwd)
-
-        masked_pwd = (pwd[:4] + "***" + pwd[-4:]) if pwd and len(pwd) > 8 else "***"
-        logger.info(f"BRIDGE DEBUG: URI={uri}, USER={user}, PWD={masked_pwd}")
-
-        if not uri or not auth[1]:
-            logger.warning("MenirBridge initialized without full credentials.")
-
-        # Connection Pool Hardening
-        base_driver = GraphDatabase.driver(
-            uri, auth=auth, max_connection_pool_size=50, connection_acquisition_timeout=60.0
-        )
+        # Pool credentials and URI are handled by get_shared_driver
+        base_driver = get_shared_driver()
         self.driver = TenantAwareDriver(base_driver, db=os.getenv("NEO4J_DB", "neo4j"))
 
     def close(self):
-        self.driver.close()
+        # We don't close the shared driver here, just the wrapper if necessary
+        # The singleton handles graceful shutdown
+        pass
 
     @retry(
         stop=stop_after_attempt(3),
@@ -241,7 +229,7 @@ class MenirBridge:
                     )
 
         except Exception as e:
-            logger.error(f"Metadata Link Error: {e}")
+            logger.exception(f"Metadata Link Error: {e}")
 
     def init_vector_index(self):
         """

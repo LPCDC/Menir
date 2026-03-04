@@ -63,7 +63,7 @@ class MenirSanitizer:
                 report["ghost_transactions"] = r3["isolated"] if r3 else 0
 
         except Exception as e:
-            logger.error(f"🚨 Falha crítica no Scanner de Fantasmas: {e}")
+            logger.exception(f"🚨 Falha crítica no Scanner de Fantasmas: {e}")
             return report
 
         total_ghosts = report["ghost_invoices"] + report["ghost_transactions"]

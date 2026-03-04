@@ -44,7 +44,7 @@ async def run_simulacrum():
     
     # O Dispatcher faria cache na memória:
     active_rules = om.get_tenant_active_context(tenant, "2026-02-15")
-    valid_rates = active_rules.get('valid_tva_rates', [8.1, 2.6])
+    valid_rates = active_rules.get('tva_rates', [8.1, 2.6])
     logger.info(f"O Córtex está ciente das Leis Atuais deste Tenant: {valid_rates}%")
     
     # Simula o output json cru do Gemini Flash que a Skill receberia

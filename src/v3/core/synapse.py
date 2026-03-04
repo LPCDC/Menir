@@ -9,6 +9,8 @@ import asyncio
 import json
 import logging
 import time
+import os
+import jwt
 from dataclasses import dataclass, field
 
 from aiohttp import web
@@ -57,6 +59,50 @@ class MenirSynapse:
         )
         self.http_site = None
         self.socket_server = None
+
+    async def _command_bus_consumer(self):
+        """
+        Consumer loop do CommandBus.
+        Processa comandos enfileirados via HTTP/Socket em background.
+        Sem este loop, comandos são validados, parseados (custando tokens)
+        e descartados silenciosamente para sempre.
+        """
+        logger.info("🟢 CommandBus Consumer ativo.")
+        while True:
+            try:
+                priority, cmd = await self.command_bus.get()
+                logger.info(f"⚡ CommandBus: executando {cmd.payload.action} (prio={priority})")
+
+                action = cmd.payload.action
+
+                if action == "STATUS_REPORT":
+                    # Resposta já enviada no handle_status_http.
+                    # Aqui: opcionalmente logar ou persistir snapshot.
+                    logger.info("📊 STATUS_REPORT processado.")
+
+                elif action == "PAUSE_INGESTION":
+                    await self.runner.pause_ingestion()
+                    logger.warning("⏸️  Ingestion PAUSADA via CommandBus.")
+
+                elif action == "RESUME_INGESTION":
+                    await self.runner.resume_ingestion()
+                    logger.info("▶️  Ingestion RESUMIDA via CommandBus.")
+
+                elif action == "FLUSH_QUARANTINE":
+                    import asyncio
+                    await asyncio.to_thread(self.runner.flush_quarantine)
+                    logger.info("🗑️  Quarentena liberada via CommandBus.")
+
+                else:
+                    logger.warning(f"CommandBus: ação desconhecida ignorada: {action}")
+
+                self.command_bus.task_done()
+
+            except asyncio.CancelledError:
+                logger.info("🛑 CommandBus Consumer encerrado.")
+                break
+            except Exception:
+                logger.exception("CommandBus Consumer: erro ao processar comando.")
 
     def _get_semaphore(self, tenant_id: str) -> asyncio.Semaphore:
         """Retrieves or creates the Concurrency Shield for the specific Tenant."""
@@ -129,25 +175,49 @@ class MenirSynapse:
         return web.json_response({"error": "Unauthorized"}, status=401)
 
     async def handle_status_http(self, request):
-        limit = (
-            self.runner.concurrency_limit._value
-            if hasattr(self.runner, "concurrency_limit")
-            else "Unknown"
-        )
-        return web.json_response(
-            {
-                "status": "ONLINE",
-                "concurrency_slots": limit,
-                "command_queue_size": self.command_bus.qsize(),
-            }
-        )
+        """
+        Endpoint de status. Guard explícito para concurrency_limit
+        que após v2 é uma @property lazy — não um Semaphore direto.
+        """
+        try:
+            limit = self.runner.concurrency_limit._value
+        except Exception:
+            limit = "Unknown"
+
+        try:
+            is_healthy = await asyncio.to_thread(self.runner.ontology_manager.check_system_health)
+            degraded = not is_healthy
+        except Exception:
+            degraded = True
+
+        status_text = "DEGRADED" if degraded else "ONLINE"
+
+        return web.json_response({
+            "status": status_text,
+            "concurrency_slots_available": limit,
+            "command_queue_size": self.command_bus.qsize(),
+            "degraded": degraded,
+        })
 
     async def handle_command_http(self, request):
         auth_header = request.headers.get("Authorization", "")
         # Cryptographic Namespace Routing (Context Isolation)
-        target_tenant = "BECO"  # Core Fiduciary Defaults
-        if auth_header.endswith("SANTOS_LIFE_JWT"):
-            target_tenant = "SANTOS"
+        token = auth_header.replace("Bearer ", "").strip()
+        jwt_secret = os.getenv("MENIR_JWT_SECRET", "super_secret_menir_key_2026")
+        target_tenant = "BECO"
+        
+        try:
+            if token:
+                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+                target_tenant = payload.get("tenant_id", "BECO")
+        except jwt.PyJWTError:
+            strict_auth = os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true"
+            if strict_auth:
+                 return web.json_response({"error": "Invalid JWT Token. Isolation lock active."}, status=401)
+            else:
+                 logger.warning("Falha de validação JWT no CommandBus. Assumindo BECO. (STRICT_AUTH=false)")
+                 if "SANTOS" in token:
+                     target_tenant = "SANTOS"
 
         data = await request.json()
         raw_intent = data.get("intent", "")
