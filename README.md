@@ -12,58 +12,58 @@
 
 > *"Data acts as a vector; logic acts as a scalar. Only the Graph Remembers."* — **The Menir Manifesto**
 
-## 📖 O que é o Menir?
+## 📖 What is Menir?
 
-**Menir** não é um mero wrapper de LLM ou um script de automação. É uma **Inteligência em Grafo Soberana** hospedada localmente (`Neo4j`), desenhada sob arquitetura *Zero-Trust* e *Zero-Bloat*. Ele age como um "Segundo Cérebro" estrutural, forçando a fluidez da Inteligência Artificial (Google Gemini) a operar sob as regras estritas da matemática de grafos e validação rigorosa (Pydantic V2).
+**Menir** is not a simple LLM wrapper or automation script. It is a **Sovereign Graph Intelligence** hosted locally (`Neo4j`), designed with a *Zero-Trust* and *Zero-Bloat* architecture. It acts as a structural "Second Brain", forcing the fluidity of Artificial Intelligence (Google Gemini) to operate under the strict mathematical rules of graphs and rigorous validation (Pydantic V2).
 
-Ele nunca esquece, nunca alucina em dados críticos e impõe barreiras absolutas de isolamento de contexto (Galvanic Isolation). O Menir transforma o ruído da vida diária e acadêmica em uma ontologia roteável e persistente.
-
----
-
-## ⚡ Potencial Real & Casos de Uso (Estudante & Pesquisador)
-
-O ecossistema do Menir foi forjado para combater a amnésia digital, servindo perfeitamente para a **Vida Pessoal (Metacognição)**, pesquisas acadêmicas e gestão de vida fluida.
-
-### 1. O "Segundo Cérebro" Metacognitivo (Gestão Acadêmica)
-Ao invés de depender de bancos vetoriais voláteis ou blocos de notas perdidos, o Menir plota a sua vida acadêmica numa Ontologia Estruturada Neo4j.
-- **Rápida Ingestão Epistêmica:** Você envia um paper PDF denso, anotações de aulas ou transcrições de áudio. O Menir extrai os conceitos e conecta matematicamente as ideias: `(:Concept {name: "Machine Learning"})-[:IS_FOUNDATIONAL_TO]->(:ResearchTopic {title: "Neural Networks"})`.
-- **Rastreabilidade Não-Linear:** Meses depois, se você perguntar *"Quais autores eu li que discordam da teoria que estudei no semestre passado sobre redes convolucionais?"*, o Menir fará uma travessia no Grafo. O banco injetará toda a árvore bibliográfica histórica na janela de contexto do LLM. Ele tem empatia sintática e memória estrutural.
-
-### 2. A Esteira de Absorção e Roteamento de Tarefas
-O motor resolve o problema do "esquecimento de prazos" e caos de informações:
-- **Exemplo de Uso:** Você insere um syllabus de curso ou um cronograma de TCC confuso.
-- **Barreira de Alucinação (Pydantic):** O LLM nunca vai inventar uma data de entrega. Se a data extraída não cruzar matematicamente com a lógica de tempo do sistema, a barreira do `Pydantic` no Tier 1 destrói o payload. Apenas a verdade absoluta entra no Grafo temporal (`[:DUE_BY]`).
-
-### 3. Tier 2: Painel Zero-Bloat (React + TypeScript)
-Painel derivado diretamente das especificações matemáticas do Backend, garantindo total sinergia de ponta a ponta sem o "inchaço" comum de web apps modernos.
-- Visualização pura dos prazos de estudos e do mapa de conhecimentos adquiridos.
-- Render-blocking Security alimentado pela autenticação JWT, garantindo que suas notas pessoais e intelectuais permaneçam inacessíveis a terceiros.
+It never forgets, never hallucinates critical data, and imposes absolute barriers for context isolation (Galvanic Isolation). Menir transforms the noise of daily and academic life into a routable and persistent ontology.
 
 ---
 
-## ⚙️ Paradigma Técnico
+## ⚡ True Potential & Use Cases (Student & Researcher)
 
-Menir preenche o abismo entre o abstrato (AI) e o concreto (Matemática de Grafos).
+The Menir ecosystem was forged to combat digital amnesia, perfectly serving **Personal Life (Metacognition)**, academic research, and fluid life management.
 
-* **Graph Source of Truth:** `Neo4j` dita a realidade. Se a IA tenta inventar um autor já registrado com um nome ligeiramente diferente (ex: "J. Doe" vs "John Doe"), a camada Cypher a força de volta para o UUID conhecido via semântica de RAG vetorial (768-dimensões).
-* **A.I. Engine:** Google `gemini-3.1-pro-preview` operando primariamente em `JSON_OBJECT` mode via MenirIntel. Geração assíncrona blindada (`asyncio.to_thread`).
-* **Typing Rigoroso:** MyPy Static Typing e validação Pydantic estrita (`extra="forbid"`).
-* **Segurança & Isolamento:** *Privacy by Design*. Capacidade de segregar completamente diferentes "Modos de Vida" (Estudos, Finanças Pessoais, Trabalho) através de "Tenants" estanques gerenciados por tenacidade no Contexto local do Python (`ContextVars`), sem vazamento cruzado de grafos.
+### 1. The Metacognitive "Second Brain" (Academic Management)
+Instead of relying on volatile vector databases or scattered notebooks, Menir plots your academic life into a Structured Neo4j Ontology.
+- **Rapid Epistemic Ingestion:** You submit a dense PDF paper, class notes, or audio transcripts. Menir extracts concepts and mathematically connects the ideas: `(:Concept {name: "Machine Learning"})-[:IS_FOUNDATIONAL_TO]->(:ResearchTopic {title: "Neural Networks"})`.
+- **Non-Linear Traceability:** Months later, if you ask *"Which authors did I read that disagree with the theory I studied last semester about convolutional networks?"*, Menir traverses the Graph. The database injects the entire historical bibliographic tree into the LLM's context window. It has syntactic empathy and structural memory.
+
+### 2. The Task Routing and Absorption Engine
+This core engine solves the problem of "forgotten deadlines" and information chaos:
+- **Use Case:** You input a course syllabus or a messy thesis schedule.
+- **Hallucination Barrier (Pydantic):** The LLM will never invent a delivery date. If the extracted date does not mathematically align with the system's temporal logic, the `Pydantic` barrier in Tier 1 destroys the payload. Only the absolute truth enters the temporal Graph (`[:DUE_BY]`).
+
+### 3. Tier 2: Zero-Bloat Dashboard (React + TypeScript)
+A dashboard derived directly from the Backend's mathematical specifications, ensuring total end-to-end synergy without the common "bloat" of modern web apps.
+- Pure visualization of study deadlines and the map of acquired knowledge.
+- Render-blocking Security powered by JWT authentication, ensuring your personal and intellectual notes remain inaccessible to third parties.
 
 ---
 
-## 📦 Inicialização do Nó (Quickstart)
+## ⚙️ Technical Paradigm
 
-Requerimentos: **Neo4j AuraDB** (ou local 5.x) e **Google Gemini API Key**. Node.js `v20+` para a Camada Cliente.
+Menir bridges the gap between the abstract (AI) and the concrete (Graph Mathematics).
 
-1. **Clone & Ambiente:**
+* **Graph Source of Truth:** `Neo4j` dictates reality. If the AI attempts to invent an author already registered with a slightly different name (e.g., "J. Doe" vs "John Doe"), the Cypher layer forces it back to the known UUID via semantic vector RAG (768-dimensions).
+* **A.I. Engine:** Google `gemini-3.1-pro-preview` operating primarily in `JSON_OBJECT` mode via MenirIntel. Shielded asynchronous generation (`asyncio.to_thread`).
+* **Rigorous Typing:** MyPy Static Typing and strict Pydantic validation (`extra="forbid"`).
+* **Security & Isolation:** *Privacy by Design*. Capacity to completely segregate different "Life Modes" (Studies, Personal Finances, Work) through watertight "Tenants" managed by persistence in Python's local Context (`ContextVars`), preventing graph leakage.
+
+---
+
+## 📦 Node Initialization (Quickstart)
+
+Requirements: **Neo4j AuraDB** (or local 5.x) and a **Google Gemini API Key**. Node.js `v20+` for the Client Layer.
+
+1. **Clone & Environment:**
    ```bash
    git clone https://github.com/LPCDC/Menir.git
    cd Menir
-   # Defina NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, GOOGLE_API_KEY no seu .env
+   # Define NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, GOOGLE_API_KEY in your .env
    ```
 
-2. **Gênese do Grafo (Bootstrap):**
+2. **Graph Genesis (Bootstrap):**
    ```bash
    python -c "from src.v3.meta_cognition import MenirOntologyManager; import os; MenirOntologyManager(os.getenv('NEO4J_URI'), (os.getenv('NEO4J_USER'), os.getenv('NEO4J_PASSWORD') or '')).bootstrap_system_graph()"
    ```
@@ -81,5 +81,5 @@ Requerimentos: **Neo4j AuraDB** (ou local 5.x) e **Google Gemini API Key**. Node
 
 <BR>
 <div align="center">
-  <i>"No Menir, nada se perde. O Grafo a tudo assiste e a tudo lembra."</i>
+  <i>"In Menir, nothing is lost. The Graph observes everything and remembers everything."</i>
 </div>
