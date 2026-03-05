@@ -6,7 +6,7 @@
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P44-20260305-MYPY_AUDIT_BASELINE
+MENIR-P44-20260305-SYNC_INFRA_INSTALLED
 ```
 **Como usar:**
 - AG: ao iniciar sessão, leia este arquivo e anuncie o fingerprint.
@@ -55,18 +55,18 @@ User Node (Luiz):      NÃO CRIADO — próxima expansão
 
 ## 📋 PRÓXIMAS TAREFAS (por prioridade)
 ```
-[ ] PRÉ-1: Verificar nó BECO duplicado no Neo4j
-[ ] PRÉ-2: pip install flatlib && pip install types-aiofiles
-[ ] PRÉ-3: Confirmar GEMINI_INFERENCE_MODEL = "gemini-2.5-flash" em config.py
-[ ] B1: Remover imports vertexai de menir_intel.py
-[ ] B2: Corrigir ContextVar em identity.py
-[ ] B3: Resolver extra="allow" vs extra="forbid" (_gemini.md + schemas)
-[ ] B4: Corrigir genesis.py:92 — Person() com metadata{}
-[ ] B5: Corrigir cresus_exporter.py:55 — return path
-[ ] BATCH: Implicit Optional em 7 arquivos (menir_bridge, provenance, etc.)
-[ ] SKILL: Instalar @fastapi-pro e @auth-implementation-patterns
-[ ] SKILL: Criar menir-astro-extension no brain
-[ ] NEO4J: Rodar bootstrap_user_luiz.cypher (dois nós raiz)
+[x] PRÉ-1: Verificar nó BECO duplicado no Neo4j
+[x] PRÉ-2: pip install flatlib && pip install types-aiofiles
+[x] PRÉ-3: Confirmar GEMINI_INFERENCE_MODEL = "gemini-2.5-flash" em config.py
+[x] B1: Remover imports vertexai de menir_intel.py
+[x] B2: Corrigir ContextVar em identity.py
+[x] B3: Resolver extra="allow" vs extra="forbid" (_gemini.md + schemas)
+[x] B4: Corrigir genesis.py:92 — Person() com metadata{}
+[x] B5: Corrigir cresus_exporter.py:55 — return path
+[x] BATCH: Implicit Optional em 7 arquivos (menir_bridge, provenance, etc.)
+[x] SKILL: Instalar @fastapi-pro e @auth-implementation-patterns
+[x] SKILL: Criar menir-astro-extension no brain
+[x] NEO4J: Rodar bootstrap_user_luiz.cypher (dois nós raiz)
 [ ] FASE 44: Enterprise Dashboard — após mypy zerado
 ```
 
