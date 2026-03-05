@@ -1,7 +1,0 @@
-
-Menir Hybrid Ingestion Test
-This is a test document to verify the vector embedding pipeline.
-It contains multiple sentences to check chunking logic.
-The goal is to see this text transformed into Chunks in Neo4j.
-Embedding provided by OpenAI.
-End of Document.
