@@ -46,8 +46,8 @@ A dashboard derived directly from the Backend's mathematical specifications, ens
 Menir bridges the gap between the abstract (AI) and the concrete (Graph Mathematics).
 
 * **Graph Source of Truth:** `Neo4j` dictates reality. If the AI attempts to invent an author already registered with a slightly different name (e.g., "J. Doe" vs "John Doe"), the Cypher layer forces it back to the known UUID via semantic vector RAG (768-dimensions).
-* **A.I. Engine:** Google `gemini-3.1-pro-preview` operating primarily in `JSON_OBJECT` mode via MenirIntel. Shielded asynchronous generation (`asyncio.to_thread`).
-* **Rigorous Typing:** MyPy Static Typing and strict Pydantic validation (`extra="forbid"`).
+* **A.I. Engine:** Google `gemini-2.5-flash` operating primarily in `JSON_OBJECT` mode via MenirIntel. Shielded asynchronous generation (`asyncio.to_thread`).
+* **Rigorous Typing:** MyPy em progresso: 53 erros baseline em resolução e strict Pydantic validation (`extra="forbid"` for ingestion edges).
 * **Security & Isolation:** *Privacy by Design*. Capacity to completely segregate different "Life Modes" (Studies, Personal Finances, Work) through watertight "Tenants" managed by persistence in Python's local Context (`ContextVars`), preventing graph leakage.
 
 ---

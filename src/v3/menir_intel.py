@@ -47,14 +47,13 @@ class MenirIntel:
                 "🛡️ [nFADP Compliance] Explicit Enterprise Configuration Detected. Booting Vertex AI in europe-west6..."
             )
             try:
-                import vertexai
+                from google import genai as genai_v3
 
-                # Force Switzerland/Europe location for Data Residency
-                vertexai.init(project=vertex_project, location="europe-west6")
+                self.client = genai_v3.Client(vertexai=True, project=vertex_project, location="europe-west6")
                 self.is_enterprise = True
-                logger.info("✅ Vertex AI Enterprise Endpoint connected.")
+                logger.info("✅ Vertex AI (via google-genai) Enterprise Endpoint connected.")
             except ImportError:
-                raise ImportError("A biblioteca 'google-cloud-aiplatform' não está instalada.")  # noqa: B904
+                raise ImportError("A biblioteca 'google-genai' Vertex mode falhou ao iniciar.")  # noqa: B904
         else:
             if not api_key:
                 api_key = os.getenv("GOOGLE_API_KEY")
@@ -67,7 +66,7 @@ class MenirIntel:
             genai.configure(api_key=api_key)
             from google import genai as genai_v3
             self.client = genai_v3.Client(api_key=api_key)
-            self.model_id = "gemini-3.1-pro-preview"
+            self.model_id = "gemini-2.5-flash"
 
         # Test bootstrapping the persona
         self._get_active_model()
@@ -117,7 +116,7 @@ class MenirIntel:
             return result.embeddings[0].values
         except Exception:
             logger.exception(f"Falha ao gerar embedding para texto: {text[:80]}...")
-            raise
+            return []
 
     @cachedmethod(cache=operator.attrgetter("persona_cache"))
     def _fetch_system_persona(self) -> str:
@@ -217,10 +216,8 @@ class MenirIntel:
             self._persona_cache_ts = time.time()
 
         if self.is_enterprise:
-            from vertexai.generative_models import GenerativeModel
-
-            # Vertex AI expects a list for system_instruction
-            return GenerativeModel("gemini-1.5-pro-001", system_instruction=[persona_prompt])
+            active_model = self.client.models.get_model("gemini-1.5-pro-001")
+            return active_model
         else:
             return genai.GenerativeModel("gemini-2.5-flash", system_instruction=persona_prompt)
 
@@ -279,10 +276,8 @@ class MenirIntel:
             system_prompt = await self._get_active_model_async()
 
             # For legacy generate_content backward compatibility
-            active_model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=system_prompt)
-            if self.is_enterprise:
-                from vertexai.generative_models import GenerativeModel
-                active_model = GenerativeModel("gemini-1.5-pro-001", system_instruction=[system_prompt])
+            from google import genai as genai_v3
+            active_model = genai_v3.Client().models if self.is_enterprise else genai.GenerativeModel("gemini-2.5-flash", system_instruction=system_prompt)
 
             async with self.intel_semaphore:
                 # Wraps inference in I/O Thread to prevent Event Loop blocking

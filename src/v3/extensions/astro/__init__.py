@@ -10,9 +10,8 @@ try:
     ASTRO_AVAILABLE = True
 except ImportError as e:
     print(f"DEBUG: Astra Extension Load Error: {e}")
-    from typing import Any
-    MenirAstro: Any = None  # type: ignore[no-redef]
-    MenirTime: Any = None  # type: ignore[no-redef]
-    BirthChart: Any = None  # type: ignore[no-redef]
-    Placement: Any = None  # type: ignore[no-redef]
+    MenirAstro = None  # type: ignore[assignment]
+    MenirTime = None  # type: ignore[assignment]
+    BirthChart = None  # type: ignore[assignment]
+    Placement = None  # type: ignore[assignment]
     ASTRO_AVAILABLE = False

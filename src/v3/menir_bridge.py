@@ -65,10 +65,7 @@ class MenirBridge:
     def check_document_exists(self, sha256: str, tenant_id: str | None = None) -> bool:
         """Alias for check_evidence since Runner calls this."""
         if not tenant_id:
-            logger.warning(
-                "check_document_exists called without tenant_id. This is a security risk. Denying query."
-            )
-            return False
+            raise RuntimeError("Operação fora de contexto galvânico")
 
         safe_tenant = tenant_id.replace("`", "")
         query = f"MATCH (d:Document:`{safe_tenant}` {{sha256: $sha}}) RETURN count(d) > 0 as exists"

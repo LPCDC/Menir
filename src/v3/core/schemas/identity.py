@@ -48,7 +48,7 @@ class locked_tenant_context:
 
 
 class Person(BaseNode):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="forbid")
 
     name: str
     email: str | None = None

@@ -11,6 +11,10 @@ google-genai>=1.0.0
 fastapi>=0.111.0
 uvicorn>=0.30.0
 
+# Graph Schema & Dependencies
+types-aiofiles
+flatlib>=0.2.3
+
 # --- Data / Validation ---
 pydantic>=2.7.0
 pydantic-settings>=2.2.1

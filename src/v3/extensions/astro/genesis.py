@@ -94,9 +94,7 @@ def ingest_daniella(bridge: MenirBridge):
         "uid": str(uuid.uuid4()),
         "name": "Daniella Badinni",
         "project": "MenirVital",
-        "role": "Friend",
-        "is_real": True,
-        "context": "Real World"
+        "metadata": {"role": "Friend", "is_real": True, "context": "Real World"}
     })
     bridge.merge_node(daniella)
     logger.info("✅ Daniella is now in the Graph.")
