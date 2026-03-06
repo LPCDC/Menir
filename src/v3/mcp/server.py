@@ -58,7 +58,8 @@ async def get_strict_schema() -> dict:
     Returns the strict Graph Schema (Nodes & Relationships).
     Use this to understand the allowed ontology before querying.
     """
-    return await MenirTools.get_strict_schema()
+    from typing import cast
+    return cast(dict, await MenirTools.get_strict_schema())
 
 
 @mcp.tool()
@@ -71,7 +72,8 @@ async def search_logs(limit: int = 100, keyword: str | None = None) -> list[str]
     # but FastMCP handles basic types. Validating ranges manually here or via helper)
     if limit > 200:
         limit = 200  # Enforce hard cap
-    return await MenirTools.search_logs(limit, keyword)
+    from typing import cast
+    return cast(list[str], await MenirTools.search_logs(limit, keyword))
 
 
 @mcp.tool()
@@ -81,7 +83,8 @@ async def explain_node(uuid: str, show_pii: bool = False) -> dict:
     Redacts PII unless 'show_pii' is True (which is logged).
     Returns JSON gracefully on timeout.
     """
-    return await MenirTools.explain_node(uuid, show_pii)
+    from typing import cast
+    return cast(dict, await MenirTools.explain_node(uuid, show_pii))
 
 
 @mcp.tool()
@@ -90,7 +93,8 @@ async def check_quarantine_reasons(days: int = 7) -> list[dict]:
     Lists recent files that failed ingestion (Quarantine).
     Returns filename, hash, and error message.
     """
-    return await MenirTools.check_quarantine_reasons(days)
+    from typing import cast
+    return cast(list[dict], await MenirTools.check_quarantine_reasons(days))
 
 
 if __name__ == "__main__":

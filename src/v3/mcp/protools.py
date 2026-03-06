@@ -41,7 +41,8 @@ class MenirTools:
     @staticmethod
     async def get_strict_schema() -> dict[str, Any]:
         """Returns the official Graph Schema for Menir."""
-        return STRICT_SCHEMA  # type: ignore[no-any-return]
+        from typing import cast
+        return cast(dict[str, Any], STRICT_SCHEMA)
 
     @staticmethod
     async def search_logs(limit: int = 100, keyword: str | None = None) -> list[str]:
@@ -102,7 +103,8 @@ class MenirTools:
             if not show_pii:
                 data["properties"] = PiiFilter.redact_node(data.get("properties", {}))
 
-            return data  # type: ignore[no-any-return]
+            from typing import cast
+            return cast(dict[str, Any], data)
 
         except TimeoutError:
             return {"error": "Database timeout (5s)", "status": "offline"}

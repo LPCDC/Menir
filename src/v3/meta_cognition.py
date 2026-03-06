@@ -33,7 +33,7 @@ class MenirOntologyManager:
     grounded physically and temporally.
     """
 
-    def __init__(self, uri: str = None, auth: tuple = None, db_name: str = "neo4j"):
+    def __init__(self, uri: str | None = None, auth: tuple | None = None, db_name: str = "neo4j"):
         self.driver = get_shared_driver()
         self.db_name = db_name
 
@@ -313,7 +313,7 @@ class MenirOntologyManager:
         }
         try:
             with self.driver.session() as session:
-                session.run(query.replace("{tenant_safe}", safe_tenant), **params)
+                session.run(query.replace("{tenant_safe}", safe_tenant), parameters=dict(params))
             logger.warning(
                 f"☢️ Anomaly ({error_type}) with {error_count} errors injected into Graph (Tenant: {tenant})."
             )
