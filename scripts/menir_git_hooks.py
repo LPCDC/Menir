@@ -21,8 +21,9 @@ def get_current_fingerprint():
         return None
     with open(state_file, "r", encoding="utf-8") as f:
         for line in f:
-            if line.startswith("Fingerprint:"):
-                return line.split(":", 1)[1].strip()
+            stripped_line = line.strip()
+            if stripped_line.startswith("MENIR-P"):
+                return stripped_line
     return None
 
 def pre_commit():
