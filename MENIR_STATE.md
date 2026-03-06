@@ -8,10 +8,9 @@
 ```
 MENIR-P44-20260305-MENIR_INTEL_SEALED
 ```
-**Como usar:**
-- AG: ao iniciar sessão, leia este arquivo e anuncie o fingerprint.
-- Claude: ao receber o fingerprint do AG, confirme antes de qualquer instrução.
-- Se os fingerprints divergirem → parar e sincronizar antes de trabalhar.
+- AG: anuncie este fingerprint ao iniciar sessão.
+- Claude: confirme antes de qualquer instrução.
+- Divergência → parar e sincronizar antes de trabalhar.
 - Formato: `MENIR-P{fase}-{YYYYMMDD}-{LAST_TASK_SLUG}`
 
 ---
@@ -19,80 +18,121 @@ MENIR-P44-20260305-MENIR_INTEL_SEALED
 ## 📍 FASE ATUAL
 - **Fase:** 44
 - **Etapa:** Enterprise Dashboard + Swiss-Clinical CSS Modular Shell
-- **Status:** Auditoria mypy em progresso (53 erros baseline → meta: 0)
-- **Última tarefa concluída:** Fase 43 Part 2 — CI/CD Exit Code 0
+- **Status:** Pré-condições completas. mypy 53→21 (5 residuais em menir_intel — stubs apenas).
+- **Próxima execução:** invoice_skill.py lógica real suíça → depois Fase 44 Dashboard
+
+---
+
+## ✅ CONCLUÍDO (sessão 05/03/2026)
+
+| # | O que foi feito |
+|---|----------------|
+| ✅ | `vertexai` removido de `menir_intel.py` |
+| ✅ | `identity.py` ContextVar[str\|None] corrigido |
+| ✅ | `_gemini.md` extra="allow/forbid" resolvido: forbid em entrada LLM, allow em OGM saída |
+| ✅ | `genesis.py:92` Person() kwargs → metadata{} |
+| ✅ | `cresus_exporter.py:55` return path corrigido |
+| ✅ | Implicit Optional em batch (7 arquivos) |
+| ✅ | `menir_intel.py:219` get_model → client.models.get() |
+| ✅ | `menir_intel.py:116` embed None-guard + fallback [] |
+| ✅ | `menir_intel.py:290` cast GenerateContentResponse antes de .text |
+| ✅ | `invoice_skill.py:186` contents → Part.from_text() |
+| ✅ | `py.typed` adicionado ao graph_schema |
+| ✅ | `flatlib` + `types-aiofiles` em requirements.txt |
+| ✅ | Dois nós raiz criados: (:Menir) e (:User {uid:"luiz"}) |
+| ✅ | Ontologia pessoal bootstrapped (projetos, colaboradores, família) |
+| ✅ | Skill `menir-astro-extension` criada no brain |
+| ✅ | Skills `@fastapi-pro` + `@auth-implementation-patterns` instaladas |
+| ✅ | Skills proprietárias `menir-*` criadas no brain |
+| ✅ | MENIR_STATE.md + MENIR_KERNEL.md deployados no repo e brain |
 
 ---
 
 ## 🚨 BLOQUEADORES ATIVOS
+
 | ID | Arquivo | Problema | Risco |
 |----|---------|---------|-------|
-| B1 | `menir_intel.py` | Import `vertexai` — SDK morta | 🔴 CRASH |
-| B2 | `identity.py` | ContextVar[str] com default=None | 🔴 CRASH |
-| B3 | `_gemini.md` | `extra="allow"` conflita com arquitetura | 🔴 CORRUPÇÃO |
-| B4 | `genesis.py:92` | Person() com args inexistentes | 🔴 CRASH |
-| B5 | `cresus_exporter.py:55` | Retorna None em vez de str | 🔴 CRASH |
-| B6 | `README.md` | Afirma "0 erros mypy" — FALSO | 🟠 COMPLIANCE |
+| R1 | `menir_intel.py` | 5 erros mypy residuais (stubs/Any — não crasham) | 🟡 RUÍDO |
+| R2 | `protools.py:11` | `STRICT_SCHEMA` inexistente no graph_schema | 🟠 MCP QUEBRADO |
+| R3 | `meta_cognition.py:36` | `auth` implicit Optional | 🟡 TYPE HINT |
+| R4 | `invoice_skill.py` | Sem lógica real de extração suíça | 🔴 REVENUE BLOCKER |
+| R5 | Dashboard | Zero UI para BECO e Ana | 🟠 FASE 44 |
 
 ---
 
 ## ✅ ESTADO DO SISTEMA
+
 ```
-Tenants ativos:        BECO, SANTOS
-Neo4j:                 Aura Free — conectado
-Nós BECO duplicados:   VERIFICAR (suspeita de 2 nós Tenant BECO)
-Frontend (Tier 2):     React + Vite + TS — Auth Bridge ativo
-FastAPI:               Confirmado em requirements.txt
-Embedding model:       gemini-embedding-001 (768-dim) ✅
-Inference model:       gemini-2.5-flash (verificar config.py)
-vertexai:              AINDA IMPORTADO — remover urgente
-mypy errors:           53 em 19 arquivos (baseline: 05/03/2026)
-Skills instaladas:     A CONFIRMAR pelo AG
-User Node (Luiz):      NÃO CRIADO — próxima expansão
+Tenants ativos:         BECO, SANTOS
+Neo4j:                  Aura Free — conectado
+Nó BECO duplicado:      RESOLVIDO ✅
+Nó raiz (:Menir):       CRIADO ✅
+Nó raiz (:User luiz):   CRIADO ✅
+Frontend (Tier 2):      React + Vite + TS — Auth Bridge ativo ✅
+FastAPI:                Confirmado ✅
+Embedding model:        gemini-embedding-001 (768-dim) ✅
+Inference model:        gemini-2.5-flash ✅
+vertexai imports:       REMOVIDOS ✅
+mypy errors:            21 residuais (5 em menir_intel stubs, resto type hints)
+Skills proprietárias:   INSTALADAS ✅
+Sync infra:             INSTALADA ✅
 ```
 
 ---
 
 ## 📋 PRÓXIMAS TAREFAS (por prioridade)
+
 ```
-[x] PRÉ-1: Verificar nó BECO duplicado no Neo4j
-[x] PRÉ-2: pip install flatlib && pip install types-aiofiles
-[x] PRÉ-3: Confirmar GEMINI_INFERENCE_MODEL = "gemini-2.5-flash" em config.py
-[x] B1: Remover imports vertexai de menir_intel.py
-[x] B2: Corrigir ContextVar em identity.py
-[x] B3: Resolver extra="allow" vs extra="forbid" (_gemini.md + schemas)
-[x] B4: Corrigir genesis.py:92 — Person() com metadata{}
-[x] B5: Corrigir cresus_exporter.py:55 — return path
-[x] BATCH: Implicit Optional em 7 arquivos (menir_bridge, provenance, etc.)
-[x] SKILL: Instalar @fastapi-pro e @auth-implementation-patterns
-[x] SKILL: Criar menir-astro-extension no brain
-[x] NEO4J: Rodar bootstrap_user_luiz.cypher (dois nós raiz)
-[ ] FASE 44: Enterprise Dashboard — após mypy zerado
+[x] PRÉ: Verificar nó BECO duplicado
+[x] PRÉ: pip install flatlib + types-aiofiles
+[x] PRÉ: GEMINI_INFERENCE_MODEL = "gemini-2.5-flash"
+[x] Crash risks zerados (Phases 9-11)
+[x] extra="allow/forbid" resolvido
+[x] bootstrap_user_luiz.cypher executado
+[x] menir-astro-extension criada
+[x] py.typed + requirements.txt atualizados
+[x] Sync Infra deployada
+[x] menir_intel.py selado (5 residuais são stubs)
+[x] invoice_skill.py Part.from_text() corrigido
+
+[ ] R2: protools.py STRICT_SCHEMA — corrigir ou remover referência
+[ ] R3: meta_cognition.py:36 auth implicit Optional
+[ ] BATERIA: 4 blocos de testes (Neo4j + BECO pipeline + segurança + saúde)
+[ ] invoice_skill.py: lógica real de extração suíça (BECO revenue blocker)
+[ ] FASE 44: Enterprise Dashboard shell React
+[ ] FUTURO: AudioSkill (WhatsApp → Gemini Audio → LeadSkill)
+[ ] FUTURO: TrustScore dinâmico
 ```
 
 ---
 
-## 🏗️ ARQUITETURA — VERDADES IMUTÁVEIS
+## 🏗️ VERDADES IMUTÁVEIS
+
 ```
-1. ContextVar é a única fonte de verdade de tenant — jamais parâmetro de função
-2. extra="forbid" em schemas de ENTRADA de LLM — sempre
-3. asyncio.to_thread() para todo I/O síncrono em contexto async
-4. Todo nó criado DEVE ter [:BELONGS_TO_TENANT]
-5. BECO = fiduciária suíça | SANTOS = pessoal/Ana Caroline
-6. Confiar no repo quando contradizer documentação
-7. BECO é prioridade de receita — runway limitado
+1. ContextVar é única fonte de verdade de tenant — jamais parâmetro de função
+2. extra="forbid" em schemas de ENTRADA de LLM
+3. extra="allow" SOMENTE em OGM de saída do grafo
+4. asyncio.to_thread() para todo I/O síncrono em contexto async
+5. Todo nó DEVE ter [:BELONGS_TO_TENANT]
+6. BECO = fiduciária suíça | SANTOS = pessoal/Ana Caroline
+7. Confiar no repo quando contradizer documentação
+8. BECO é prioridade de receita — runway limitado
+9. (:Menir) e (:User) são os dois nós raiz — meta-camada acima dos tenants
 ```
 
 ---
 
 ## 🔄 PROTOCOLO DE ATUALIZAÇÃO
-Após completar qualquer tarefa da lista acima:
-1. AG atualiza a seção `PRÓXIMAS TAREFAS` (marca `[x]`)
-2. AG atualiza o `FINGERPRINT` com nova data e novo `LAST_TASK_SLUG`
-3. AG faz commit: `git add MENIR_STATE.md && git commit -m "state: P{fase} {TASK_SLUG}"`
-4. Na próxima sessão Claude/AG: lê fingerprint → confirma → trabalha
+
+Após completar qualquer tarefa:
+1. Marcar `[x]` na tarefa acima
+2. Atualizar FINGERPRINT: `MENIR-P{fase}-{YYYYMMDD}-{TASK_SLUG}`
+3. **Atualizar o corpo inteiro** — não só o fingerprint
+4. `git add MENIR_STATE.md && git commit -m "state: P{fase} {TASK_SLUG}"`
+5. `copy MENIR_STATE.md ~/.gemini/antigravity/brain/MENIR_STATE.md`
+6. Luiz re-sobe o arquivo no Claude Project
 
 ---
 
 *Gerado por: Claude (Arquiteto Principal) | 05/03/2026*
-*Atualizado por: AG após cada tarefa concluída*
+*Corpo e fingerprint sincronizados — sessão completa registrada*
