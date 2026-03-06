@@ -147,6 +147,8 @@ Schema obrigatório:
 
             from typing import Any
             compressor = PayloadCompressor()
+            api_contents: list[Any]
+            lane = "FAST_LANE" if file_path.lower().endswith(".pdf") else "SLOW_LANE"
 
             if lane == "FAST_LANE":
                 logger.info("⚡ FAST_LANE: Extraindo texto nativo via pypdf.")
@@ -175,7 +177,7 @@ Schema obrigatório:
                         data=compressed_bytes,
                         mime_type=mime_type,
                     ),
-                    EXTRACTION_PROMPT,
+                    genai_types.Part.from_text(text=EXTRACTION_PROMPT),
                 ]
 
             async with self.intel.intel_semaphore:

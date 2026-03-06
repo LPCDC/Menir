@@ -6,7 +6,7 @@
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P44-20260305-SYNC_INFRA_INSTALLED
+MENIR-P44-20260305-MENIR_INTEL_SEALED
 ```
 **Como usar:**
 - AG: ao iniciar sessão, leia este arquivo e anuncie o fingerprint.

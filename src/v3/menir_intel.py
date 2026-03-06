@@ -113,7 +113,9 @@ class MenirIntel:
                 contents=text,
                 config=types.EmbedContentConfig(output_dimensionality=768)
             )
-            return result.embeddings[0].values
+            if result and result.embeddings and result.embeddings[0].values:
+                return result.embeddings[0].values
+            return []
         except Exception:
             logger.exception(f"Falha ao gerar embedding para texto: {text[:80]}...")
             return []
@@ -216,7 +218,7 @@ class MenirIntel:
             self._persona_cache_ts = time.time()
 
         if self.is_enterprise:
-            active_model = self.client.models.get_model("gemini-1.5-pro-001")
+            active_model = self.client.models.get(model="gemini-1.5-pro-001")
             return active_model
         else:
             return genai.GenerativeModel("gemini-2.5-flash", system_instruction=persona_prompt)
@@ -285,7 +287,10 @@ class MenirIntel:
                     active_model.generate_content, contents, generation_config=generation_config
                 )
 
-            raw_text = response.text
+            from typing import cast
+            from google.genai import types as genai_types
+            result = cast(genai_types.GenerateContentResponse, response)
+            raw_text = result.text or ""
 
             # Clean markdown formatting if the API ignores response_mime_type.
             if raw_text.startswith("```"):
