@@ -64,8 +64,9 @@ class MenirBridge:
                 return True
             return False
 
-    def check_document_exists(self, sha256: str, tenant_id: str | None = None) -> bool:
+    def check_document_exists(self, sha256: str) -> bool:
         """Alias for check_evidence since Runner calls this."""
+        tenant_id = TenantContext.get()
         if not tenant_id:
             raise RuntimeError("Operação fora de contexto galvânico")
 
