@@ -4,14 +4,9 @@ import logging
 import os
 import warnings
 
-# Suppress Google GenAI deprecation warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
-warnings.filterwarnings("ignore", category=UserWarning, module="google.generativeai")
-
 import operator  # noqa: E402
 import threading  # noqa: E402
 
-import google.generativeai as genai  # noqa: E402
 from cachetools import TTLCache, cachedmethod  # noqa: E402
 from tenacity import (  # noqa: E402
     before_sleep_log,
@@ -63,13 +58,12 @@ class MenirIntel:
                 )
 
             logger.warning("⚠️ [Development Mode] Inicializando Gemini API Pública.")
-            genai.configure(api_key=api_key)
             from google import genai as genai_v3
             self.client = genai_v3.Client(api_key=api_key)
-            self.model_id = "gemini-2.5-flash"
+            self.model_id = "gemini-3.1-pro-preview"
 
         # Test bootstrapping the persona
-        self._get_active_model()
+        self._fetch_system_persona()
 
         # V3 Spec: Allowlist (Advanced Ontology)
         self.ALLOWED_LABELS = {
@@ -207,21 +201,6 @@ class MenirIntel:
                 payload = SystemPersonaPayload(**data)
                 return payload.system_prompt
 
-    def _get_active_model(self):
-        """Builds and returns the GenerativeModel instance using the cached System Persona."""
-        if hasattr(self, "_persona_cache_val") and self._persona_cache_val:
-            persona_prompt = self._persona_cache_val
-        else:
-            persona_prompt = self._fetch_system_persona()
-            self._persona_cache_val = persona_prompt
-            import time
-            self._persona_cache_ts = time.time()
-
-        if self.is_enterprise:
-            active_model = self.client.models.get(model="gemini-1.5-pro-001")
-            return active_model
-        else:
-            return genai.GenerativeModel("gemini-2.5-flash", system_instruction=persona_prompt)
 
     @retry(
         stop=(stop_after_attempt(3) | stop_after_delay(60)),
@@ -271,24 +250,28 @@ class MenirIntel:
                 f"\n\nInstrução Mandatória: Retorne APENAS um JSON válido que obedeça ESTRITAMENTE a este Schema. O output tem de ser nativo, cru, e exato:\n{json.dumps(schema_json, ensure_ascii=False)}"
             )
 
-        generation_config = {"response_mime_type": "application/json"}
-
         try:
             # Separating IO Watchdog from Inference: Wrapped in the Intel Semaphore
             system_prompt = await self._get_active_model_async()
 
-            # For legacy generate_content backward compatibility
-            from google import genai as genai_v3
-            active_model = genai_v3.Client().models if self.is_enterprise else genai.GenerativeModel("gemini-2.5-flash", system_instruction=system_prompt)
+            from google.genai import types as genai_types
+            config = genai_types.GenerateContentConfig(
+                response_mime_type="application/json",
+                system_instruction=system_prompt,
+            )
+            
+            model_to_use = "gemini-1.5-pro-001" if getattr(self, "is_enterprise", False) else getattr(self, "model_id", "gemini-3.1-pro-preview")
 
             async with self.intel_semaphore:
                 # Wraps inference in I/O Thread to prevent Event Loop blocking
                 response = await asyncio.to_thread(
-                    active_model.generate_content, contents, generation_config=generation_config
+                    self.client.models.generate_content,
+                    model=model_to_use,
+                    contents=contents,
+                    config=config
                 )
 
             from typing import cast
-            from google.genai import types as genai_types
             result = cast(genai_types.GenerateContentResponse, response)
             raw_text = result.text or ""
 
