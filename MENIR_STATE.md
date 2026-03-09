@@ -6,7 +6,7 @@
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P44-20260305-MENIR_INTEL_SEALED
+MENIR-P44-20260309-SPRINT_1B_DONE
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -45,6 +45,10 @@ MENIR-P44-20260305-MENIR_INTEL_SEALED
 | ✅ | Skills `@fastapi-pro` + `@auth-implementation-patterns` instaladas |
 | ✅ | Skills proprietárias `menir-*` criadas no brain |
 | ✅ | MENIR_STATE.md + MENIR_KERNEL.md deployados no repo e brain |
+| ✅ | BATCH 1: `mypy.ini` suppress flatlib and aiofiles |
+| ✅ | BATCH 2: implicit Optional batch + Sequence→list + type annotations |
+| ✅ | SPRINT 1A: Infra Base (postbox/, scripts de health scan/log, git hooks) |
+| ✅ | SPRINT 1B: Health Scan calibrado para SESSION_BRIEF |
 
 ---
 
