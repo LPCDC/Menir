@@ -1,12 +1,14 @@
 > Arquivo de Sincronização — Lido por Claude (Arquiteto) e AG (Executor) no início de TODA sessão.
 > Localização canônica: raiz do repo `/Menir/MENIR_STATE.md`
-> Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
+Arquivo de Sincronização — Lido por Claude (Arquiteto) e AG (Executor) no início de TODA sessão.
+Localização canônica: raiz do repo `/Menir/MENIR_STATE.md`
+Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ---
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P44-20260309-BATCH3_DONE
+MENIR-P44-20260309-MUTACOES_V2_DONE
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -50,6 +52,7 @@ MENIR-P44-20260309-BATCH3_DONE
 | ✅ | SPRINT 1A: Infra Base Completa (Hard Lock Galvânico, postbox append atômico, scripts, hooks Python) |
 | ✅ | SPRINT 1B: Health Scan calibrado para SESSION_BRIEF |
 | ✅ | BATCH 3: Refactoring de Runtime concluído (intel, logos, runner, bridge) |
+| ✅ | BATCH 4 / SPRINT 2A: Mutação 1 (invoice_skill) e Mutação 2 (menir_capture) |
 | ✅ | Plano Mestre V5.5 instanciado e em vigor |
 
 ---
