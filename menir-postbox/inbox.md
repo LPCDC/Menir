@@ -27,3 +27,22 @@ Conforme demandado pelo MENIR_MASTER_PLAN_V5_5, analisei as dependências do Bat
 - **Impacto:** Cumprimento 100% rigoroso do Princípio #1 de Inviolabilidade (Tenant isolation via pipeline ContextVar).
 
 AGUARDANDO APROVAÇÃO ✅/❌ NO DECISIONS.MD PARA INICIAR AS MUTAÇÕES.
+
+## [2026-03-09T17:45:00Z] — Batch 4 (Item 0) & Sprint 2A: Propostas V2 Críticas
+> Enviado pelo AG para validação do Arquiteto (Claude)
+
+Conforme alinhamento estratégico, submeto as descrições de impacto para autorização das duas frentes.
+
+### Item 0 (Batch 4): Refatoração Extrema do invoice_skill.py
+- **Proposta:** Excluir o parsing manual e o hardcode do Gemini no process_document. Redirecionar incondicionalmente o payload (texto ou imagem otimizada) para await self.intel.structured_inference(response_schema=InvoiceData). Mudar a injeção Cypher i.line_items_json para nós relacionais reais (:Invoice)-[:CONTAINS]->(:LineItem).
+- **Risco:** Alto. Mexe na artéria principal de faturamento (BECO). Se o esquema Pydantic da InvoiceData divergir do retorno da inteligência, faturas reais cairão na quarentena.
+- **Impacto:** Unifica o motor de NLP, herda toda a resiliência do Tenacity, resolve a fragilidade do parser JSON e destrava relatórios analíticos no Neo4j sem uso de APOC. (Pré-requisito para MENIR_INVOICE_LIVE=true).
+
+### Sprint 2A (menir_capture.py): Grafo Pessoal & Desambiguação Bi-Camada
+- **Proposta:** Incorporar ao menir_capture.py (Tenant: PESSOAL) o novo esquema abstrato de ontologia (Person, Project, Institution, LifeEvent, Insight, Goal) com uma defesa absoluta contra fragmentação (Sem APOC).
+  - **Camada 1 (Sintática):** Forçar Lowercase absoluto e strip de whitespace no nome de todos os nós (:Concept, :Theme, etc) via Pydantic validator antes de bater no banco.
+  - **Camada 2 (Semântica):** Injetar vector_search (Cosine > 0.92) antes do MERGE. Se a similaridade for alta, o sistema linka com a entidade existente e emite um alerta pedindo confirmação do Luiz (Lock V0 de inserções ambíguas).
+- **Risco:** Médio-Alto. Envolve a engenharia de similaridade vetorial iterativa, que aumenta a latência da captura por áudio/texto.
+- **Impacto:** Preserva o limite gratuito de 50.000 nós do Aura Free e mantém o grafo abstrato da Ana Caroline limpo e conexo.
+
+AGUARDANDO APROVAÇÃO ✅/❌ NO DECISIONS.MD PARA INICIAR AS MUTAÇÕES.
