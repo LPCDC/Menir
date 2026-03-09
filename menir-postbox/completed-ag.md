@@ -33,3 +33,10 @@
 - Agora depende de await self.intel.structured_inference(response_schema=InvoiceData).
 - JSON blob banido: agora a query injeta (i:Invoice)-[:CONTAINS]->(li:LineItem).
 - Teste fixture efetuado e confirmou roteamento correto até o Gargalo GenAI.
+
+## [2026-03-09T18:15:00Z] — Batch 4: Mutação 2 (menir_capture schema)
+> Ação Concluída
+- Novo schema BaseNode rigoroso (personal.py) criado com `extra="forbid"`.
+- Lowercase e strip absolutos garantidos por @field_validator na camada 1 (Pydantic).
+- Camada 2 (Similaridade Cosine > 0.92): Nova skill `MenirCapture` pesquisa index vetorial antes de efetivar o grafo.
+- Em caso de colisão acústica ou semântica acima do limiar, cria o nó e amarra ele ao existente com a flag `[:NEEDS_DISAMBIGUATION]` para roteamento e auditoria V0 de Ana Caroline/Luiz.
