@@ -170,13 +170,15 @@ class MenirBridge:
                 props=rel.properties,
             )
 
-    def link_author(self, doc_hash: str, author_name: str, tenant_id: str):
+    def link_author(self, doc_hash: str, author_name: str):
         """
         V3.1: Connects Person to Document.
         Not retried via Tenacity yet (non-critical path), kept as is.
         """
         if not author_name:
             return
+        
+        tenant_id = TenantContext.get()
         if not tenant_id:
             logger.error("link_author called without tenant_id. Skipping to prevent data leak.")
             return
