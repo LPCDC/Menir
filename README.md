@@ -1,53 +1,34 @@
 # Menir OS
 
-> **Um Sistema Operacional Cognitivo que materializa, conecta e amplifica a sua inteligência através de um Grafo de Conhecimento privado.**
+> **A sua arquitetura cognitiva privada.** Um Sistema Operacional que injeta inteligência de ponta nos seus dados, transformando ruído em memória, e operações massivas em governança silenciosa.
 
-O Menir não é apenas mais um aplicativo de produtividade orgânica — é um arquétipo digital. Ele não destrói os dados que você joga nele em caixas de chat esquecidas. Em vez disso, o Menir escuta, lê, conecta e desenha um ecossistema visual intransponível do que você e sua empresa sabem. 
-
-Do pensamento complexo no chuveiro até a reconciliação fiduciária suíça de dezenas de faturas: o Menir roteia a informação para o lugar certo, transformando o silêncio dos seus arquivos numa malha viva de insights.
+O Menir OS substitui o caos de anotações perdidas, faturas empilhadas e projetos fragmentados por uma malha vetorial viva. Com tecnologia de Agentes Inteligentes, LLMs e Grafos de Conhecimento, o sistema atua como o motor invisível da sua empresa ou vida pessoal, roteando cada pedaço de informação para o contexto exato onde ele é mais útil.
 
 ---
 
-## Para quem o Menir é construído?
+## Para quem o Menir foi forjado?
 
-O sistema possui uma arquitetura _Multi-Tenant_ isolada, que permite que o motor cognitivo abrace realidades drasticamente diferentes debaixo do mesmo teto.
+Com uma infraestrutura *Multi-Tenant* rigorosa (Isolamento Galvânico), o Menir protege e opera mundos totalmente distintos sob o mesmo núcleo, de forma autônoma e à prova de vazamentos.
 
-### 🏢 1. Fiduciárias, Gestão e Backoffice (ex: BECO)
-Para empresas de contabilidade e operações financeiras de alta precisão. O Menir ingere caixas de entrada lotadas de faturas brutas, PDFs suíços complexos e extratos bancários CAMT.053. Ele valida as regras da máfia da matemática fiduciária (como módulos UID suíços e alíquotas de TVA enraizadas), perdoa a entropia gerada pelo mundo real (gorjetas ou descritivos manuais soltos) e converte o caos em um grafo auditável de Fornecedores, Faturas e Reconciliações, pronto para ingestões seguras em ERPs como o Crésus.
-*Nunca mais perca uma fatura para a desorganização. Confiança matemática com velocidade de IA.*
+### 🏦 1. A Fiduciária Suíça (Gestão e Backoffice)
+**O Desafio:** Volume brutal de PDFs não estruturados, faturas com lógicas fiscais complexas (TVA, CHE-MOD11) e dezenas de extratos bancários.  
+**O que o Menir resolve:** Liquida a triagem manual. O Menir ingere documentos, aplica a "máfia da matemática suíça" com tolerância zero para falhas fiscais e extrai os dados para um Grafo Racional estruturado. O resultado? Centenas de faturas reconciliadas semanticamente, anomalias destacadas e matrizes exportadas diretamente para softwares como Crésus, com precisão fiduciária e velocidade relâmpago.
 
-### 🎙️ 2. Criadores de Conteúdo, Speakers e Visionários
-Para os curiosos crônicos, arquitetos de ideias e executivos. Quando você grava um áudio capturando um lampejo de ideia ou rascunha um Insight em texto, o **Menir Capture** desce as entranhas da sua lógica. Ele identifica os atores, os temas, as teses e os projetos ocultos ali. Depois, cruza esses nós com pensamentos seus de dois anos atrás. O que era um áudio solto vira uma conexão imediata entre um Livro, um Conceito e a sua próxima Palestra Magna.
-*Amplifique a sua retenção. O Menir é o curador silencioso da sua mente aberta.*
+### 🎙️ 2. A Speaker e Criadora de Conteúdo
+**O Desafio:** Ideias brilhantes enterradas em áudios do WhatsApp ou cadernos de notas fragmentados que nunca se conversam.  
+**O que o Menir resolve:** É o seu "segundo cérebro" definitivo. O Menir escuta seus insights soltos, identifica temas centrais, atores e intenções invisíveis. Por meio de Rastreamento Ontológico e busca vetorial, um "insight" capturado há dois anos sobre um tema se liga instantaneamente a uma nova observação diária hoje, desenhando automaticamente o arcabouço da sua próxima Palestra Magna. Sua criatividade ganha raízes sólidas; nenhuma memória é mais desperdiçada.
 
-### 🚀 3. Profissionais Independentes e Arquitetos de Software
-Para quem respira complexidade. O Menir integra seu banco de dados, repos de código e documentação local com a capacidade implacável dos Agentes Inteligentes. Você conta com um auditor e desenvolvedor (o *Antigravity*) operando lado a lado com a base de dados. Solidez total guiada unicamente pelas suas decisões como Arquiteto do projeto.
-*Menos debbugging. Mais tempo construindo a visão.*
-
----
-
-## Possibilidades Ilimitadas
-
-* **Roteamento Inteligente:** Faça upload de qualquer coisa. Se for fatura, a lógica contábil domina. Se for texto filosófico, a ontologia pessoal conecta.
-* **Vector Search Semântico Próprio:** Vá além de buscar palavras-chave cegas. Pergunte "Quais insights eu tive sobre resiliência perto de rios?" e o Menir recupera conexões abstratas no seu grafo visual, ligando pensamentos e intuições.
-* **Isolamento Galvânico:** Seus insights de vida privada jamais cruzarão caminhos ou gerarão ruído cognitivo nos dados contábeis da sua fiduciária.
-* **Interativo & Resiliente:** Você não conversa com um bot. Você aciona um Ecossistema que manipula, altera e salva contexto e memória durável em um banco OGM moderno (Neo4j). 
+### 🚀 3. O Profissional Independente com Grandes Projetos
+**O Desafio:** Conciliar documentações gigantes, repositórios de software, múltiplos projetos em andamento, deadlines corporativos e decisões arquiteturais de vida, sem afundar na sobrecarga.  
+**O que o Menir resolve:** O sistema transporta o conceito de "gestão de tarefas" para uma governança de vida profunda. O Menir mapeia a taxonomia de seus projetos reais como entidades ativas de primeiro nível, conectando insights, colaboradores, subdocumentos e intenções originais. Você passa a ter a visão omnisciente do "Arquiteto", visualizando o impacto sistêmico e a cadência dos seus projetos na linha do tempo enquanto sua IA atua como co-piloto e revisor 24/7.
 
 ---
 
-## Como Iniciar a Operação
+## Por Baixo do Capô (Para Desenvolvedores)
 
-O ecossistema é ativado através de um Launcher conversacional focado em terminal e em transições Web nativas. 
+*O núcleo profundo do Menir OS é desenhado para concorrência feroz e integridade absoluta de transações.*
 
-1. Tenha o **Docker** rodando seu banco grafo de preferência (Neo4j) e obtenha sua chave primária do **Google Gemini** (V3 API).
-2. Configure seu cenário isolado de chaves e _Tenants_ no seu arquivo oculto blindado `.env`.
-3. Dispare o Gatilho do Sistema pelo terminal usando `python launcher.py`.
-
-A partir daí, você está no controle do Painel de Bordo do Córtex. 
-
-*Experimente conectar dois mundos hoje mesmo.*
-
----
-_Anotação Técnica para Desenvolvedores (V0):_
-_O núcleo profundo assíncrono repousa na integração do Driver `Neo4j` OGM + Pydantic estrito + `google.genai` SDK V3._
-_Toda iteração e extração é submetida a Schemas Rigorosos com limites exatos (Pydantic), blindada por `Tenacity` e guardada através das trilhas de `ContextVars` asyncs isoladas._
+- **Isolamento Galvânico (Segurança by Design):** Uso massivo de `ContextVars` async garantem uma fronteira estrita entre instâncias (Tenants). Zero contaminação cruzada; sem uso arriscado de passagem de ID por argumentos.
+- **Racionalização Estrita:** A camada LLM processa através de Pydantic Models (`extra="forbid"` na entrada, tolerância a meta-dados apenas em `metadata{}`).
+- **Asincronismo Não-Bloqueante:** O event loop principal vive livre e respira. Toda orquestração pesada de rede e persistência Neo4j usa `await asyncio.to_thread` via pools encapsulados (Fire-and-forget de *skills* vetoriais e cálculos paralelos).
+- **Neo4j + Gemini SDK (V3):** Rastreabilidade semântica (Embedding Service aprimorado com índices vetoriais ajustados para 768-dimensões e Cypher Patterns otimizados).
