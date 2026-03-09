@@ -18,7 +18,7 @@ MENIR-P44-20260309-SPRINT_1B_DONE
 ## 📍 FASE ATUAL
 - **Fase:** 44
 - **Etapa:** Enterprise Dashboard + Swiss-Clinical CSS Modular Shell
-- **Status:** Pré-condições completas. mypy 53→21 (5 residuais em menir_intel — stubs apenas).
+- **Status:** Pré-condições completas. mypy errors: 59.
 - **Próxima execução:** invoice_skill.py lógica real suíça → depois Fase 44 Dashboard
 
 ---
@@ -47,8 +47,9 @@ MENIR-P44-20260309-SPRINT_1B_DONE
 | ✅ | MENIR_STATE.md + MENIR_KERNEL.md deployados no repo e brain |
 | ✅ | BATCH 1: `mypy.ini` suppress flatlib and aiofiles |
 | ✅ | BATCH 2: implicit Optional batch + Sequence→list + type annotations |
-| ✅ | SPRINT 1A: Infra Base (postbox/, scripts de health scan/log, git hooks) |
+| ✅ | SPRINT 1A: Infra Base Completa (Hard Lock Galvânico, postbox append atômico, scripts, hooks Python) |
 | ✅ | SPRINT 1B: Health Scan calibrado para SESSION_BRIEF |
+| ✅ | Plano Mestre V5.5 instanciado e em vigor |
 
 ---
 
@@ -77,7 +78,7 @@ FastAPI:                Confirmado ✅
 Embedding model:        gemini-embedding-001 (768-dim) ✅
 Inference model:        gemini-2.5-flash ✅
 vertexai imports:       REMOVIDOS ✅
-mypy errors:            21 residuais (5 em menir_intel stubs, resto type hints)
+mypy errors:            59 residuais
 Skills proprietárias:   INSTALADAS ✅
 Sync infra:             INSTALADA ✅
 ```
@@ -122,6 +123,13 @@ Sync infra:             INSTALADA ✅
 7. Confiar no repo quando contradizer documentação
 8. BECO é prioridade de receita — runway limitado
 9. (:Menir) e (:User) são os dois nós raiz — meta-camada acima dos tenants
+10. menir_capture: nunca mais de UMA pergunta por input
+11. menir_capture: a pergunta usa o grafo — nunca é genérica
+12. Grafo pessoal (V0): Luiz decide o que entra. AG nunca escreve sozinho.
+13. AG é reativo, não daemon — executa quando chamado, não em background
+14. Velocidade 1: AG notifica depois. Velocidade 2: AG propõe antes.
+15. Hooks sempre em Python — nunca Bash puro no Windows
+16. Postbox é append-only — nunca sobrescrever, purgar para Neo4j no flip de fingerprint
 ```
 
 ---
