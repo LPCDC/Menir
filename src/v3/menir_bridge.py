@@ -260,11 +260,12 @@ class MenirBridge:
             logger.warning(f"Vector Index Init Warning: {e}")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-    def merge_chunk(self, chunk_id: str, text: str, embedding: list, doc_sha: str, tenant_id: str):
+    def merge_chunk(self, chunk_id: str, text: str, embedding: list, doc_sha: str):
         """
         Ingests a Text Chunk with Vector Embedding.
         Links it to the parent Document.
         """
+        tenant_id = TenantContext.get()
         if not tenant_id:
             raise ValueError("Tenant_ID is required for merge_chunk.")
         safe_tenant = str(tenant_id).replace("`", "")
