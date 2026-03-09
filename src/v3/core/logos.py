@@ -6,7 +6,9 @@ Protects the AsyncRunner from hallucinated intents and Prompt Injections.
 """
 
 import logging
-from typing import Literal
+from typing import Literal, cast
+
+OriginType = Literal["CLI_LOCAL", "WEB_UI", "AI_ORACLE", "CRON"]
 
 from pydantic import BaseModel, Field
 
@@ -19,7 +21,7 @@ class CommandPayload(BaseModel):
     """Esquema Rigoso do CommandBus da Fase 15."""
 
     command_id: str = Field(description="Unique action ID")
-    origin: Literal["CLI_LOCAL", "WEB_UI", "AI_ORACLE", "CRON"] = Field(
+    origin: OriginType = Field(
         description="The validated source of the command."
     )
     action: Literal[
@@ -59,7 +61,7 @@ class MenirLogos:
         }
 
     async def interpret_intent(
-        self, raw_input: str, origin: str, tenant_id: str = "BECO"
+        self, raw_input: str, origin: OriginType, tenant_id: str = "BECO"
     ) -> CommandPayload:
         """
         Interpreta o texto livre e submete ao escudo hierárquico.
@@ -105,8 +107,7 @@ class MenirLogos:
             )
 
             # Autenticação de Categoria e Override da Origem (A IA não decide a origem, nós injetamos)
-            from typing import cast
-            parsed_intent.origin = cast(Literal["CLI_LOCAL", "WEB_UI", "AI_ORACLE", "CRON"], origin)
+            parsed_intent.origin = cast(OriginType, origin)
             parsed_intent.tenant_id = tenant_id
 
             authority = self.AUTHORITY_MATRIX[origin]
@@ -144,7 +145,7 @@ class MenirLogos:
             logger.exception(f"🚨 Falha Catastrófica no Logos Cortex: {e}")
             return CommandPayload(
                 command_id="ERR_500",
-                origin=cast(Literal["CLI_LOCAL", "WEB_UI", "AI_ORACLE", "CRON"], origin),
+                origin=cast(OriginType, origin),
                 action="REJECTED",
                 tenant_id=tenant_id,
                 confidence_score=0.0,
