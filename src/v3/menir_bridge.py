@@ -17,6 +17,7 @@ from tenacity import (
 )
 
 from src.v3.core.schemas import BaseNode, Document, Relationship
+from src.v3.core.schemas.identity import TenantContext
 from src.v3.tenant_middleware import TenantAwareDriver
 from src.v3.core.neo4j_pool import get_shared_driver
 
@@ -44,8 +45,9 @@ class MenirBridge:
         ),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    def check_evidence(self, sha256: str, project: str) -> bool:
+    def check_evidence(self, sha256: str) -> bool:
         """Recovery Mode Check (Resilient)."""
+        project = TenantContext.get()
         if not project:
             raise ValueError("Tenant_ID (project) is required for Context Isolation.")
 
