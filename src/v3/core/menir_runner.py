@@ -248,11 +248,8 @@ if __name__ == "__main__":
         from src.v3.meta_cognition import MenirOntologyManager
 
         load_dotenv(override=True)
-        neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-        neo4j_user = os.getenv("NEO4J_USER", "neo4j")
-        neo4j_password = os.getenv("NEO4J_PASSWORD") or os.getenv("NEO4J_PWD")
 
-        ontology = MenirOntologyManager(neo4j_uri, (neo4j_user, neo4j_password or ""))
+        ontology = MenirOntologyManager()
 
         # 2. Inicia o Cérebro, passando o OntologyManager para ele ler a própria Persona do Banco
         intel = MenirIntel(ontology=ontology)
