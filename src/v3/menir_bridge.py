@@ -98,10 +98,10 @@ class MenirBridge:
             dynamic_props = props.pop("properties")
             props.update(dynamic_props)
 
-        tenant_id = node.project
+        tenant_id = TenantContext.get()
         if not tenant_id:
             raise ValueError(
-                f"Tenant_ID (project) missing for node {getattr(node, 'name', 'Unknown')}."
+                f"Tenant_ID missing for node {getattr(node, 'name', 'Unknown')} in ContextVar."
             )
 
         safe_tenant = str(tenant_id).replace("`", "")
@@ -115,7 +115,7 @@ class MenirBridge:
             MERGE (n:{labels} {{sha256: $sha256}})
             SET n.project = $project, n += $props, n.ingested_at = datetime()
             """
-            params = {"sha256": node.sha256, "project": node.project, "props": props}
+            params = {"sha256": node.sha256, "project": tenant_id, "props": props}
         else:
             # Default Entity Logic (Person, Organization)
             # Use name as key + project
@@ -125,7 +125,7 @@ class MenirBridge:
             """
             params = {
                 "name": getattr(node, "name", "Unknown"),
-                "project": node.project,
+                "project": tenant_id,
                 "props": props,
             }
 
@@ -146,9 +146,9 @@ class MenirBridge:
         """
         Type-Safe Edge Upsert (Resilient).
         """
-        tenant_id = rel.properties.get("project")
+        tenant_id = TenantContext.get()
         if not tenant_id:
-            raise ValueError("Tenant_ID (project) missing in Relationship properties.")
+            raise ValueError("Tenant_ID missing in ContextVar for Relationship upsert.")
 
         safe_tenant = str(tenant_id).replace("`", "")
         # Sanitizar o tipo de relação para evitar Cypher Injection
@@ -166,7 +166,7 @@ class MenirBridge:
                 query,
                 src=rel.source_uid,
                 tgt=rel.target_uid,
-                proj=rel.properties.get("project", "Menir"),
+                proj=tenant_id,
                 props=rel.properties,
             )
 
