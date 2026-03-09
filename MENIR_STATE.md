@@ -6,7 +6,7 @@
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P44-20260309-SPRINT_1B_DONE
+MENIR-P44-20260309-BATCH3_DONE
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -49,6 +49,7 @@ MENIR-P44-20260309-SPRINT_1B_DONE
 | ✅ | BATCH 2: implicit Optional batch + Sequence→list + type annotations |
 | ✅ | SPRINT 1A: Infra Base Completa (Hard Lock Galvânico, postbox append atômico, scripts, hooks Python) |
 | ✅ | SPRINT 1B: Health Scan calibrado para SESSION_BRIEF |
+| ✅ | BATCH 3: Refactoring de Runtime concluído (intel, logos, runner, bridge) |
 | ✅ | Plano Mestre V5.5 instanciado e em vigor |
 
 ---
