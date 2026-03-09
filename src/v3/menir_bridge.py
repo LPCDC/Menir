@@ -283,11 +283,12 @@ class MenirBridge:
             session.run(query, uid=chunk_id, text=text, embedding=embedding, doc_sha=doc_sha)
 
     def vector_search(
-        self, embedding: list, tenant_id: str, limit: int = 5, min_score: float = 0.7
+        self, embedding: list, limit: int = 5, min_score: float = 0.7
     ):
         """
         Performs KNN Search on the Vector Index, filtered by Tenant_ID.
         """
+        tenant_id = TenantContext.get()
         if not tenant_id:
             raise ValueError("Tenant_ID is required to prevent data leakage in Vector Search.")
         safe_tenant = str(tenant_id).replace("`", "")
