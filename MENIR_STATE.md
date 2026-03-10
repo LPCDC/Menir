@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P45-20260310-FASE45_SCHEMA_LIVE
+MENIR-P45-20260310-FASE45_ORCHESTRATOR
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -22,6 +22,7 @@ MENIR-P45-20260310-FASE45_SCHEMA_LIVE
 - **Etapa:** Enterprise Dashboard MVP + Órgãos Sensoriais (Dispatcher, nFADP Shield, Zefix)
 - **Status:** Propostas V2 enviadas para o Inbox.
 - **Próxima execução:** Aguardando aprovação do Arquiteto no decisions.md.
+- **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
 
 ---
 
