@@ -168,10 +168,14 @@ class MenirSynapse:
         username = data.get("username", "")
         password = data.get("password", "")
 
-        # Mock authentication mapping for Galvanic Isolation Demonstration
-        if username == "beco" and password == "admin":
+        beco_user = os.getenv("MENIR_MOCK_USER_BECO")
+        beco_pass = os.getenv("MENIR_MOCK_PASS_BECO")
+        santos_user = os.getenv("MENIR_MOCK_USER_SANTOS")
+        santos_pass = os.getenv("MENIR_MOCK_PASS_SANTOS")
+
+        if beco_user and username == beco_user and password == beco_pass:
             return web.json_response({"token": "BECO_ENTERPRISE_JWT"})
-        elif username == "santos" and password == "admin":
+        elif santos_user and username == santos_user and password == santos_pass:
             return web.json_response({"token": "SANTOS_LIFE_JWT"})
         
         return web.json_response({"error": "Unauthorized"}, status=401)
@@ -205,7 +209,10 @@ class MenirSynapse:
         auth_header = request.headers.get("Authorization", "")
         # Cryptographic Namespace Routing (Context Isolation)
         token = auth_header.replace("Bearer ", "").strip()
-        jwt_secret = os.getenv("MENIR_JWT_SECRET", "super_secret_menir_key_2026")
+        jwt_secret = os.getenv("MENIR_JWT_SECRET")
+        if not jwt_secret:
+            logger.error("Vazamento de segurança evitado: MENIR_JWT_SECRET não configurado! Isolation lock active.")
+            return web.json_response({"error": "System Configuration Error"}, status=500)
         target_tenant = "BECO"
         
         try:
