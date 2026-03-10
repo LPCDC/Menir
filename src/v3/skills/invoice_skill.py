@@ -105,16 +105,18 @@ class InvoiceSkill:
             self._quarantine_document(tenant, file_hash, "TRANSACTION_ROLLBACK")
             raise Exception("TRANSACTION_ROLLBACK")
 
-    async def _resolve_vendor_zefix(self, ide_number: str | None, name: str, tenant: str) -> bool:
+    async def _resolve_vendor_zefix(self, ide_number: str | None, name: str, tenant: str) -> tuple[bool, str]:
         import aiohttp
         import asyncio
+        from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 
         safe_tenant = tenant.replace("`", "")
 
         cache_query = f"""
         MATCH (v:Vendor:`{safe_tenant}`)
-        WHERE v.name = $name OR (v.ide_number = $ide AND $ide IS NOT NULL)
-        RETURN v.zefix_match AS zefix_match
+        WHERE (v.name = $name OR (v.ide_number = $ide AND $ide IS NOT NULL))
+          AND v.zefix_queried_at > datetime() - duration('P30D')
+        RETURN v.zefix_match AS zefix_match, coalesce(v.zefix_status, 'UNKNOWN') AS zefix_status
         LIMIT 1
         """
         def _check_db():
@@ -123,33 +125,61 @@ class InvoiceSkill:
                 
         cached = await asyncio.to_thread(_check_db)
         if cached:
-            return cached["zefix_match"]
+            return cached["zefix_match"], cached["zefix_status"]
 
         zefix_match = False
-        async with aiohttp.ClientSession() as session:
-            try:
-                payload = {{"uid": ide_number}} if ide_number else {{"name": name}}
-                async with session.post("https://www.zefix.admin.ch/ZefixPublicREST/api/v1/company/search", json=payload) as resp:
+        zefix_status = "NO_MATCH"
+        
+        class ZefixRateLimitError(Exception): pass
+
+        @retry(
+            wait=wait_exponential(multiplier=1, min=1, max=4),
+            stop=stop_after_attempt(3),
+            retry=retry_if_exception_type((ZefixRateLimitError, asyncio.TimeoutError, aiohttp.ClientError))
+        )
+        async def _call_zefix():
+            nonlocal zefix_match, zefix_status
+            async with aiohttp.ClientSession() as session:
+                payload = {"uid": ide_number} if ide_number else {"name": name}
+                async with session.post("https://www.zefix.admin.ch/ZefixPublicREST/api/v1/company/search", json=payload, timeout=10) as resp:
+                    if resp.status == 429:
+                        raise ZefixRateLimitError("Rate limited")
                     if resp.status == 200:
                         data = await resp.json()
                         if data and isinstance(data, list) and len(data) > 0:
                             zefix_match = True
-            except Exception as e:
-                logger.warning(f"Zefix API failed: {{e}}")
+                            zefix_status = "MATCH"
+                        else:
+                            zefix_match = False
+                            zefix_status = "NO_MATCH"
+                    else:
+                        resp.raise_for_status()
+
+        try:
+            await _call_zefix()
+        except Exception as e:
+            logger.warning(f"Zefix API failed after retries: {e}")
+            zefix_match = False
+            zefix_status = "RATE_LIMITED"
         
         persist_query = f"""
         MERGE (v:Vendor:`{safe_tenant}` {{name: $name}})
         SET v.ide_number = $ide,
             v.zefix_match = $zefix_match,
+            v.zefix_status = $zefix_status,
             v.zefix_queried_at = datetime(),
             v.project = $safe_tenant
         """
         def _save_vendor():
             with self.ontology_manager.driver.session() as s:
-                s.run(persist_query, name=name, ide=ide_number, zefix_match=zefix_match, safe_tenant=safe_tenant)
-        await asyncio.to_thread(_save_vendor)
+                with s.begin_transaction() as tx:
+                    tx.run(persist_query, name=name, ide=ide_number, zefix_match=zefix_match, zefix_status=zefix_status, safe_tenant=safe_tenant)
+        try:
+            await asyncio.to_thread(_save_vendor)
+        except Exception as e:
+            logger.error(f"Failed to persist Vendor cache: {e}")
 
-        return zefix_match
+        return zefix_match, zefix_status
 
     async def process_document(self, file_path: str) -> SkillResult:
         import asyncio
@@ -244,8 +274,13 @@ Schema obrigatório:
                 invoice_dict, context={"valid_tva_rates": active_rules.get("tva_rates", [])}
             )
 
-            zefix_match = await self._resolve_vendor_zefix(validated.ide_number, validated.vendor_name, tenant)
-            if not zefix_match:
+            zefix_match, zefix_status = await self._resolve_vendor_zefix(validated.ide_number, validated.vendor_name, tenant)
+            
+            penalty = 0.0
+            if zefix_status == "RATE_LIMITED":
+                penalty = 0.10
+                logger.warning(f"Fornecedor {validated.vendor_name} não verificado devido a RATE_LIMITED (Zefix). Penalidade: {penalty}")
+            elif not zefix_match:
                 self._quarantine_document(tenant, file_hash, "VendorNotFoundZefix")
                 return SkillResult(
                     success=False,
@@ -255,10 +290,14 @@ Schema obrigatório:
 
             self._inject_into_graph(validated, file_hash, zefix_match)
 
+            msg = f"Fatura processada: {validated.vendor_name} | {validated.total_amount:.2f} {validated.currency}"
+            if penalty > 0:
+                msg += f" [Penalty Zefix: -{penalty}]"
+
             return SkillResult(
                 success=True,
                 nodes_and_edges=[],
-                message=f"Fatura processada: {validated.vendor_name} | {validated.total_amount:.2f} {validated.currency}",
+                message=msg,
             )
 
         except json.JSONDecodeError as e:
