@@ -55,6 +55,8 @@ class MenirSynapse:
                 web.post("/auth/token", self.handle_auth_token_http),
                 web.post("/command", self.handle_command_http),
                 web.post("/mcp", self.mcp_server.handle_mcp_request),
+                web.get("/api/v3/documents/quarantine", self.handle_get_quarantine),
+                web.post("/api/v3/documents/{id}/retry", self.handle_retry_document),
             ]
         )
         self.http_site = None
@@ -245,6 +247,58 @@ class MenirSynapse:
             return web.Response(text=response_str, content_type="application/json")
         else:
             return web.Response(text=response_str)
+
+    async def handle_get_quarantine(self, request):
+        target_tenant = "BECO"
+        safe_tenant = target_tenant.replace("`", "")
+        
+        query = f"""
+        MATCH (d:Document:`{safe_tenant}`)
+        WHERE d.status = 'QUARANTINE'
+        RETURN d.uid AS id, d.name AS name, d.file_hash AS file_hash, d.quarantine_reason AS reason, d.quarantined_at AS date
+        ORDER BY d.quarantined_at DESC
+        ```limit_replace_for_string_literal```
+        LIMIT 50
+        """
+        query = query.replace("```limit_replace_for_string_literal```", "")
+        
+        def _fetch():
+            with self.runner.ontology_manager.driver.session() as s:
+                return [dict(rec) for rec in s.run(query)]
+        
+        docs = await asyncio.to_thread(_fetch)
+        
+        # Format datetimes
+        for d in docs:
+            if d.get("date"):
+                d["date"] = d["date"].iso_format()
+                
+        return web.json_response({"documents": docs})
+
+    async def handle_retry_document(self, request):
+        doc_id = request.match_info['id']
+        data = await request.json()
+        target_tenant = "BECO"
+        safe_tenant = target_tenant.replace("`", "")
+        
+        query_update = f"""
+        MATCH (d:Document:`{safe_tenant}` {{uid: $uid}})
+        SET d.status = 'PENDING',
+            d.correction_by = 'human',
+            d.correction_at = datetime()
+        RETURN d
+        """
+        def _update():
+            with self.runner.ontology_manager.driver.session() as s:
+                res = s.run(query_update, uid=doc_id).single()
+                return dict(res["d"]) if res else None
+                
+        doc = await asyncio.to_thread(_update)
+        if not doc:
+             return web.json_response({"error": "No document found"}, status=404)
+             
+        return web.json_response({"success": True, "message": "Document marked as PENDING and flagged for retry."})
+
 
     # --- SOCKET INTERFACE (CLI_LOCAL) ---
     async def handle_socket_client(

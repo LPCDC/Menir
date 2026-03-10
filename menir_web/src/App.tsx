@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import AuthGuard from './components/AuthGuard';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import QuarantineInbox from './pages/QuarantineInbox';
 import './App.css'; // Standard Vite styling import
 
 const router = createBrowserRouter([
@@ -18,6 +19,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Dashboard />,
+      },
+      {
+        path: 'quarantine',
+        element: <QuarantineInbox />,
       },
     ],
   },
