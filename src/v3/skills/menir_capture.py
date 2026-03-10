@@ -99,19 +99,16 @@ Extraia o mais puramente possível focando em substantivos limpos ou entidades c
                 with self.ontology_manager.driver.session() as session:
                     if sim and sim["name"].lower() != entity_name:
                         # Acima do limiar (0.92), mas nome não é exatamente idêntico (ex: "maternidade" vs "maternidades")
-                        # Liga o conceito novo existente com a Flag V0.
+                        # Liga o conceito existente com a Flag V0, NÃO cria nó novo.
                         existing_name = sim["name"]
                         q_disambiguate = f"""
-                        MERGE (e:PersonalEntity:{entity.entity_type}:`{safe_tenant}` {{name: $name}})
-                        SET e.embedding = $emb, e.description = $desc, e.needs_v0_review = true
+                        MATCH (e:PersonalEntity:`{safe_tenant}` {{name: $existing_name}})
+                        SET e.needs_v0_review = true, e.last_ambiguous_alias = $name
                         SET e:NEEDS_DISAMBIGUATION
-                        
-                        MERGE (tgt:PersonalEntity:`{safe_tenant}` {{name: $existing_name}})
-                        MERGE (e)-[r:POTENTIAL_DUPLICATE {{score: $score}}]->(tgt)
                         """
-                        session.run(q_disambiguate, name=entity_name, emb=emb, desc=entity.description, existing_name=existing_name, score=sim["score"])
-                        logger.warning(f"⚠️ Ambiguidade Detectada: '{entity_name}' é 0.92+ similar a '{existing_name}'. Nó criado com Flag V0.")
-                        return entity_name, True
+                        session.run(q_disambiguate, existing_name=existing_name, name=entity_name)
+                        logger.warning(f"⚠️ Ambiguidade Detectada: '{entity_name}' é 0.92+ similar a '{existing_name}'. Nó existente linkado com Flag V0.")
+                        return existing_name, True
                     else:
                         # Inserção Normal Segura (Abaixo do limiar ou Match Exato onde Cypher MERGE funde tranquilamente)
                         q_normal = f"""
