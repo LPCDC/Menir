@@ -28,83 +28,6 @@ class InvoiceSkill:
         self.intel = intel
         self.ontology_manager = ontology_manager
 
-    def _inject_into_graph(self, data: InvoiceData, file_hash: str, vendor_verified: bool):
-        """
-        Materializa a ontologia em memória (InvoiceData) no motor Neo4j.
-        Transação Cypher rigorosa com idempotência via MERGE.
-        """
-        # Pass items directly to Cypher UNWIND
-        line_items_list = [item.model_dump() for item in data.items]
-
-        from src.v3.core.schemas.identity import TenantContext
-        
-        tenant = TenantContext.get()
-        if not tenant:
-            raise ValueError("Isolamento violado. Nenhum Tenant ativo configurado.")
-            
-        safe_tenant = tenant.replace("`", "")
-
-        query = f"""
-        // 1. Fornecedor (Vendor) - (Já criado/atualizado pelo Zefix Cache)
-        MATCH (v:Vendor:`{safe_tenant}` {{name: $vendor_name}})
-
-        // 2. Fatura (Invoice) - Idempotência absoluta pelo HASH do arquivo
-        MERGE (i:Invoice:`{safe_tenant}` {{file_hash: $file_hash}})
-        SET i.issue_date = $issue_date,
-            i.total_amount = $total_amount,
-            i.currency = $currency,
-            i.subtotal = $subtotal,
-            i.tips = $tips,
-            i.requires_justification = $requires_justification,
-            i.ingested_at = datetime()
-
-        // 3. Relacionamento Invoice -> Emitido Por -> Fornecedor
-        MERGE (i)-[r:ISSUED_BY]->(v)
-        SET r.verified = $vendor_verified
-
-        // 4. Relacionamento Tenant -> Recebe -> Fatura
-        MERGE (t:Tenant {{name: $tenant_safe}})
-        MERGE (t)-[:RECEIVED]->(i)
-
-        // 5. Itens de Linha (LineItems) Reais Relacionais
-        WITH i, safe_tenant
-        UNWIND $line_items_list AS item
-        MERGE (li:LineItem:`{safe_tenant}` {{invoice_hash: $file_hash, description: item.description}})
-        SET li.gross_amount = item.gross_amount,
-            li.tva_rate_applied = item.tva_rate_applied,
-            li.project = $tenant_safe
-        MERGE (i)-[:CONTAINS]->(li)
-        """
-
-        params: dict[str, Any] = {
-            "tenant_safe": safe_tenant,
-            "vendor_name": data.vendor_name,
-            "vendor_verified": vendor_verified,
-            "ide_number": data.ide_number,
-            "avs_number": data.avs_number,
-            "vendor_iban": data.vendor_iban,
-            "file_hash": file_hash,
-            "issue_date": data.issue_date,
-            "total_amount": data.total_amount,
-            "currency": data.currency,
-            "subtotal": data.subtotal,
-            "tips": data.tip_or_unregulated_amount,
-            "requires_justification": data.requires_manual_justification,
-            "line_items_list": line_items_list,
-        }
-
-        try:
-            with self.ontology_manager.driver.session() as session:
-                with session.begin_transaction() as tx:
-                    tx.run(query, **params)
-            logger.info(
-                f"✅ Fatura injetada no Grafo (Fornecedor: {data.vendor_name}, Total: {data.total_amount:.2f} {data.currency})"
-            )
-        except Exception as e:
-            logger.exception(f"Erro transacional ao injetar fatura: {e}")
-            self._quarantine_document(tenant, file_hash, "TRANSACTION_ROLLBACK")
-            raise Exception("TRANSACTION_ROLLBACK")
-
     async def _resolve_vendor_zefix(self, ide_number: str | None, name: str, tenant: str) -> tuple[bool, str]:
         import aiohttp
         import asyncio
@@ -267,8 +190,13 @@ Schema obrigatório:
             invoice_dict = await self.intel.structured_inference(
                 prompt=prompt,
                 image_path=img_path,
-                response_schema=None
+                active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
             )
+            
+            import uuid
+            invoice_dict["uid"] = str(uuid.uuid4())
+            invoice_dict["project"] = tenant
+            invoice_dict["source_document_uid"] = file_hash
 
             validated = InvoiceData.model_validate(
                 invoice_dict, context={"valid_tva_rates": active_rules.get("tva_rates", [])}
@@ -288,7 +216,19 @@ Schema obrigatório:
                     message="Confidence score derrubado para < 0.4. Fornecedor não encontrado no Zefix."
                 )
 
-            self._inject_into_graph(validated, file_hash, zefix_match)
+            from src.v3.core.persistence import NodePersistenceOrchestrator
+            orchestrator = NodePersistenceOrchestrator()
+            
+            try:
+                with self.ontology_manager.driver.session() as session:
+                    with session.begin_transaction() as tx:
+                        await orchestrator.persist(validated, tx)
+            except Exception as e:
+                logger.exception(f"Erro transacional ao persistir via orquestrador: {e}")
+                if str(e) == "TRANSACTION_ROLLBACK":
+                    raise
+                self._quarantine_document(tenant, file_hash, "TRANSACTION_ROLLBACK")
+                raise Exception("TRANSACTION_ROLLBACK") from e
 
             msg = f"Fatura processada: {validated.vendor_name} | {validated.total_amount:.2f} {validated.currency}"
             if penalty > 0:

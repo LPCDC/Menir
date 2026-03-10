@@ -16,6 +16,7 @@ class InvoiceLineItem(BaseModel):
 
 
 class InvoiceData(BaseNode):
+    source_document_uid: str = Field(description="O UID do DocumentNode de origem na qual esta extração foi baseada.")
     vendor_name: str = Field(description="Nome do fornecedor que emitiu a fatura.")
     doc_type: Literal[
         "Facture", "Note de crédit", "Rappel", "Ticket de caisse", "Relevé bancaire", 
