@@ -17,9 +17,24 @@ class InvoiceLineItem(BaseModel):
 
 class InvoiceData(BaseNode):
     vendor_name: str = Field(description="Nome do fornecedor que emitiu a fatura.")
-    vendor_uid: str | None = Field(
+    doc_type: Literal[
+        "Facture", "Note de crédit", "Rappel", "Ticket de caisse", "Relevé bancaire", 
+        "Contrat", "Police d'assurance", "Déclaration d'impôt", "Fiche de salaire", 
+        "Note de frais", "Quittance", "Reçu", "Extrait de compte", "BVR", "Facture QR", 
+        "Avis de débit", "Avis de crédit", "Décompte TVA", "Décompte LPP", "Décompte AVS", 
+        "Certificat de salaire", "Bilan", "Compte de résultat", "Grand livre", "Journal", 
+        "Balance", "Extrait du registre", "Offre"
+    ] = Field(description="Tipo de documento extraído.")
+    ide_number: str | None = Field(
         default=None,
-        description="Número UID Suíço com a extensão de IVA se aplicável (ex: CHE-123.456.789 TVA).",
+        description="Número IDE Suíço (ex: CHE-123.456.789).",
+    )
+    avs_number: str | None = Field(
+        default=None,
+        description="Número AVS (EAN-13, 13 dígitos).",
+    )
+    language: Literal["de", "fr", "it", "rm", "en", "pt", "sq"] = Field(
+        description="Idioma do documento, incluindo romanche, inglês, português e albanês (sq)."
     )
     vendor_iban: str | None = Field(default=None, description="IBAN suíço ou europeu na fatura.")
     currency: Literal["CHF", "EUR"] = Field(description="A moeda oficial do documento.")
@@ -79,29 +94,35 @@ class InvoiceData(BaseNode):
         for idx, item in enumerate(self.items):
             if item.tva_rate_applied is not None:
                 rate = round(item.tva_rate_applied, 1)
+                # Hard Reject Tva Rate
+                if rate not in [8.1, 3.8, 2.6, 0.0]:
+                    raise ValueError(
+                        f"TVA HALLUCINATION: alíquota {rate}% no item {idx} "
+                        f"rejeitada. Somente 8.1, 3.8, 2.6, e 0.0 permitidos na Suíça atualmente."
+                    )
                 if rate not in allowed_tva_rates and not math.isclose(rate, 0.0, abs_tol=0.01):
                     raise ValueError(
                         f"TVA HALLUCINATION: alíquota {rate}% no item {idx} "
-                        f"não está nas permitidas: {allowed_tva_rates}."
+                        f"não está nas permitidas do tenant: {allowed_tva_rates}."
                     )
 
         return self
 
     @model_validator(mode="after")
-    def validate_swiss_uid(self) -> "InvoiceData":
+    def validate_swiss_ide(self) -> "InvoiceData":
         """
-        Escudo de Anomalias contra Fraude ou Alucinação: Validação Aritmética MOD11 do UID.
+        Escudo de Anomalias contra Fraude ou Alucinação: Validação Aritmética MOD11 do IDE.
         """
-        if not self.vendor_uid:
+        if not self.ide_number:
             return self
 
         import re
 
-        raw_digits = re.sub(r"\D", "", self.vendor_uid)
+        raw_digits = re.sub(r"\D", "", self.ide_number)
 
         if len(raw_digits) != 9:
             raise ValueError(
-                f"ANOMALY DETECTED: UID Suíço inválido (Tamanho incorreto): {self.vendor_uid}. São exigidos exatamente 9 dígitos numéricos (IDE)."
+                f"ANOMALY DETECTED: IDE Suíço inválido (Tamanho incorreto): {self.ide_number}. São exigidos exatamente 9 dígitos numéricos."
             )
 
         weights = [5, 4, 3, 2, 7, 6, 5, 4]
@@ -112,13 +133,44 @@ class InvoiceData(BaseNode):
             expected_checksum = 0
         elif expected_checksum == 10:
             raise ValueError(
-                f"ANOMALY DETECTED: UID Suíço MOD11 falhou estruturalmente (Check=10) para {self.vendor_uid}"
+                f"ANOMALY DETECTED: IDE Suíço MOD11 falhou estruturalmente (Check=10) para {self.ide_number}"
             )
 
         actual_checksum = int(raw_digits[8])
         if expected_checksum != actual_checksum:
             raise ValueError(
-                f"FRAUD/HALLUCINATION DETECTED: UID Suíço {self.vendor_uid} falhou na validação de Integridade MOD11. O dígito final {actual_checksum} deveria ser {expected_checksum}."
+                f"FRAUD/HALLUCINATION DETECTED: IDE Suíço {self.ide_number} falhou na validação de Integridade MOD11. O dígito final {actual_checksum} deveria ser {expected_checksum}."
+            )
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_avs_ean13(self) -> "InvoiceData":
+        """Validação do AVS number usando Checksum EAN-13."""
+        if not self.avs_number:
+            return self
+
+        import re
+        raw_digits = re.sub(r"\D", "", self.avs_number)
+
+        if len(raw_digits) != 13:
+            raise ValueError(
+                f"ANOMALY DETECTED: AVS number inválido (Tamanho incorreto): {self.avs_number}. Exigidos exatamente 13 dígitos numéricos."
+            )
+
+        def calculate_ean13_checksum(digits_str: str) -> int:
+            total = 0
+            for i, char in enumerate(digits_str[:12]):
+                digit = int(char)
+                total += digit * (1 if i % 2 == 0 else 3)
+            return (10 - (total % 10)) % 10
+
+        expected_checksum = calculate_ean13_checksum(raw_digits)
+        actual_checksum = int(raw_digits[12])
+
+        if expected_checksum != actual_checksum:
+            raise ValueError(
+                f"FRAUD/HALLUCINATION DETECTED: AVS {self.avs_number} falhou na validação EAN-13. Dígito verificador {actual_checksum} deveria ser {expected_checksum}."
             )
 
         return self

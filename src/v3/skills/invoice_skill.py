@@ -79,7 +79,8 @@ class InvoiceSkill:
         params: dict[str, Any] = {
             "tenant_safe": safe_tenant,
             "vendor_name": data.vendor_name,
-            "vendor_uid": data.vendor_uid,
+            "ide_number": data.ide_number,
+            "avs_number": data.avs_number,
             "vendor_iban": data.vendor_iban,
             "file_hash": file_hash,
             "issue_date": data.issue_date,
@@ -139,7 +140,10 @@ Retorne SOMENTE JSON válido, sem texto adicional, sem blocos markdown.
 Schema obrigatório:
 {
   "vendor_name": "string",
-  "vendor_uid": "string ou null",
+  "doc_type": "string",
+  "ide_number": "string ou null",
+  "avs_number": "string ou null",
+  "language": "fr, de, it, rm, en, pt, ou sq",
   "vendor_iban": "string ou null",
   "currency": "CHF ou EUR",
   "issue_date": "YYYY-MM-DD",
@@ -197,9 +201,11 @@ Schema obrigatório:
 
         except json.JSONDecodeError as e:
             logger.exception(f"JSONDecodeError: {e}")
+            reason = str(e)
             self.ontology_manager.inject_entropy_anomaly(
-                tenant, file_hash, "JSONDecodeError", str(e), 1
+                tenant, file_hash, "JSONDecodeError", reason, 1
             )
+            self._quarantine_document(tenant, file_hash, f"JSONDecodeError: {reason}")
             return SkillResult(
                 success=False, nodes_and_edges=[], message=f"LLM retornou JSON inválido: {e}"
             )
@@ -207,9 +213,11 @@ Schema obrigatório:
         except ValidationError as e:
             error_count = len(e.errors())
             logger.error(f"ValidationError: {error_count} erros de validação fiduciária")
+            reason_details = str(e.errors())
             self.ontology_manager.inject_entropy_anomaly(
                 tenant, file_hash, "MathValidationError", e.json(), error_count
             )
+            self._quarantine_document(tenant, file_hash, f"ValidationError: {reason_details}")
             return SkillResult(
                 success=False,
                 nodes_and_edges=[],
@@ -218,4 +226,20 @@ Schema obrigatório:
 
         except Exception as e:
             logger.exception(f"Erro genérico no InvoiceSkill: {e}")
+            self._quarantine_document(tenant, file_hash, f"Exception: {str(e)}")
             return SkillResult(success=False, nodes_and_edges=[], message=f"Falha estrutural: {e}")
+
+    def _quarantine_document(self, tenant: str, file_hash: str, reason: str):
+        """Registra explicitamente o motivo exato da falha no Neo4j, movendo o nó para quarentena."""
+        safe_tenant = tenant.replace("`", "")
+        cypher = f"""
+        MERGE (d:Document:`{safe_tenant}` {{file_hash: $file_hash}})
+        SET d.status = 'QUARANTINE',
+            d.quarantine_reason = $reason,
+            d.quarantined_at = datetime()
+        """
+        try:
+            with self.ontology_manager.driver.session() as session:
+                session.run(cypher, file_hash=file_hash, reason=reason)
+        except Exception as query_exc:
+            logger.exception(f"Falha gravíssima ao registrar quarentena do nó no Neo4j: {query_exc}")
