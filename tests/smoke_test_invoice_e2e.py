@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import os
 
-from src.v3.core.schemas.identity import set_tenant, TenantContext
+from src.v3.core.schemas.identity import TenantContext
 from src.v3.meta_cognition import MenirOntologyManager
 from src.v3.menir_intel import MenirIntel
 from src.v3.core.dispatcher import DocumentDispatcher
@@ -12,19 +12,27 @@ from src.v3.core.schemas.base import Document, DocumentStatus
 
 async def run_smoke_test():
     print("=== INICIANDO E2E SMOKE TEST (INV) ===")
+    from dotenv import load_dotenv
+    load_dotenv()
     
-    tenant_name = "SMOKE_TEST_TENANT"
-    set_tenant(tenant_name)
+    tenant_name = "BECO"
+    TenantContext.set(tenant_name)
     
-    fixture_path = "tests/fixtures/invoice_beco_sanitized.txt"
+    fixture_path = "tests/fixtures/invoice_beco_sanitized.pdf"
     if not os.path.exists(fixture_path):
-        print("❌ FALHA: Fixture não encontrado.")
+        print("[FALHA] Fixture não encontrado.")
         return
 
     with open(fixture_path, "rb") as f:
         file_bytes = f.read()
     
-    text_content = file_bytes.decode("utf-8")
+    if fixture_path.endswith(".pdf"):
+        from pypdf import PdfReader
+        reader = PdfReader(fixture_path)
+        text_content = "\n".join(page.extract_text() or "" for page in reader.pages)
+    else:
+        text_content = file_bytes.decode("utf-8")
+        
     file_hash = hashlib.sha256(file_bytes).hexdigest()
     
     intel = MenirIntel()
@@ -37,7 +45,7 @@ async def run_smoke_test():
         uid=file_hash,
         project=tenant_name,
         sha256=file_hash,
-        name="invoice_beco_sanitized.txt",
+        name="invoice_beco_sanitized.pdf",
         status=DocumentStatus.PROCESSING
     )
     def _create_doc():
@@ -50,7 +58,7 @@ async def run_smoke_test():
         with s.begin_transaction() as tx:
             await orchestrator.persist(doc, tx)
             tx.commit()
-    print("✅ Origem rastreável (DocumentNode) garantida.")
+    print("[OK] Origem rastreável (DocumentNode) garantida.")
 
     # 2. DISPATCHER CLASSIFICATION
     dispatcher = DocumentDispatcher(intel, ontology)
@@ -58,15 +66,15 @@ async def run_smoke_test():
     
     doc_type = classification.doc_type
     confidence = classification.confidence_score
-    print(f"📊 Dispatcher detectou: {doc_type} (Confiança: {confidence})")
+    print(f"[INFO] Dispatcher detectou: {doc_type} (Confianca: {confidence})")
     
     type_pass = (doc_type in ["Facture", "FACTURE_FOURNISSEUR", "Facture QR", "BVR"])
     conf_pass = confidence > 0.85
     
     if type_pass and conf_pass:
-        print("✅ CLASSIFICAÇÃO: Pass (Tipo de Fatura com Alta Confiança)")
+        print("[PASS] CLASSIFICACAO: Tipo de Fatura com Alta Confianca")
     else:
-        print(f"❌ CLASSIFICAÇÃO: Falhou (Acima de 0.85?: {conf_pass}, Tipo Correto?: {type_pass})")
+        print(f"[FAIL] CLASSIFICACAO: Falhou (Acima de 0.85?: {conf_pass}, Tipo Correto?: {type_pass})")
     
     # 3. EXTRAÇÃO E PERSISTÊNCIA INVOICE_SKILL
     skill = InvoiceSkill(intel, ontology)
@@ -74,9 +82,9 @@ async def run_smoke_test():
     result = await skill.process_document(fixture_path)
     
     if result.success:
-        print("✅ PROCESSAMENTO SKILL: Pass (Sucesso retornado pelo Orquestrador e Zefix)")
+        print("[PASS] PROCESSAMENTO SKILL: Sucesso retornado pelo Orquestrador e Zefix")
     else:
-        print(f"❌ PROCESSAMENTO SKILL: Falhou ({result.message})")
+        print(f"[FAIL] PROCESSAMENTO SKILL: Falhou ({result.message})")
 
     # 4. VERIFICAÇÃO NEO4J
     def _verify_graph():
@@ -89,19 +97,19 @@ async def run_smoke_test():
     inv, der, ven = await asyncio.to_thread(_verify_graph)
     
     if inv:
-        print("✅ NEO4J INVOICE: Pass (Nó Fatura criado com sucesso e schema verificado)")
+        print("[PASS] NEO4J INVOICE: No Fatura criado com sucesso e schema verificado")
     else:
-        print("❌ NEO4J INVOICE: Falhou (Nó Invoice ausente)")
+        print("[FAIL] NEO4J INVOICE: No Invoice ausente")
         
     if der:
-        print("✅ NEO4J RASTREABILIDADE: Pass (Aresta DERIVED_FROM confirmada, auditoria FINMA Ok)")
+        print("[PASS] NEO4J RASTREABILIDADE: Aresta DERIVED_FROM confirmada, auditoria FINMA Ok")
     else:
-        print("❌ NEO4J RASTREABILIDADE: Falhou (Aresta DERIVED_FROM inexistente)")
+        print("[FAIL] NEO4J RASTREABILIDADE: Aresta DERIVED_FROM inexistente")
         
     if ven:
-        print("✅ NEO4J ZEFÍX: Pass (Relação ISSUED_BY conectando Fatura e Vendor ativo Ok)")
+        print("[PASS] NEO4J ZEFIX: Relacao ISSUED_BY conectando Fatura e Vendor ativo Ok")
     else:
-        print("❌ NEO4J ZEFÍX: Falhou (Relação ISSUED_BY ou Vendor ausente)")
+        print("[FAIL] NEO4J ZEFIX: Relacao ISSUED_BY ou Vendor ausente")
 
 if __name__ == "__main__":
     asyncio.run(run_smoke_test())

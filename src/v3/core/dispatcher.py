@@ -105,7 +105,7 @@ class DocumentDispatcher:
         """
 
         try:
-            return await self.intel.structured_inference(prompt, DispatcherClassification)
+            return await self.intel.structured_inference(prompt=prompt, response_schema=DispatcherClassification)
         except Exception:
             logger.exception("Falha na classificação inicial do Dispatcher.")
             raise

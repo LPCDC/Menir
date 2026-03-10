@@ -33,9 +33,10 @@ class MenirOntologyManager:
     grounded physically and temporally.
     """
 
-    def __init__(self, uri: str | None = None, auth: tuple | None = None, db_name: str = "neo4j"):
+    def __init__(self, uri: str | None = None, auth: tuple | None = None, db_name: str | None = None):
         self.driver = get_shared_driver()
-        self.db_name = db_name
+        import os
+        self.db_name = db_name or os.getenv("NEO4J_DB")
 
     def close(self):
         # Pool manager handles actual shutdown
@@ -77,12 +78,12 @@ class MenirOntologyManager:
         // Mapeando Pipelines e Dependências Vitais
         MERGE (p_runner:Pipeline {name: "WatchdogDispatcher", type: "Async_Ingestion"})
         MERGE (p_mcp:Pipeline {name: "WebMCP_Gateway", type: "JSON_RPC_Interceptor"})
-          # noqa: W293
+        
         MERGE (d_neo:Dependency {name: "AuraDB", criticality: "FATAL"})
         ON CREATE SET d_neo.is_active = true
         MERGE (d_llm:Dependency {name: "VertexAI", criticality: "FATAL"})
         ON CREATE SET d_llm.is_active = true
-          # noqa: W293
+        
         // Regras Operacionais (Rules)
         MERGE (r_iso:Rule {name: "GalvanicIsolation", type: "Tenant_Boundary"})
         MERGE (r_anti:Rule {name: "ZeroBloat", type: "Architectural_Constraint"})
@@ -93,26 +94,26 @@ class MenirOntologyManager:
         MERGE (p_runner)-[:DEPENDS_ON]->(d_neo)
         MERGE (p_runner)-[:DEPENDS_ON]->(d_llm)
         MERGE (p_mcp)-[:DEPENDS_ON]->(d_neo)
-          # noqa: W293
+        
         MERGE (core)-[:MUST_OBEY]->(r_iso)
         MERGE (core)-[:MUST_OBEY]->(r_anti)
 
         // 2. O Tenant BECO e as Leis Suiças (Temporalidade Ativa - Crésus ERP)
         MERGE (tenant:Tenant {name: "BECO", target_erp: "Crésus"})
         MERGE (core)-[:SERVES_TENANT]->(tenant)
-          # noqa: W293
+        
         // Criando as regras macro da AFC Suiça (Administração Federal das Contribuições)
         MERGE (rule_tdfn:TaxRule {name: "TDFN_Framework", authority: "ESTV/AFC"})
         MERGE (rule_effective:TaxRule {name: "TVA_Effective", authority: "ESTV/AFC"})
-          # noqa: W293
+        
         // Arestas TEMPORAIS (Conectando a BECO às regras com validades de datas)
         MERGE (tenant)-[rt:ENFORCES_TAX_POLICY]->(rule_tdfn)
-        SET rt.valid_from = "2024-01-01",   # noqa: W291
-            rt.valid_to = "2099-12-31",   # noqa: W291
+        SET rt.valid_from = "2024-01-01",
+            rt.valid_to = "2099-12-31",
             rt.default_eur_chf_rate = 0.912
-              # noqa: W293
+            
         MERGE (tenant)-[rt_tva:ENFORCES_TAX_POLICY]->(rule_effective)
-        SET rt_tva.valid_from = "2024-01-01",   # noqa: W291
+        SET rt_tva.valid_from = "2024-01-01",
             rt_tva.valid_to = "2099-12-31",
             rt_tva.standard_rate = 8.1,
             rt_tva.reduced_rate = 2.6,
@@ -284,7 +285,7 @@ class MenirOntologyManager:
         // Even on failure, create an :Invoice placeholder to anchor the anomaly context.
         MERGE (i:Invoice:`{tenant_safe}` {file_hash: $file_hash})
         ON CREATE SET i.status = 'QUARANTINED', i.ingested_at = datetime()
-          # noqa: W293
+        
         // 2. The Anomaly Event (Consolidated Anomaly Node)
         MERGE (a:Anomaly {file_hash: $file_hash})
         SET a.type = $error_type,
@@ -292,11 +293,11 @@ class MenirOntologyManager:
             a.details = $raw_errors,
             a.timestamp = datetime(),
             a.severity = "High"
-              # noqa: W293
+            
         // 3. A Assinatura de Inépcia (Quem causou?)
         MERGE (ag:Agent {name: $agent_name})
         MERGE (ag)-[:GENERATED_ANOMALY]->(a)
-          # noqa: W293
+        
         // 4. Conexão Origem-Destino (Rule 12: Errors mapped via RECONCILED)
         MERGE (i)-[r:RECONCILED]->(a)
         SET r.status = 'FAILED_VALIDATION'

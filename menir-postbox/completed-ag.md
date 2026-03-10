@@ -40,3 +40,6 @@
 - Lowercase e strip absolutos garantidos por @field_validator na camada 1 (Pydantic).
 - Camada 2 (Similaridade Cosine > 0.92): Nova skill `MenirCapture` pesquisa index vetorial antes de efetivar o grafo.
 - Em caso de colisão acústica ou semântica acima do limiar, cria o nó e amarra ele ao existente com a flag `[:NEEDS_DISAMBIGUATION]` para roteamento e auditoria V0 de Ana Caroline/Luiz.
+
+## [2026-03-09T20:48:58.297679Z] - Commit Automático
+- docs: README branded product vision
