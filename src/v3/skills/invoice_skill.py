@@ -166,17 +166,40 @@ Schema obrigatório:
 }"""
 
             from typing import Any
-            compressor = PayloadCompressor()
-            api_contents: list[Any]
-            lane = "FAST_LANE" if file_path.lower().endswith(".pdf") else "SLOW_LANE"
+            from src.v3.core.pdf_parser import classify_pdf_type, PdfType
 
-            if lane == "FAST_LANE":
-                logger.info("⚡ FAST_LANE: Extraindo texto nativo via pypdf.")
-                reader = PdfReader(file_path)
-                raw_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            api_contents: list[Any] = []
+            img_path = None
+
+            if file_path.lower().endswith(".pdf"):
+                logger.info("PDF Classifier: Detectando tipo físico da fatura.")
+                try:
+                    pdf_type, parts = classify_pdf_type(file_path)
+                    logger.info(f"PDF classificado como: {pdf_type.value}")
+                    if pdf_type == PdfType.SCANNED:
+                        # parts are list of PIL Images
+                        prompt = EXTRACTION_PROMPT
+                        api_contents.append(prompt)
+                        api_contents.extend(parts)
+                    else:
+                        # parts is a list with one string element (DIGITAL or HYBRID with reorder prompt)
+                        prompt = EXTRACTION_PROMPT + "\n\nTEXTO DA FATURA:\n" + "".join(parts)
+                        api_contents.append(prompt)
+                except Exception as e:
+                    logger.warning(f"Classificador PDF falhou ({e}). Tentando fallback SLOW_LANE antigo.")
+                    lane = "SLOW_LANE"
+            elif file_path.lower().endswith(".txt"):
+                logger.info("⚡ FAST_LANE_TXT: Lendo arquivo texto nativo (Fixture).")
+                with open(file_path, "r", encoding="utf-8") as f:
+                    raw_text = f.read()
                 prompt = EXTRACTION_PROMPT + "\n\nTEXTO DA FATURA:\n" + raw_text
-                img_path = None
+                api_contents.append(prompt)
             else:
+                lane = "SLOW_LANE"
+
+            # OSL: Se a variável lane for criada por exception no classificador ou por não ser pdf/txt:
+            if locals().get("lane") == "SLOW_LANE":
+                compressor = PayloadCompressor()
                 logger.info("🐢 SLOW_LANE: Redimensionando e enviando arquivo para Gemini Vision.")
                 try:
                     optimized_path = await asyncio.to_thread(
@@ -195,11 +218,19 @@ Schema obrigatório:
             placeholder_date = datetime.now()
             active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
 
-            # Passa para a UTI Cognitiva com Pydantic Shield (sem passar a classe para forçar context validation local)
+            # Passa para a UTI Cognitiva com Pydantic Shield
+            # Passamos os api_contents diretamente (se tivermos parts PIL), 
+            # Mas wait, structured_inference processa "contents". Vamos ajustar MenirIntel. 
+            # Precisaremos injetar support para parts manuais em structured_inference.
+            # Por hora enviamos a string concatenada no prompt, ou as imagens.
+            
+            # Se for SCANNED, temos api_contents. 
+            # Em SLOW_LANE, temos img_path. 
             invoice_dict = await self.intel.structured_inference(
-                prompt=prompt,
+                prompt=prompt if locals().get("lane") == "SLOW_LANE" else "", # Passaremos parts via kwargs se MenirIntel aceitar
                 image_path=img_path,
-                response_schema=None
+                response_schema=None,
+                raw_parts=api_contents if "api_contents" in locals() and len(api_contents) > 0 else None
             )
             
             import uuid

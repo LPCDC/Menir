@@ -32,3 +32,4 @@ Com uma infraestrutura *Multi-Tenant* rigorosa (Isolamento Galvânico), o Menir 
 - **Racionalização Estrita:** A camada LLM processa através de Pydantic Models (`extra="forbid"` na entrada, tolerância a meta-dados apenas em `metadata{}`).
 - **Asincronismo Não-Bloqueante:** O event loop principal vive livre e respira. Toda orquestração pesada de rede e persistência Neo4j usa `await asyncio.to_thread` via pools encapsulados (Fire-and-forget de *skills* vetoriais e cálculos paralelos).
 - **Neo4j + Gemini SDK (V3):** Rastreabilidade semântica (Embedding Service aprimorado com índices vetoriais ajustados para 768-dimensões e Cypher Patterns otimizados).
+- **Classificador Bimodal Fotográfico (SCANNED):** Ingestão de PDFs baseada em análise eurística unificada. Requer `pdf2image` e binários do pacote **Poppler** instalados no SO e adicionados ao PATH para orquestração de OCR visual nativo.

@@ -60,7 +60,7 @@ class MenirIntel:
             logger.warning("⚠️ [Development Mode] Inicializando Gemini API Pública.")
             from google import genai as genai_v3
             self.client = genai_v3.Client(api_key=api_key)
-            self.model_id = "gemini-3.1-pro-preview"
+            self.model_id = "gemini-2.5-flash"
 
         # Test bootstrapping the persona
         self._fetch_system_persona()
@@ -213,6 +213,7 @@ class MenirIntel:
         image_path: str | None = None,
         response_schema=None,
         few_shot_examples: list[dict] | None = None,
+        raw_parts: list[Any] | None = None,
     ):
         """
         Inferência Bimodal Unificada e Agnóstica baseada em Schema Pydantic.
@@ -221,7 +222,7 @@ class MenirIntel:
         """
         import asyncio
         from typing import Any
-        contents: list[Any] = []
+        contents: list[Any] = raw_parts if raw_parts is not None else []
 
         # Semantic Few-Shot Formatting
         if few_shot_examples:
@@ -230,9 +231,15 @@ class MenirIntel:
             for idx, ex in enumerate(few_shot_examples):
                 system_prompt += f"--- EXAMPLE {idx + 1} ---\n[INPUT ORIGINAL]\n{ex.get('input_text')}\n\n[OUTPUT ESPERADO]\n{ex.get('ideal_json')}\n\n"
             system_prompt += f"--- FIM DOS EXEMPLOS ---\n\n### TAREFA ATUAL ###\n{prompt}"
-            contents.append(system_prompt)
-        else:
-            contents.append(prompt)
+            if contents and isinstance(contents[0], str):
+                contents[0] = system_prompt + "\n" + contents[0]
+            else:
+                contents.insert(0, system_prompt)
+        elif prompt:
+            if contents and isinstance(contents[0], str):
+                pass # Se o prompt original já estiver nas raw_parts, não adicionamos duplicado
+            else:
+                contents.insert(0, prompt)
 
         if image_path and os.path.exists(image_path):
             try:
@@ -260,7 +267,7 @@ class MenirIntel:
                 system_instruction=system_prompt,
             )
             
-            model_to_use = "gemini-1.5-pro-001" if getattr(self, "is_enterprise", False) else getattr(self, "model_id", "gemini-3.1-pro-preview")
+            model_to_use = "gemini-1.5-pro-001" if getattr(self, "is_enterprise", False) else getattr(self, "model_id", "gemini-2.5-flash")
 
             async with self.intel_semaphore:
                 # Wraps inference in I/O Thread to prevent Event Loop blocking
