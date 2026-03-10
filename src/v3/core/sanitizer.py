@@ -7,10 +7,57 @@ can ingest them.
 """
 
 import logging
+import re
+import uuid
+from typing import Dict
 
 from src.v3.meta_cognition import MenirOntologyManager
 
 logger = logging.getLogger("MenirSanitizer")
+
+class TokenMapLostError(Exception):
+    """Exception raised when the active token map is lost or unrecoverable during a request."""
+    pass
+
+class nFADPMasker:
+    """
+    nFADP Shield Middleware.
+    Mantém o mapa de tokens ESTRITAMENTE em memória (não persiste em disco nem log).
+    Se falhar antes da destokenização, o documento deve ir para quarentena com TOKEN_MAP_LOST.
+    """
+    def __init__(self):
+        self._token_map: Dict[str, str] = {}
+        self.rgx_avs = re.compile(r'\b756\.\d{4}\.\d{4}\.\d{2}\b')
+        self.rgx_iban = re.compile(r'\bCH\d{2}\s?(?:\w{4}\s?){4}\w{1,3}\b')
+
+    def mask(self, text: str) -> str:
+        masked_text = text
+        for match in self.rgx_avs.findall(text):
+            token = f"[TOKEN_AVS_{uuid.uuid4().hex[:8].upper()}]"
+            self._token_map[token] = match
+            masked_text = masked_text.replace(match, token, 1)
+
+        for match in self.rgx_iban.findall(text):
+            token = f"[TOKEN_IBAN_{uuid.uuid4().hex[:8].upper()}]"
+            self._token_map[token] = match
+            masked_text = masked_text.replace(match, token, 1)
+
+        if not self._token_map:
+            logger.debug("nFADPMasker: Nenhum PII sensível encontrado para mascarar.")
+
+        return masked_text
+
+    def unmask(self, text: str) -> str:
+        unmasked = text
+        for token, original in self._token_map.items():
+            if token in unmasked:
+                unmasked = unmasked.replace(token, original)
+        
+        # Se houver algum resquício de TOKEN gerado pela regex, falhou na tradução
+        if "[TOKEN_AVS_" in unmasked or "[TOKEN_IBAN_" in unmasked:
+            raise TokenMapLostError("Token map lost or incomplete before detokenization.")
+            
+        return unmasked
 
 
 class MenirSanitizer:
