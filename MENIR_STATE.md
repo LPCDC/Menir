@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P45-20260310-FASE45_DISPATCHERS
+MENIR-P45-20260310-FASE45_SCHEMA_LIVE
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
