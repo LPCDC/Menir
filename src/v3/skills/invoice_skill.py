@@ -28,7 +28,7 @@ class InvoiceSkill:
         self.intel = intel
         self.ontology_manager = ontology_manager
 
-    def _inject_into_graph(self, data: InvoiceData, file_hash: str):
+    def _inject_into_graph(self, data: InvoiceData, file_hash: str, vendor_verified: bool):
         """
         Materializa a ontologia em memória (InvoiceData) no motor Neo4j.
         Transação Cypher rigorosa com idempotência via MERGE.
@@ -45,9 +45,8 @@ class InvoiceSkill:
         safe_tenant = tenant.replace("`", "")
 
         query = f"""
-        // 1. Fornecedor (Vendor) - Evita duplicação pelo nome/IBAN
-        MERGE (v:Vendor:`{safe_tenant}` {{name: $vendor_name}})
-        SET v.iban = $vendor_iban, v.project = $tenant_safe
+        // 1. Fornecedor (Vendor) - (Já criado/atualizado pelo Zefix Cache)
+        MATCH (v:Vendor:`{safe_tenant}` {{name: $vendor_name}})
 
         // 2. Fatura (Invoice) - Idempotência absoluta pelo HASH do arquivo
         MERGE (i:Invoice:`{safe_tenant}` {{file_hash: $file_hash}})
@@ -59,15 +58,16 @@ class InvoiceSkill:
             i.requires_justification = $requires_justification,
             i.ingested_at = datetime()
 
-        // 3. Relacionamento Fornecedor -> Emite -> Fatura
-        MERGE (v)-[:ISSUED]->(i)
+        // 3. Relacionamento Invoice -> Emitido Por -> Fornecedor
+        MERGE (i)-[r:ISSUED_BY]->(v)
+        SET r.verified = $vendor_verified
 
         // 4. Relacionamento Tenant -> Recebe -> Fatura
         MERGE (t:Tenant {{name: $tenant_safe}})
         MERGE (t)-[:RECEIVED]->(i)
 
         // 5. Itens de Linha (LineItems) Reais Relacionais
-        WITH i
+        WITH i, safe_tenant
         UNWIND $line_items_list AS item
         MERGE (li:LineItem:`{safe_tenant}` {{invoice_hash: $file_hash, description: item.description}})
         SET li.gross_amount = item.gross_amount,
@@ -79,6 +79,7 @@ class InvoiceSkill:
         params: dict[str, Any] = {
             "tenant_safe": safe_tenant,
             "vendor_name": data.vendor_name,
+            "vendor_verified": vendor_verified,
             "ide_number": data.ide_number,
             "avs_number": data.avs_number,
             "vendor_iban": data.vendor_iban,
@@ -97,6 +98,52 @@ class InvoiceSkill:
             logger.info(
                 f"✅ Fatura injetada no Grafo (Fornecedor: {data.vendor_name}, Total: {data.total_amount:.2f} {data.currency})"
             )
+
+    async def _resolve_vendor_zefix(self, ide_number: str | None, name: str, tenant: str) -> bool:
+        import aiohttp
+        import asyncio
+
+        safe_tenant = tenant.replace("`", "")
+
+        cache_query = f"""
+        MATCH (v:Vendor:`{safe_tenant}`)
+        WHERE v.name = $name OR (v.ide_number = $ide AND $ide IS NOT NULL)
+        RETURN v.zefix_match AS zefix_match
+        LIMIT 1
+        """
+        def _check_db():
+            with self.ontology_manager.driver.session() as s:
+                return s.run(cache_query, ide=ide_number, name=name).single()
+                
+        cached = await asyncio.to_thread(_check_db)
+        if cached:
+            return cached["zefix_match"]
+
+        zefix_match = False
+        async with aiohttp.ClientSession() as session:
+            try:
+                payload = {{"uid": ide_number}} if ide_number else {{"name": name}}
+                async with session.post("https://www.zefix.admin.ch/ZefixPublicREST/api/v1/company/search", json=payload) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        if data and isinstance(data, list) and len(data) > 0:
+                            zefix_match = True
+            except Exception as e:
+                logger.warning(f"Zefix API failed: {{e}}")
+        
+        persist_query = f"""
+        MERGE (v:Vendor:`{safe_tenant}` {{name: $name}})
+        SET v.ide_number = $ide,
+            v.zefix_match = $zefix_match,
+            v.zefix_queried_at = datetime(),
+            v.project = $safe_tenant
+        """
+        def _save_vendor():
+            with self.ontology_manager.driver.session() as s:
+                s.run(persist_query, name=name, ide=ide_number, zefix_match=zefix_match, safe_tenant=safe_tenant)
+        await asyncio.to_thread(_save_vendor)
+
+        return zefix_match
 
     async def process_document(self, file_path: str) -> SkillResult:
         import asyncio
@@ -191,7 +238,16 @@ Schema obrigatório:
                 invoice_dict, context={"valid_tva_rates": active_rules.get("tva_rates", [])}
             )
 
-            self._inject_into_graph(validated, file_hash)
+            zefix_match = await self._resolve_vendor_zefix(validated.ide_number, validated.vendor_name, tenant)
+            if not zefix_match:
+                self._quarantine_document(tenant, file_hash, "VendorNotFoundZefix")
+                return SkillResult(
+                    success=False,
+                    nodes_and_edges=[],
+                    message="Confidence score derrubado para < 0.4. Fornecedor não encontrado no Zefix."
+                )
+
+            self._inject_into_graph(validated, file_hash, zefix_match)
 
             return SkillResult(
                 success=True,
