@@ -55,6 +55,11 @@ class InvoiceSkill:
         
         class ZefixRateLimitError(Exception): pass
 
+        zefix_url = os.getenv("MENIR_ZEFIX_URL")
+        if not zefix_url:
+            logger.error("Zefix API URL não configurada no ambiente.")
+            return False, "SYSTEM_ERROR"
+
         @retry(
             wait=wait_exponential(multiplier=1, min=1, max=4),
             stop=stop_after_attempt(3),
@@ -64,7 +69,7 @@ class InvoiceSkill:
             nonlocal zefix_match, zefix_status
             async with aiohttp.ClientSession() as session:
                 payload = {"uid": ide_number} if ide_number else {"name": name}
-                async with session.post("https://www.zefix.admin.ch/ZefixPublicREST/api/v1/company/search", json=payload, timeout=10) as resp:
+                async with session.post(zefix_url, json=payload, timeout=10) as resp:
                     if resp.status == 429:
                         raise ZefixRateLimitError("Rate limited")
                     if resp.status == 200:
@@ -186,11 +191,15 @@ Schema obrigatório:
                     )
                     raise
 
+            from datetime import datetime
+            placeholder_date = datetime.now()
+            active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
+
             # Passa para a UTI Cognitiva com Pydantic Shield (sem passar a classe para forçar context validation local)
             invoice_dict = await self.intel.structured_inference(
                 prompt=prompt,
                 image_path=img_path,
-                active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
+                response_schema=None
             )
             
             import uuid
@@ -254,11 +263,10 @@ Schema obrigatório:
         except ValidationError as e:
             error_count = len(e.errors())
             logger.error(f"ValidationError: {error_count} erros de validação fiduciária")
-            reason_details = str(e.errors())
             self.ontology_manager.inject_entropy_anomaly(
-                tenant, file_hash, "MathValidationError", e.json(), error_count
+                tenant, file_hash, "MathValidationError", "Campos fiduciários rejeitados (ofuscado por segurança)", error_count
             )
-            self._quarantine_document(tenant, file_hash, f"ValidationError: {reason_details}")
+            self._quarantine_document(tenant, file_hash, f"ValidationError: {error_count} falhas estruturais.")
             return SkillResult(
                 success=False,
                 nodes_and_edges=[],
