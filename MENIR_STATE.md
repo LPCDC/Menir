@@ -55,6 +55,13 @@ MENIR-P45-20260310-SESSAO_ENCERRADA
 | ✅ | BATCH 3: Refactoring de Runtime concluído (intel, logos, runner, bridge) |
 | ✅ | BATCH 4 / SPRINT 2A: Mutação 1 (invoice_skill) e Mutação 2 (menir_capture) |
 | ✅ | Plano Mestre V5.5 instanciado e em vigor |
+| ✅ | Smoke test 6/6 passou com MOD11 real |
+| ✅ | PDF classifier multimodal com três caminhos implementado |
+| ✅ | Folder watcher standalone implementado |
+| ✅ | Sanitização de segurança nos três arquivos (`synapse`, `persistence`, `invoice_skill`) |
+| ✅ | Triangulação ativa no `_gemini.md` |
+| ✅ | Análise dos arquivos `.cre` do Crésus concluída |
+| ✅ | Análise dos cinco abismos operacionais entre o kernel atual e o produto real |
 
 ---
 
@@ -62,11 +69,9 @@ MENIR-P45-20260310-SESSAO_ENCERRADA
 
 | ID | Arquivo | Problema | Risco |
 |----|---------|---------|-------|
-| R1 | `menir_intel.py` | 5 erros mypy residuais (stubs/Any — não crasham) | 🟡 RUÍDO |
-| R2 | `protools.py:11` | `STRICT_SCHEMA` inexistente no graph_schema | 🟠 MCP QUEBRADO |
-| R3 | `meta_cognition.py:36` | `auth` implicit Optional | 🟡 TYPE HINT |
-| R4 | `invoice_skill.py` | Sem lógica real de extração suíça | 🔴 REVENUE BLOCKER |
-| R5 | Dashboard | Zero UI para BECO e Ana | 🟠 FASE 44 |
+| R1 | `invoice_skill.py` | Fixture PDF real da Nicole ainda não processada | 🔴 REVENUE BLOCKER |
+| R2 | `cresus_exporter.py` | Não revisado contra formato .cre real | 🟠 EXPORT BLOCKER |
+| R3 | Dashboard | Dashboard de quarentena não validado em browser | 🟡 UX BLOCKER |
 
 ---
 
