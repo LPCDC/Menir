@@ -93,11 +93,17 @@ class InvoiceSkill:
             "line_items_list": line_items_list,
         }
 
-        with self.ontology_manager.driver.session() as session:
-            session.run(query, **params)
+        try:
+            with self.ontology_manager.driver.session() as session:
+                with session.begin_transaction() as tx:
+                    tx.run(query, **params)
             logger.info(
                 f"✅ Fatura injetada no Grafo (Fornecedor: {data.vendor_name}, Total: {data.total_amount:.2f} {data.currency})"
             )
+        except Exception as e:
+            logger.exception(f"Erro transacional ao injetar fatura: {e}")
+            self._quarantine_document(tenant, file_hash, "TRANSACTION_ROLLBACK")
+            raise Exception("TRANSACTION_ROLLBACK")
 
     async def _resolve_vendor_zefix(self, ide_number: str | None, name: str, tenant: str) -> bool:
         import aiohttp
@@ -282,7 +288,8 @@ Schema obrigatório:
 
         except Exception as e:
             logger.exception(f"Erro genérico no InvoiceSkill: {e}")
-            self._quarantine_document(tenant, file_hash, f"Exception: {str(e)}")
+            if str(e) != "TRANSACTION_ROLLBACK":
+                self._quarantine_document(tenant, file_hash, f"Exception: {str(e)}")
             return SkillResult(success=False, nodes_and_edges=[], message=f"Falha estrutural: {e}")
 
     def _quarantine_document(self, tenant: str, file_hash: str, reason: str):

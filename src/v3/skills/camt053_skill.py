@@ -35,6 +35,13 @@ class Camt053Skill:
             )
 
         try:
+            import hashlib
+            with open(file_path, "rb") as f:
+                file_hash = hashlib.sha256(f.read()).hexdigest()
+        except Exception as e:
+            return SkillResult(success=False, nodes_and_edges=[], message=str(e))
+
+        try:
             # 1. Parsing Determinístico (Placeholder estrutural para namespace/etiquetas)
             tree = ET.parse(file_path)
             root = tree.getroot()
@@ -92,7 +99,15 @@ class Camt053Skill:
 
             # 2. Injeção Idempotente no Neo4j
             if transactions:
-                self._inject_transactions_into_graph(transactions, tenant)
+                try:
+                    self._inject_transactions_into_graph(transactions, tenant)
+                except Exception as e:
+                    if str(e) == "TRANSACTION_ROLLBACK":
+                        self._quarantine_document(tenant, file_hash, "TRANSACTION_ROLLBACK")
+                        return SkillResult(
+                            success=False, nodes_and_edges=[], message="Injeção falhou: TRANSACTION_ROLLBACK"
+                        )
+                    raise
 
             return SkillResult(
                 success=True,
@@ -144,8 +159,28 @@ class Camt053Skill:
         MERGE (ba)-[:HAS_TRANSACTION]->(tr)
         """
 
-        with self.ontology_manager.driver.session() as session:
-            session.run(query, tenant=tenant, transactions=transactions)
+        try:
+            with self.ontology_manager.driver.session() as session:
+                with session.begin_transaction() as tx:
+                    tx.run(query, tenant=tenant, transactions=transactions)
             logger.info(
                 f"✅ Injeção Cypher concluída: {len(transactions)} transações bancárias enraizadas no Tenant '{tenant}'."
             )
+        except Exception as e:
+            logger.exception(f"Erro transacional ao injetar no Neo4j: {e}")
+            raise Exception("TRANSACTION_ROLLBACK")
+
+    def _quarantine_document(self, tenant: str, file_hash: str, reason: str):
+        """Registra explicitamente o motivo exato da falha no Neo4j, movendo o nó para quarentena."""
+        safe_tenant = tenant.replace("`", "")
+        cypher = f"""
+        MERGE (d:Document:`{safe_tenant}` {{file_hash: $file_hash}})
+        SET d.status = 'QUARANTINE',
+            d.quarantine_reason = $reason,
+            d.quarantined_at = datetime()
+        """
+        try:
+            with self.ontology_manager.driver.session() as session:
+                session.run(cypher, file_hash=file_hash, reason=reason)
+        except Exception as query_exc:
+            logger.exception(f"Falha gravíssima ao registrar quarentena do nó no Neo4j: {query_exc}")
