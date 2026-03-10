@@ -21,50 +21,55 @@ class NodePersistenceOrchestrator:
     """
 
     async def persist(self, node: BaseNode, tx: Any) -> str:
-        tenant_id = TenantContext.get()
-        if not tenant_id:
-            raise ValueError("Isolamento violado. Nenhum Tenant ativo configurado.")
-            
-        safe_tenant = tenant_id.replace("`", "")
-
-        origin_uid = getattr(node, "source_document_uid", None)
-
-        if not isinstance(node, Document):
-            if not origin_uid:
-                raise OrphanNodeError(f"Nó {type(node).__name__} rejeitado. Falta source_document_uid para rastreabilidade FINMA.")
+        try:
+            tenant_id = TenantContext.get()
+            if not tenant_id:
+                raise ValueError("Isolamento violado. Nenhum Tenant ativo configurado.")
                 
-            def _check_doc():
-                q = f"MATCH (d:Document:`{safe_tenant}` {{uid: $uid}}) RETURN d"
-                return tx.run(q, uid=origin_uid).single()
-                
-            doc_record = await asyncio.to_thread(_check_doc)
-            if not doc_record:
-                raise OrphanNodeError(f"Origem fantasma! DocumentNode com uid '{origin_uid}' não existe no grafo.")
+            safe_tenant = tenant_id.replace("`", "")
 
-        if not hasattr(node, "uid") or not node.uid:
-            node.uid = str(uuid.uuid4())
+            origin_uid = getattr(node, "source_document_uid", None)
 
-        await self._merge_node(node, safe_tenant, tx)
+            if not isinstance(node, Document):
+                if not origin_uid:
+                    raise OrphanNodeError(f"Nó {type(node).__name__} rejeitado. Falta source_document_uid para rastreabilidade FINMA.")
+                    
+                def _check_doc():
+                    q = f"MATCH (d:Document:`{safe_tenant}` {{uid: $uid}}) RETURN d"
+                    return tx.run(q, uid=origin_uid).single()
+                    
+                doc_record = await asyncio.to_thread(_check_doc)
+                if not doc_record:
+                    raise OrphanNodeError(f"Origem fantasma! DocumentNode com uid '{origin_uid}' não existe no grafo.")
 
-        def _apply_governance():
-            tenant_q = f"""
-            MATCH (n:`{safe_tenant}` {{uid: $uid}})
-            MERGE (t:Tenant {{name: $tenant_safe}})
-            MERGE (n)-[:BELONGS_TO_TENANT]->(t)
-            """
-            tx.run(tenant_q, uid=node.uid, tenant_safe=safe_tenant)
-            
-            if not isinstance(node, Document) and origin_uid:
-                derived_q = f"""
-                MATCH (n:`{safe_tenant}` {{uid: $n_uid}})
-                MATCH (d:Document:`{safe_tenant}` {{uid: $doc_uid}})
-                MERGE (n)-[:DERIVED_FROM]->(d)
+            if not hasattr(node, "uid") or not node.uid:
+                node.uid = str(uuid.uuid4())
+
+            await self._merge_node(node, safe_tenant, tx)
+
+            def _apply_governance():
+                tenant_q = f"""
+                MATCH (n:`{safe_tenant}` {{uid: $uid}})
+                MERGE (t:Tenant {{name: $tenant_safe}})
+                MERGE (n)-[:BELONGS_TO_TENANT]->(t)
                 """
-                tx.run(derived_q, n_uid=node.uid, doc_uid=origin_uid)
+                tx.run(tenant_q, uid=node.uid, tenant_safe=safe_tenant)
                 
-        await asyncio.to_thread(_apply_governance)
+                if not isinstance(node, Document) and origin_uid:
+                    derived_q = f"""
+                    MATCH (n:`{safe_tenant}` {{uid: $n_uid}})
+                    MATCH (d:Document:`{safe_tenant}` {{uid: $doc_uid}})
+                    MERGE (n)-[:DERIVED_FROM]->(d)
+                    """
+                    tx.run(derived_q, n_uid=node.uid, doc_uid=origin_uid)
+                    
+            await asyncio.to_thread(_apply_governance)
 
-        return node.uid
+            return node.uid
+        except (ValueError, OrphanNodeError) as e:
+            raise e
+        except Exception as e:
+            raise ValueError("Persistence Storage Error: falha de integridade restrita ou erro de banco. Transação abortada com segurança.") from None
 
     async def _merge_node(self, node: BaseNode, safe_tenant: str, tx: Any):
         if isinstance(node, Document):
