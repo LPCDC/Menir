@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P44-20260309-MUTACOES_V2_APPLIED
+MENIR-P45-20260310-FASE45_DISPATCHERS
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -18,10 +18,10 @@ MENIR-P44-20260309-MUTACOES_V2_APPLIED
 ---
 
 ## 📍 FASE ATUAL
-- **Fase:** 44
-- **Etapa:** Enterprise Dashboard + Swiss-Clinical CSS Modular Shell
-- **Status:** Pré-condições completas. mypy errors: 59.
-- **Próxima execução:** invoice_skill.py lógica real suíça → depois Fase 44 Dashboard
+- **Fase:** 45
+- **Etapa:** Enterprise Dashboard MVP + Órgãos Sensoriais (Dispatcher, nFADP Shield, Zefix)
+- **Status:** Propostas V2 enviadas para o Inbox.
+- **Próxima execução:** Aguardando aprovação do Arquiteto no decisions.md.
 
 ---
 

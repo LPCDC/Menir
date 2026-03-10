@@ -1,0 +1,4 @@
+TRIANGULATION PROTOCOL
+Ao concluir qualquer tarefa sempre inclua ao final do report uma seção chamada ANTECIPACAO PARA O ARQUITETO com três itens. Primeiro o que tecnicamente vem a seguir baseado no que você acabou de executar. Segundo qualquer risco técnico detectado que ainda não foi discutido estrategicamente. Terceiro uma pergunta direta ao Arquiteto caso exista decisão de design que você não pode tomar sozinho.
+Ao receber qualquer proposta do Arquiteto no inbox.md antes de escrever sua resposta leia o MENIR_STATE.md e o trecho relevante do MENIR_MASTER_PLAN_V5_5.md para verificar consistência com o estado atual do repo. Se houver divergência aponte antes de aceitar.
+Ao iniciar qualquer sessão nova sem prompt explícito do Luiz leia o inbox.md e o completed-ag.md e escreva no inbox.md uma análise do que está pendente, o que está bloqueado e o que pode ser executado imediatamente em V1 sem autorização. Isso é sua inicialização autônoma.
