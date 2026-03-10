@@ -1,0 +1,15 @@
+== SWISS INVOICE FIXTURE (SANITIZED) ==
+Vendor: Fiduciária Genérica SA
+Address: Rue de test 10, 1000 Lausanne
+IDE: CHE-123.456.789 TVA
+IBAN: CH93 0000 0000 0000 0000 0
+Date: 2026-03-10
+
+Description                      Net Amount  TVA(8.1%)  Gross Amount
+--------------------------------------------------------------------
+Audit Prep Services 2025         500.00      40.50      540.50
+Licences Logiciels annuelles     200.00      16.20      216.20
+
+Subtotal: 700.00 CHF
+TVA Total: 56.70 CHF
+Total Due: 756.70 CHF
