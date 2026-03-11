@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P45-20260310-SESSAO_ENCERRADA
+MENIR-P46-20260311-PHASE46_STEP1
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -18,10 +18,9 @@ MENIR-P45-20260310-SESSAO_ENCERRADA
 ---
 
 ## 📍 FASE ATUAL
-- **Fase:** 45
-- **Etapa:** Enterprise Dashboard MVP + Órgãos Sensoriais (Dispatcher, nFADP Shield, Zefix)
-- **Status:** Propostas V2 enviadas para o Inbox.
-- **Próxima execução:** Aguardando aprovação do Arquiteto no decisions.md.
+- **Fase:** 46
+- **Etapa:** Step 1 (Initialization & Rules) Completada. Aguardando autorização para Step 2 (Dashboard Quarantine MVP)
+- **Status:** Testes do PDF Classifier nas lógicas DIGITAL, SCANNED e HYBRID completados. 
 - **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
 
 ---
@@ -62,6 +61,9 @@ MENIR-P45-20260310-SESSAO_ENCERRADA
 | ✅ | Triangulação ativa no `_gemini.md` |
 | ✅ | Análise dos arquivos `.cre` do Crésus concluída |
 | ✅ | Análise dos cinco abismos operacionais entre o kernel atual e o produto real |
+| ✅ | Relocadas pendências do pdf_classifier com mock de SCANNED, HYBRID e DIGITAL |
+| ✅ | Remoção dos containers orfãos (competent_wescoff, vigorous_black) reportados offline |
+| ✅ | Nova secção de CAPACIDADES NATIVAS adicionadas ao protócolo `_gemini.md` |
 
 ---
 
