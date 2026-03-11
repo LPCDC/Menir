@@ -101,6 +101,7 @@ class MenirSynapse:
             webhook_handler.register(self.app, path="/webhook/telegram")
             logger.info("📱 Webhook do Telegram registrado em /webhook/telegram")
             
+        self.active_hitls = {}    
         self.http_site = None
         self.socket_server = None
 
@@ -205,22 +206,43 @@ class MenirSynapse:
         return self._format_response(payload)
 
     def _setup_telegram_handlers(self):
+        import uuid
         from aiogram import types, F
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         from src.v3.skills.menir_capture import MenirCapture
         from src.v3.core.persistence import NodePersistenceOrchestrator
         
-        async def _run_capture_task(chat_id: int, text: str, image_path: str, tenant_name: str, message_id: int):
+        async def _run_capture_task(chat_id: int, text: str, media_path: str, tenant_name: str, message_id: int):
             with locked_tenant_context(tenant_name):
                 try:
                     capture = MenirCapture(self.logos.intel if self.logos else None, NodePersistenceOrchestrator())
-                    success = await capture.ingest(text=text, current_tenant=tenant_name, image_path=image_path)
+                    res = await capture.ingest(text=text, current_tenant=tenant_name, media_path=media_path)
                     
-                    if success:
-                        await self.tg_bot.send_message(
-                            chat_id=chat_id, 
-                            text="✅ Entendido. Memória salva no grafo com sucesso.",
-                            reply_to_message_id=message_id
-                        )
+                    if res and res.get("success"):
+                        if res.get("hitl"):
+                            hc = res["hitl"]
+                            t_name = hc["target_name"]
+                            hitl_id = str(uuid.uuid4())[:8]
+                            self.active_hitls[hitl_id] = hc
+                            
+                            kb = InlineKeyboardMarkup(inline_keyboard=[
+                                [
+                                    InlineKeyboardButton(text="👍 SIM", callback_data=f"hitl:{hitl_id}:yes"),
+                                    InlineKeyboardButton(text="👎 NÃO", callback_data=f"hitl:{hitl_id}:no")
+                                ]
+                            ])
+                            await self.tg_bot.send_message(
+                                chat_id=chat_id,
+                                text=f"❓ Ambiguidade Detectada: Você está se referindo a '{t_name}'?",
+                                reply_markup=kb,
+                                reply_to_message_id=message_id
+                            )
+                        else:
+                            await self.tg_bot.send_message(
+                                chat_id=chat_id, 
+                                text="✅ Entendido. Memória salva no grafo com sucesso.",
+                                reply_to_message_id=message_id
+                            )
                     else:
                         await self.tg_bot.send_message(
                             chat_id=chat_id, 
@@ -235,9 +257,9 @@ class MenirSynapse:
                         reply_to_message_id=message_id
                     )
                 finally:
-                    if image_path and os.path.exists(image_path):
+                    if media_path and os.path.exists(media_path):
                         try:
-                            os.remove(image_path)
+                            os.remove(media_path)
                         except:
                             pass
 
@@ -259,6 +281,53 @@ class MenirSynapse:
             await self.tg_bot.download_file(file.file_path, local_path)
             
             asyncio.create_task(_run_capture_task(message.chat.id, caption, local_path, tenant_name, message.message_id))
+            
+        @self.tg_dp.message(F.voice)
+        async def handle_tg_voice(message: types.Message):
+            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+            text = "Analise o áudio anexado para extrair entidades e insights e transcreva seu conteúdo principal caso seja necessário para contexto."
+            
+            voice = message.voice
+            file = await self.tg_bot.get_file(voice.file_id)
+            os.makedirs("tmp_media", exist_ok=True)
+            local_path = f"tmp_media/{voice.file_id}.ogg"
+            await self.tg_bot.download_file(file.file_path, local_path)
+            
+            
+            asyncio.create_task(_run_capture_task(message.chat.id, text, local_path, tenant_name, message.message_id))
+            
+        @self.tg_dp.callback_query(F.data.startswith('hitl:'))
+        async def handle_tg_hitl_callback(callback: types.CallbackQuery):
+            parts = callback.data.split(':')
+            if len(parts) != 3:
+                return
+            hitl_id = parts[1]
+            answer = parts[2]
+            
+            hc = self.active_hitls.get(hitl_id)
+            if not hc:
+                await callback.message.edit_text("❌ Contexto expirado ou já resolvido.")
+                return
+                
+            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+            
+            with locked_tenant_context(tenant_name):
+                try:
+                    capture = MenirCapture(self.logos.intel if self.logos else None, NodePersistenceOrchestrator())
+                    approved = (answer == 'yes')
+                    await capture.resolve_hitl(hc, approved, tenant_name)
+                    
+                    if approved:
+                        await callback.message.edit_text(f"✅ Confirmado (SIM). Memória '{hc.get('target_name')}' amarrada ao grafo.")
+                    else:
+                        await callback.message.edit_text("✅ Negado (NÃO). Uma nova entidade autônoma foi criada no grafo.")
+                    
+                    del self.active_hitls[hitl_id]
+                except Exception as e:
+                    logger.error(f"Erro no HITL telegram callback: {e}")
+                    await callback.answer("❌ Erro ao processar resolução.", show_alert=True)
+            
+            await callback.answer()
 
     # --- HTTP INTERFACE (WEB_UI / AI) ---
     async def handle_auth_token_http(self, request):

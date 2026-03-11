@@ -57,7 +57,7 @@ class MenirCapture:
                     if "already exists" not in str(e).lower() and "equivalent" not in str(e).lower():
                         logger.warning(f"Aviso ao criar index {index_name}: {e}")
 
-    async def ingest(self, text: str, current_tenant: str = None, image_path: str = None) -> dict:
+    async def ingest(self, text: str, current_tenant: str = None, media_path: str = None) -> dict:
         import os
         if current_tenant is None:
             current_tenant = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
@@ -82,14 +82,30 @@ class MenirCapture:
         """
         
         contents_to_send = [prompt]
-        if image_path and os.path.exists(image_path):
+        if media_path and os.path.exists(media_path):
             try:
-                from PIL import Image
-                img = Image.open(image_path)
-                contents_to_send.append(img)
-                print(f"🖼 Anexando documento visual ao contexto cognitivo...")
+                if media_path.lower().endswith(('.ogg', '.mp3', '.m4a', '.wav')):
+                    print(f"🔊 Anexando nota de voz ao contexto cognitivo...")
+                    with open(media_path, "rb") as f:
+                        audio_data = f.read()
+                    
+                    mime_type = "audio/mpeg"
+                    if media_path.lower().endswith('.ogg'):
+                        mime_type = "audio/ogg"
+                    elif media_path.lower().endswith('.wav'):
+                        mime_type = "audio/wav"
+                        
+                    from google.genai import types
+                    contents_to_send.append(
+                        types.Part.from_bytes(data=audio_data, mime_type=mime_type)
+                    )
+                else:
+                    from PIL import Image
+                    img = Image.open(media_path)
+                    contents_to_send.append(img)
+                    print(f"🖼 Anexando documento visual ao contexto cognitivo...")
             except Exception as e:
-                print(f"⚠️ Erro ao carregar imagem para o Gemini: {e}")
+                print(f"⚠️ Erro ao carregar media para o Gemini: {e}")
                 
         try:
             from google.genai import types
