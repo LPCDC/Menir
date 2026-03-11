@@ -45,42 +45,13 @@ class EmbeddingService:
     Todos os métodos são async e não-bloqueantes.
     """
 
-    _client = None
-
     @classmethod
-    def _get_client(cls):
-        """Lazy init do client Gemini — evita import circular."""
-        if cls._client is None:
-            from google import genai
-            import os
-            api_key = os.getenv("GEMINI_API_KEY")
-            if not api_key:
-                raise ValueError("GEMINI_API_KEY não definido no ambiente.")
-            cls._client = genai.Client(api_key=api_key)
-        return cls._client
-
-    @staticmethod
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=2, max=30),
-        retry=retry_if_exception_type(Exception),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        reraise=True,
-    )
-    def _generate_embedding_sync(text: str) -> list[float]:
-        """
-        Chama a API de embedding de forma síncrona.
-        Encapsulada para uso via asyncio.to_thread.
-        O @retry do Tenacity lida com rate-limits (429) e erros transientes.
-        """
-        from google.genai import types
-        client = EmbeddingService._get_client()
-        result = client.models.embed_content(
-            model=GEMINI_EMBEDDING_MODEL,
-            contents=text,
-            config=types.EmbedContentConfig(output_dimensionality=768)
-        )
-        return result.embeddings[0].values
+    def _get_intel(cls):
+        """Lazy init do MenirIntel para compartilhar o Rate Limiter (Aiolimiter)"""
+        if not hasattr(cls, "_intel_singleton"):
+            from src.v3.menir_intel import MenirIntel
+            cls._intel_singleton = MenirIntel()
+        return cls._intel_singleton
 
     @staticmethod
     def _persist_embedding_sync(
@@ -95,7 +66,7 @@ class EmbeddingService:
         """
         safe_tenant = tenant.replace("`", "").replace(";", "")
         query = f"""
-        MATCH (n:{node_label}:`{safe_tenant}` {{id: $node_id}})
+        MATCH (n:{node_label}:`{safe_tenant}` {{uid: $node_id}})
         SET n.embedding = $embedding,
             n.embedded_at = datetime()
         """
@@ -119,10 +90,11 @@ class EmbeddingService:
         try:
             logger.debug(f"Gerando embedding para {label}:{node_id}")
 
-            # Etapa 1: gerar embedding (I/O de rede — to_thread)
-            embedding = await asyncio.to_thread(
-                cls._generate_embedding_sync, text
-            )
+            # Etapa 1: gerar embedding (Rate Limited inside MenirIntel)
+            embedding = await cls._get_intel().generate_embedding(text)
+            
+            if not embedding:
+                raise ValueError("Falha na geração de embedding: Retorno vazio do Gemini.")
 
             # Etapa 2: persistir no grafo (I/O de rede — to_thread)
             await asyncio.to_thread(
@@ -152,9 +124,10 @@ class EmbeddingService:
         Retorna os top_k nós mais similares ao query_text.
         """
         try:
-            query_embedding = await asyncio.to_thread(
-                cls._generate_embedding_sync, query_text
-            )
+            query_embedding = await cls._get_intel().generate_embedding(query_text)
+            
+            if not query_embedding:
+                return []
 
             index_name = f"{label.lower()}_intent_index"
 
@@ -168,7 +141,7 @@ class EmbeddingService:
                         )
                         YIELD node AS n, score
                         WHERE n:`{tenant.replace('`','')}`
-                        RETURN n.id AS id,
+                        RETURN n.uid AS id,
                                n.name AS name,
                                n.status AS status,
                                score

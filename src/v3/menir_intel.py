@@ -88,26 +88,35 @@ class MenirIntel:
         # Separation of Concerns: Independent Semaphore for parallel LLM Extraction
         # Prevents crashing the Core Watchdog Event Loop during mass 50+ extract bursts
         self.intel_semaphore = asyncio.Semaphore(50)
+        
+        # Proactive Rate Limiting (Free Tier 15 RPM protection)
+        import aiolimiter
+        limit_rpm = int(os.getenv("MENIR_GEMINI_RATE_LIMIT_RPM", 15))
+        self.limiter = aiolimiter.AsyncLimiter(limit_rpm, 60)
 
     @retry(
         stop=(stop_after_attempt(3) | stop_after_delay(60)),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    def generate_embedding(self, text: str) -> list[float]:
+    async def generate_embedding(self, text: str) -> list[float]:
         """
         Gera embedding vetorial (768-dim) via google-genai>=1.0.0.
         Usa self.client instanciado no __init__ (migração v2).
+        Aguardando proativamente via aiolimiter para não causar 429.
         """
+        import asyncio
         try:
             from google import genai as genai_v3
             from google.genai import types
             # Use strict text-embedding-004 to maintain storage compatibility
-            result = self.client.models.embed_content(
-                model="models/gemini-embedding-001",
-                contents=text,
-                config=types.EmbedContentConfig(output_dimensionality=768)
-            )
+            async with self.limiter:
+                result = await asyncio.to_thread(
+                    self.client.models.embed_content,
+                    model="models/gemini-embedding-001",
+                    contents=text,
+                    config=types.EmbedContentConfig(output_dimensionality=768)
+                )
             if result and result.embeddings and result.embeddings[0].values:
                 return result.embeddings[0].values
             return []
@@ -271,13 +280,14 @@ class MenirIntel:
             model_to_use = "gemini-1.5-pro-001" if getattr(self, "is_enterprise", False) else getattr(self, "model_id", "gemini-2.5-flash")
 
             async with self.intel_semaphore:
-                # Wraps inference in I/O Thread to prevent Event Loop blocking
-                response = await asyncio.to_thread(
-                    self.client.models.generate_content,
-                    model=model_to_use,
-                    contents=contents,
-                    config=config
-                )
+                async with self.limiter:
+                    # Wraps inference in I/O Thread to prevent Event Loop blocking
+                    response = await asyncio.to_thread(
+                        self.client.models.generate_content,
+                        model=model_to_use,
+                        contents=contents,
+                        config=config
+                    )
 
             from typing import cast
             result = cast(genai_types.GenerateContentResponse, response)
