@@ -1,0 +1,177 @@
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 57-58: character maps to <undefined>
+Call stack:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 109, in <module>
+    asyncio.run(run_smoke_test())
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 2040, in _run_once
+    handle._run()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 32, in run_smoke_test
+    intel = MenirIntel()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\menir_intel.py", line 60, in __init__
+    logger.warning("\u26a0\ufe0f [Development Mode] Inicializando Gemini API P·blica.")
+Message: '\u26a0\ufe0f [Development Mode] Inicializando Gemini API P·blica.'
+Arguments: ()
+2026-03-10 17:04:15,406 | WARNING | src.v3.menir_intel | \u26a0\ufe0f [Development Mode] Inicializando Gemini API P·blica.
+2026-03-10 17:04:15,410 | WARNING | google_genai._api_client | Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 57-58: character maps to <undefined>
+Call stack:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 109, in <module>
+    asyncio.run(run_smoke_test())
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 2040, in _run_once
+    handle._run()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 32, in run_smoke_test
+    intel = MenirIntel()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\menir_intel.py", line 66, in __init__
+    self._fetch_system_persona()
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\cachetools\_cachedmethod.py", line 375, in __call__
+    return wrapper(self._obj, *args, **kwargs)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\cachetools\_cachedmethod.py", line 358, in wrapper
+    v = method(self, *args, **kwargs)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\menir_intel.py", line 162, in _fetch_system_persona
+    logger.warning(
+Message: '\u26a0\ufe0f [Emergency Fallback] Usando Persona local sincronizada pela ·ltima vez no Grafo (vV5.2).'
+Arguments: ()
+2026-03-10 17:04:15,457 | WARNING | src.v3.menir_intel | \u26a0\ufe0f [Emergency Fallback] Usando Persona local sincronizada pela ·ltima vez no Grafo (vV5.2).
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 45: character maps to <undefined>
+Call stack:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 109, in <module>
+    asyncio.run(run_smoke_test())
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 2040, in _run_once
+    handle._run()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 33, in run_smoke_test
+    ontology = MenirOntologyManager()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\meta_cognition.py", line 37, in __init__
+    self.driver = get_shared_driver()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 69, in get_shared_driver
+    return Neo4jPoolManager().get_driver()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 25, in __new__
+    cls._instance._init_driver()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 49, in _init_driver
+    logger.info("\u2705 Unified Neo4j Driver Instance created successfully.")
+Message: '\u2705 Unified Neo4j Driver Instance created successfully.'
+Arguments: ()
+2026-03-10 17:04:16,947 | INFO | Neo4jPool | \u2705 Unified Neo4j Driver Instance created successfully.
+2026-03-10 17:04:17,595 | INFO | google_genai.models | AFC is enabled with max remote calls: 10.
+2026-03-10 17:04:22,792 | INFO | httpx | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 51-52: character maps to <undefined>
+Call stack:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 109, in <module>
+    asyncio.run(run_smoke_test())
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 2040, in _run_once
+    handle._run()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 76, in run_smoke_test
+    result = await skill.process_document(fixture_path)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\skills\invoice_skill.py", line 118, in process_document
+    logger.warning(
+Message: '\u26a0\ufe0f InvoiceSkill em modo STUB. Defina MENIR_INVOICE_LIVE=true para ativar.'
+Arguments: ()
+2026-03-10 17:04:22,834 | WARNING | InvoiceSkill | \u26a0\ufe0f InvoiceSkill em modo STUB. Defina MENIR_INVOICE_LIVE=true para ativar.
+2026-03-10 17:04:22,987 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N51', status_description='warn: relationship type does not exist. The relationship type `DERIVED_FROM` does not exist in database `7ac789d0`. Verify that the spelling is correct.', position=<SummaryInputPosition line=1, column=28, offset=27>, raw_classification='UNRECOGNIZED', classification=<NotificationClassification.UNRECOGNIZED: 'UNRECOGNIZED'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'UNRECOGNIZED', '_severity': 'WARNING', '_position': {'offset': 27, 'line': 1, 'column': 28}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (i:Invoice:`BECO`)-[:DERIVED_FROM]->(:Document:`BECO` {uid: $uid}) RETURN i'
+2026-03-10 17:04:23,145 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N01', status_description='warn: feature deprecated with replacement. id is deprecated. It is replaced by elementId or consider using an application-generated id.', position=<SummaryInputPosition line=1, column=82, offset=81>, raw_classification='DEPRECATION', classification=<NotificationClassification.DEPRECATION: 'DEPRECATION'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'DEPRECATION', '_severity': 'WARNING', '_position': {'offset': 81, 'line': 1, 'column': 82}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (i:Invoice:`BECO`)-[:DERIVED_FROM]->(d:Document:`BECO` {uid: $uid}) RETURN id(i)'
+2026-03-10 17:04:23,146 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N51', status_description='warn: relationship type does not exist. The relationship type `DERIVED_FROM` does not exist in database `7ac789d0`. Verify that the spelling is correct.', position=<SummaryInputPosition line=1, column=28, offset=27>, raw_classification='UNRECOGNIZED', classification=<NotificationClassification.UNRECOGNIZED: 'UNRECOGNIZED'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'UNRECOGNIZED', '_severity': 'WARNING', '_position': {'offset': 27, 'line': 1, 'column': 28}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (i:Invoice:`BECO`)-[:DERIVED_FROM]->(d:Document:`BECO` {uid: $uid}) RETURN id(i)'
+2026-03-10 17:04:23,305 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N51', status_description='warn: relationship type does not exist. The relationship type `ISSUED_BY` does not exist in database `7ac789d0`. Verify that the spelling is correct.', position=<SummaryInputPosition line=1, column=27, offset=26>, raw_classification='UNRECOGNIZED', classification=<NotificationClassification.UNRECOGNIZED: 'UNRECOGNIZED'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'UNRECOGNIZED', '_severity': 'WARNING', '_position': {'offset': 26, 'line': 1, 'column': 27}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (v:Vendor:`BECO`)-[:ISSUED_BY]->(i:Invoice:`BECO`)-[:DERIVED_FROM]->(:Document:`BECO` {uid: $uid}) RETURN v'
+2026-03-10 17:04:23,305 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N51', status_description='warn: relationship type does not exist. The relationship type `DERIVED_FROM` does not exist in database `7ac789d0`. Verify that the spelling is correct.', position=<SummaryInputPosition line=1, column=60, offset=59>, raw_classification='UNRECOGNIZED', classification=<NotificationClassification.UNRECOGNIZED: 'UNRECOGNIZED'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'UNRECOGNIZED', '_severity': 'WARNING', '_position': {'offset': 59, 'line': 1, 'column': 60}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (v:Vendor:`BECO`)-[:ISSUED_BY]->(i:Invoice:`BECO`)-[:DERIVED_FROM]->(:Document:`BECO` {uid: $uid}) RETURN v'
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f50c' in position 45: character maps to <undefined>
+Call stack:
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 65, in shutdown_pool
+    Neo4jPoolManager._instance.close()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 59, in close
+    logger.info("\U0001f50c Unified Neo4j Driver Instance closed.")
+Message: '\U0001f50c Unified Neo4j Driver Instance closed.'
+Arguments: ()
+2026-03-10 17:04:23,307 | INFO | Neo4jPool | \U0001f50c Unified Neo4j Driver Instance closed.
+=== INICIANDO E2E SMOKE TEST (INV) ===
+[OK] Origem rastreßvel (DocumentNode) garantida.
+[INFO] Dispatcher detectou: Facture (Confianca: 1.0)
+[PASS] CLASSIFICACAO: Tipo de Fatura com Alta Confianca
+[FAIL] PROCESSAMENTO SKILL: Falhou (STUB_MODE: MENIR_INVOICE_LIVE nÒo ativado.)
+[FAIL] NEO4J INVOICE: No Invoice ausente
+[FAIL] NEO4J RASTREABILIDADE: Aresta DERIVED_FROM inexistente
+[FAIL] NEO4J ZEFIX: Relacao ISSUED_BY ou Vendor ausente

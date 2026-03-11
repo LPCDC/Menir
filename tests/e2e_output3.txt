@@ -1,0 +1,280 @@
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 57-58: character maps to <undefined>
+Call stack:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 109, in <module>
+    asyncio.run(run_smoke_test())
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 2040, in _run_once
+    handle._run()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 32, in run_smoke_test
+    intel = MenirIntel()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\menir_intel.py", line 60, in __init__
+    logger.warning("\u26a0\ufe0f [Development Mode] Inicializando Gemini API P·blica.")
+Message: '\u26a0\ufe0f [Development Mode] Inicializando Gemini API P·blica.'
+Arguments: ()
+2026-03-10 17:10:42,303 | WARNING | src.v3.menir_intel | \u26a0\ufe0f [Development Mode] Inicializando Gemini API P·blica.
+2026-03-10 17:10:42,306 | WARNING | google_genai._api_client | Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 57-58: character maps to <undefined>
+Call stack:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 109, in <module>
+    asyncio.run(run_smoke_test())
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 2040, in _run_once
+    handle._run()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 32, in run_smoke_test
+    intel = MenirIntel()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\menir_intel.py", line 66, in __init__
+    self._fetch_system_persona()
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\cachetools\_cachedmethod.py", line 375, in __call__
+    return wrapper(self._obj, *args, **kwargs)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\cachetools\_cachedmethod.py", line 358, in wrapper
+    v = method(self, *args, **kwargs)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\menir_intel.py", line 162, in _fetch_system_persona
+    logger.warning(
+Message: '\u26a0\ufe0f [Emergency Fallback] Usando Persona local sincronizada pela ·ltima vez no Grafo (vV5.2).'
+Arguments: ()
+2026-03-10 17:10:42,353 | WARNING | src.v3.menir_intel | \u26a0\ufe0f [Emergency Fallback] Usando Persona local sincronizada pela ·ltima vez no Grafo (vV5.2).
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 45: character maps to <undefined>
+Call stack:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 109, in <module>
+    asyncio.run(run_smoke_test())
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 2040, in _run_once
+    handle._run()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 33, in run_smoke_test
+    ontology = MenirOntologyManager()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\meta_cognition.py", line 37, in __init__
+    self.driver = get_shared_driver()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 69, in get_shared_driver
+    return Neo4jPoolManager().get_driver()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 25, in __new__
+    cls._instance._init_driver()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 49, in _init_driver
+    logger.info("\u2705 Unified Neo4j Driver Instance created successfully.")
+Message: '\u2705 Unified Neo4j Driver Instance created successfully.'
+Arguments: ()
+2026-03-10 17:10:43,830 | INFO | Neo4jPool | \u2705 Unified Neo4j Driver Instance created successfully.
+2026-03-10 17:10:44,462 | INFO | google_genai.models | AFC is enabled with max remote calls: 10.
+2026-03-10 17:10:49,462 | INFO | httpx | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f9fe' in position 48: character maps to <undefined>
+Call stack:
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 109, in <module>
+    asyncio.run(run_smoke_test())
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\base_events.py", line 2040, in _run_once
+    handle._run()
+  File "C:\ProgramData\miniconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\tests\smoke_test_invoice_e2e.py", line 76, in run_smoke_test
+    result = await skill.process_document(fixture_path)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\skills\invoice_skill.py", line 127, in process_document
+    logger.info(f"\U0001f9fe Iniciando processamento de Invoice: {file_path}")
+Message: '\U0001f9fe Iniciando processamento de Invoice: tests/fixtures/invoice_beco_sanitized.txt'
+Arguments: ()
+2026-03-10 17:10:49,513 | INFO | InvoiceSkill | \U0001f9fe Iniciando processamento de Invoice: tests/fixtures/invoice_beco_sanitized.txt
+2026-03-10 17:10:49,820 | ERROR | InvoiceSkill | Erro genÚrico no InvoiceSkill: {neo4j_code: Neo.ClientError.Database.DatabaseNotFound} {message: Unable to get a routing table for database 'neo4j' because this database does not exist} {gql_status: 22000} {gql_status_description: error: data exception}
+neo4j.exceptions.GqlError: {gql_status: 22N51} {gql_status_description: error: data exception - graph reference not found. A graph reference with the name `neo4j` was not found. Verify that the spelling is correct.} {message: 22N51: A graph reference with the name `neo4j` was not found. Verify that the spelling is correct.} {diagnostic_record: {'_classification': 'CLIENT_ERROR', 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}} {raw_classification: CLIENT_ERROR}
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\skills\invoice_skill.py", line 142, in process_document
+    active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\tenacity\__init__.py", line 338, in wrapped_f
+    return copy(f, *args, **kw)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\tenacity\__init__.py", line 477, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\tenacity\__init__.py", line 378, in iter
+    result = action(retry_state)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\tenacity\__init__.py", line 400, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "C:\ProgramData\miniconda3\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\ProgramData\miniconda3\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\tenacity\__init__.py", line 480, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\cachetools\_cached.py", line 210, in wrapper
+    v = func(*args, **kwargs)
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\meta_cognition.py", line 167, in get_tenant_active_context
+    result = session.run(query_rules, tenant_name=tenant_name, invoice_date=invoice_date)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\work\session.py", line 305, in run
+    self._connect(self._config.default_access_mode)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\work\session.py", line 126, in _connect
+    super()._connect(
+    ~~~~~~~~~~~~~~~~^
+        access_mode, auth=self._config.auth, **acquire_kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\work\workspace.py", line 181, in _connect
+    self._connection = self._pool.acquire(**acquire_kwargs_)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_pool.py", line 1216, in acquire
+    self.ensure_routing_table_is_fresh(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        access_mode=access_mode,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+        ),
+        ^^
+    )
+    ^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_pool.py", line 1150, in ensure_routing_table_is_fresh
+    self.update_routing_table(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        database=database_request,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        database_callback=wrapped_database_callback,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_pool.py", line 1009, in update_routing_table
+    self._update_routing_table_from(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.address,
+        ^^^^^^^^^^^^^
+    ...<6 lines>...
+        ignored_errors=errors,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_pool.py", line 935, in _update_routing_table_from
+    new_routing_table = self.fetch_routing_table(
+        address=address,
+    ...<5 lines>...
+        ignored_errors=ignored_errors,
+    )
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_pool.py", line 833, in fetch_routing_table
+    new_routing_info = self.fetch_routing_info(
+        address,
+    ...<4 lines>...
+        acquisition_timeout,
+    )
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_pool.py", line 794, in fetch_routing_info
+    routing_table = cx.route(
+        database=database or self.workspace_config.database,
+        imp_user=imp_user or self.workspace_config.impersonated_user,
+        bookmarks=bookmarks,
+    )
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_bolt6.py", line 273, in route
+    self.fetch_all()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_bolt.py", line 882, in fetch_all
+    detail_delta, summary_delta = self.fetch_message()
+                                  ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_bolt.py", line 867, in fetch_message
+    res = self._process_message(tag, fields)
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_bolt6.py", line 548, in _process_message
+    response.on_failure(summary_metadata or {})
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Pichau\AppData\Roaming\Python\Python313\site-packages\neo4j\_sync\io\_common.py", line 263, in on_failure
+    raise self._hydrate_error(metadata)
+neo4j.exceptions.ClientError: {neo4j_code: Neo.ClientError.Database.DatabaseNotFound} {message: Unable to get a routing table for database 'neo4j' because this database does not exist} {gql_status: 22000} {gql_status_description: error: data exception}
+2026-03-10 17:10:50,182 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N51', status_description='warn: relationship type does not exist. The relationship type `DERIVED_FROM` does not exist in database `7ac789d0`. Verify that the spelling is correct.', position=<SummaryInputPosition line=1, column=28, offset=27>, raw_classification='UNRECOGNIZED', classification=<NotificationClassification.UNRECOGNIZED: 'UNRECOGNIZED'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'UNRECOGNIZED', '_severity': 'WARNING', '_position': {'offset': 27, 'line': 1, 'column': 28}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (i:Invoice:`BECO`)-[:DERIVED_FROM]->(:Document:`BECO` {uid: $uid}) RETURN i'
+2026-03-10 17:10:50,341 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N01', status_description='warn: feature deprecated with replacement. id is deprecated. It is replaced by elementId or consider using an application-generated id.', position=<SummaryInputPosition line=1, column=82, offset=81>, raw_classification='DEPRECATION', classification=<NotificationClassification.DEPRECATION: 'DEPRECATION'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'DEPRECATION', '_severity': 'WARNING', '_position': {'offset': 81, 'line': 1, 'column': 82}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (i:Invoice:`BECO`)-[:DERIVED_FROM]->(d:Document:`BECO` {uid: $uid}) RETURN id(i)'
+2026-03-10 17:10:50,341 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N51', status_description='warn: relationship type does not exist. The relationship type `DERIVED_FROM` does not exist in database `7ac789d0`. Verify that the spelling is correct.', position=<SummaryInputPosition line=1, column=28, offset=27>, raw_classification='UNRECOGNIZED', classification=<NotificationClassification.UNRECOGNIZED: 'UNRECOGNIZED'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'UNRECOGNIZED', '_severity': 'WARNING', '_position': {'offset': 27, 'line': 1, 'column': 28}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (i:Invoice:`BECO`)-[:DERIVED_FROM]->(d:Document:`BECO` {uid: $uid}) RETURN id(i)'
+2026-03-10 17:10:50,498 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N51', status_description='warn: relationship type does not exist. The relationship type `ISSUED_BY` does not exist in database `7ac789d0`. Verify that the spelling is correct.', position=<SummaryInputPosition line=1, column=27, offset=26>, raw_classification='UNRECOGNIZED', classification=<NotificationClassification.UNRECOGNIZED: 'UNRECOGNIZED'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'UNRECOGNIZED', '_severity': 'WARNING', '_position': {'offset': 26, 'line': 1, 'column': 27}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (v:Vendor:`BECO`)-[:ISSUED_BY]->(i:Invoice:`BECO`)-[:DERIVED_FROM]->(:Document:`BECO` {uid: $uid}) RETURN v'
+2026-03-10 17:10:50,498 | WARNING | neo4j.notifications | Received notification from DBMS server: <GqlStatusObject gql_status='01N51', status_description='warn: relationship type does not exist. The relationship type `DERIVED_FROM` does not exist in database `7ac789d0`. Verify that the spelling is correct.', position=<SummaryInputPosition line=1, column=60, offset=59>, raw_classification='UNRECOGNIZED', classification=<NotificationClassification.UNRECOGNIZED: 'UNRECOGNIZED'>, raw_severity='WARNING', severity=<NotificationSeverity.WARNING: 'WARNING'>, diagnostic_record={'_classification': 'UNRECOGNIZED', '_severity': 'WARNING', '_position': {'offset': 59, 'line': 1, 'column': 60}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: 'MATCH (v:Vendor:`BECO`)-[:ISSUED_BY]->(i:Invoice:`BECO`)-[:DERIVED_FROM]->(:Document:`BECO` {uid: $uid}) RETURN v'
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\ProgramData\miniconda3\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\miniconda3\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f50c' in position 45: character maps to <undefined>
+Call stack:
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 65, in shutdown_pool
+    Neo4jPoolManager._instance.close()
+  File "C:\Users\Pichau\Repos\MenirVital\Menir\src\v3\core\neo4j_pool.py", line 59, in close
+    logger.info("\U0001f50c Unified Neo4j Driver Instance closed.")
+Message: '\U0001f50c Unified Neo4j Driver Instance closed.'
+Arguments: ()
+2026-03-10 17:10:50,499 | INFO | Neo4jPool | \U0001f50c Unified Neo4j Driver Instance closed.
+=== INICIANDO E2E SMOKE TEST (INV) ===
+[OK] Origem rastreßvel (DocumentNode) garantida.
+[INFO] Dispatcher detectou: Facture (Confianca: 0.99)
+[PASS] CLASSIFICACAO: Tipo de Fatura com Alta Confianca
+[FAIL] PROCESSAMENTO SKILL: Falhou (Falha estrutural: {neo4j_code: Neo.ClientError.Database.DatabaseNotFound} {message: Unable to get a routing table for database 'neo4j' because this database does not exist} {gql_status: 22000} {gql_status_description: error: data exception})
+[FAIL] NEO4J INVOICE: No Invoice ausente
+[FAIL] NEO4J RASTREABILIDADE: Aresta DERIVED_FROM inexistente
+[FAIL] NEO4J ZEFIX: Relacao ISSUED_BY ou Vendor ausente
