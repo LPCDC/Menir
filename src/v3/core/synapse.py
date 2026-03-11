@@ -101,6 +101,12 @@ class MenirSynapse:
             webhook_handler.register(self.app, path="/webhook/telegram")
             logger.info("📱 Webhook do Telegram registrado em /webhook/telegram")
             
+            if os.getenv("TELEGRAM_LONG_POLLING") == "1":
+                # Only for regression and local testing
+                import asyncio
+                asyncio.create_task(self.tg_dp.start_polling(self.tg_bot))
+                logger.info("⚡ Telegram Bot iniciado também em modo LONG POLLING para desenvolvimento.")
+                
         self.active_hitls = {}    
         self.http_site = None
         self.socket_server = None
@@ -431,23 +437,34 @@ class MenirSynapse:
         WHERE d.status = 'QUARANTINE'
         RETURN d.uid AS id, d.name AS name, d.file_hash AS file_hash, d.quarantine_reason AS reason, d.quarantined_at AS date
         ORDER BY d.quarantined_at DESC
-        ```limit_replace_for_string_literal```
         LIMIT 50
         """
-        query = query.replace("```limit_replace_for_string_literal```", "")
         
         def _fetch():
-            with self.runner.ontology_manager.driver.session() as s:
-                return [dict(rec) for rec in s.run(query)]
+            try:
+                with self.runner.ontology_manager.driver.session() as s:
+                    return [dict(rec) for rec in s.run(query)]
+            except Exception as e:
+                logger.error(f"Erro ao buscar quarentena: {e}")
+                return []
         
-        docs = await asyncio.to_thread(_fetch)
-        
-        # Format datetimes
-        for d in docs:
-            if d.get("date"):
-                d["date"] = d["date"].iso_format()
-                
-        return web.json_response({"documents": docs})
+        try:
+            docs = await asyncio.to_thread(_fetch)
+            
+            # Format datetimes
+            for d in docs:
+                if d.get("date"):
+                    if hasattr(d["date"], "iso_format"):
+                        d["date"] = d["date"].iso_format()
+                    elif hasattr(d["date"], "isoformat"):
+                        d["date"] = d["date"].isoformat()
+                    else:
+                        d["date"] = str(d["date"])
+                        
+            return web.json_response({"documents": docs})
+        except Exception as e:
+            logger.error(f"Fatal erro no handle_get_quarantine: {e}")
+            return web.json_response({"documents": []})
 
     async def handle_retry_document(self, request):
         doc_id = request.match_info['id']
