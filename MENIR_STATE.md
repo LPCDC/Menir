@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260311-PHASE46_STEP1
+MENIR-P46-20260311-PHASE46_STEP2
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -19,8 +19,8 @@ MENIR-P46-20260311-PHASE46_STEP1
 
 ## 📍 FASE ATUAL
 - **Fase:** 46
-- **Etapa:** Step 1 (Initialization & Rules) Completada. Aguardando autorização para Step 2 (Dashboard Quarantine MVP)
-- **Status:** Testes do PDF Classifier nas lógicas DIGITAL, SCANNED e HYBRID completados. 
+- **Etapa:** Step 2 (Dashboard Quarantine Loop) Completada. Aguardando autorização para Step 3 (Crésus Exporter).
+- **Status:** React UI e endpoints do FastAPI para Quarantine Inbox implementados com Strict Tenant Isolation via ContextVars. QA rodado com sucesso no Agent do Browser.
 - **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
 
 ---

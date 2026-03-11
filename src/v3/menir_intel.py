@@ -17,6 +17,7 @@ from tenacity import (  # noqa: E402
 )
 
 from src.v3.core.schemas import SystemPersonaPayload  # noqa: E402
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

@@ -29,6 +29,24 @@ class PrioritizedCommand:
     payload: CommandPayload = field(compare=False)
 
 
+@web.middleware
+async def cors_middleware(request, handler):
+    if request.method == "OPTIONS":
+        response = web.Response(status=200)
+    else:
+        try:
+            response = await handler(request)
+        except web.HTTPException as ex:
+            response = ex
+    
+    # Check if headers exist before modifying
+    if hasattr(response, 'headers'):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS, PUT, DELETE, PATCH'
+        response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+        
+    return response
+
 class MenirSynapse:
     def __init__(self, runner, intel_instance=None):
         """
@@ -48,7 +66,13 @@ class MenirSynapse:
         self.mcp_server = MenirMCPServer(self.runner)
 
         # AIOHTTP Application
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[cors_middleware])
+        
+        async def handle_options(request):
+            return web.Response(status=200)
+
+        self.app.router.add_route('OPTIONS', '/{tail:.*}', handle_options)
+        
         self.app.add_routes(
             [
                 web.get("/status", self.handle_status_http),
@@ -256,7 +280,7 @@ class MenirSynapse:
             return web.Response(text=response_str)
 
     async def handle_get_quarantine(self, request):
-        target_tenant = "BECO"
+        target_tenant = TenantContext.get() or "BECO"
         safe_tenant = target_tenant.replace("`", "")
         
         query = f"""
@@ -285,19 +309,38 @@ class MenirSynapse:
     async def handle_retry_document(self, request):
         doc_id = request.match_info['id']
         data = await request.json()
-        target_tenant = "BECO"
+        target_tenant = TenantContext.get() or "BECO"
         safe_tenant = target_tenant.replace("`", "")
         
-        query_update = f"""
-        MATCH (d:Document:`{safe_tenant}` {{uid: $uid}})
-        SET d.status = 'PENDING',
-            d.correction_by = 'human',
-            d.correction_at = datetime()
-        RETURN d
-        """
+        action = data.get("action", "reinject")
+        corrected_fields = data.get("corrected_fields", {})
+        
+        if action == "reject":
+            query_update = f"""
+            MATCH (d:Document:`{safe_tenant}` {{uid: $uid}})
+            SET d.status = 'REJECTED',
+                d.correction_by = 'human',
+                d.correction_at = datetime()
+            RETURN d
+            """
+        else: # reinject
+            # Add corrected_json to be picked up by the pipeline
+            corrected_json = json.dumps(corrected_fields) if corrected_fields else "{}"
+            query_update = f"""
+            MATCH (d:Document:`{safe_tenant}` {{uid: $uid}})
+            SET d.status = 'PENDING',
+                d.human_feedback = $feedback,
+                d.correction_by = 'human',
+                d.correction_at = datetime()
+            RETURN d
+            """
+            
         def _update():
             with self.runner.ontology_manager.driver.session() as s:
-                res = s.run(query_update, uid=doc_id).single()
+                params = {"uid": doc_id}
+                if action != "reject":
+                    params["feedback"] = corrected_json
+                res = s.run(query_update, **params).single()
                 return dict(res["d"]) if res else None
                 
         doc = await asyncio.to_thread(_update)
