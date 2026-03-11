@@ -7,10 +7,18 @@ compliant, tab-separated, CRLF-terminated text file for the Swiss Crésus ERP.
 import asyncio
 import logging
 import os
+import json
+from collections import defaultdict
 from datetime import datetime
 
 logger = logging.getLogger("CresusExporter")
 
+# Hardcoded Mappings conforming to Architect rule
+TVA_CODE_MAP = {
+    8.1: "I81",
+    3.8: "I38",
+    2.6: "I26"
+}
 
 class CresusExporter:
     def __init__(self, ontology_manager):
@@ -18,12 +26,11 @@ class CresusExporter:
 
     def _get_account_mapping(self, tenant: str, type_acc: str) -> str:
         """
-        Placeholder logic for account numbering mapping.
-        (Awaiting client mappings CSV).
+        Placeholder logic for the main bank account mappings.
         """
         if type_acc == "DEBIT":
-            return "1020"  # Exemplo: Banco
-        return "3400"  # Exemplo: Fornecedores
+            return "1020"  # Banco
+        return "3400"  # Default Fornecedor (Will be overridden by node property)
 
     def _format_swiss_date(self, iso_date_str: str) -> str:
         """Converte YYYY-MM-DD (Neo4j native) para DD.MM.YYYY (Crésus Form)."""
@@ -61,42 +68,83 @@ class CresusExporter:
         logger.info(f"🗃️ [CresusExporter] Escrevendo {len(records)} lançamentos em I/O Assíncrono.")
 
         # AIOFILES protege a fila do Watchdog contra Disk I/O Bottlenecks
-        async with aiofiles.open(filepath, mode="w", encoding="utf-8") as f:
-            # Write Headers (opcional no Cresus, mas as vezes exigido dependendo da mascara, usaremos os dados cru)
-            # A Ordem Mestra: [Date (DD.MM.YYYY), Compte Débit, Compte Crédit, Pièce, Libellé, Montant]
+        async with aiofiles.open(filepath, mode="w", encoding="utf-8", newline="") as f:
             for r in records:
-                swiss_date = self._format_swiss_date(r["issue_date"])
+                swiss_date = self._format_swiss_date(r.get("issue_date", ""))
                 compte_debit = self._get_account_mapping(tenant, "DEBIT")
-                compte_credit = self._get_account_mapping(tenant, "CREDIT")
-                # Piece é opcional ou numero da nota. Usaremos o Node ElementId short ou nome do Fornecedor.
-                piece = r["vendor_name"][:10]
-                libelle = f"Facture {r['vendor_name']} / {swiss_date}"
-                montant = f"{r['amount']:.2f}"
+                
+                cresus_account_id = r.get("cresus_account_id")
+                compte_credit = cresus_account_id if cresus_account_id else "3400"
+                
+                piece = str(r.get("vendor_name", ""))[:10]
+                libelle = f"Facture {r.get('vendor_name', '')} / {swiss_date}"
+                
+                if not cresus_account_id:
+                    libelle += " [REVIEW_ACCOUNT]"
+                
+                items_json_str = r.get("line_items_json", "[]")
+                try:
+                    items = json.loads(items_json_str) if items_json_str else []
+                except Exception:
+                    items = []
 
-                # A Linha de Cristal (CRLF \r\n explicitly forced here by text format mapping)
-                # Formação do TabSeparated.
-                line = f"{swiss_date}\t{compte_debit}\t{compte_credit}\t{piece}\t{libelle}\t{montant}\r\n"
+                if not items:
+                    # Fallback single line without TVA mapping if JSON is missing
+                    montant_str = f"{r.get('total_amount', 0.0):.2f}"
+                    line = f"{swiss_date}\t{compte_debit}\t{compte_credit}\t{piece}\t{libelle}\t{montant_str}\t\t\t\t1\t\t\r\n"
+                    await f.write(line)
+                    continue
 
-                await f.write(line)
+                # Agrupamento inteligente por alíquota (TVA groups)
+                tva_groups: dict[float, float] = defaultdict(float)
+                for item in items:
+                    tva_rate = item.get("tva_rate_applied")
+                    tva_rate = float(tva_rate) if tva_rate is not None else 0.0
+                    tva_groups[tva_rate] += float(item.get("gross_amount", 0.0))
+                
+                for tva_rate, amount in tva_groups.items():
+                    if amount == 0:
+                        continue
+                        
+                    tva_code = TVA_CODE_MAP.get(tva_rate, "")
+                    montant_str = f"{amount:.2f}"
+                    
+                    # Colunas do formato étendu epsitec (.txt TSV)
+                    # 1. Date (DD.MM.YYYY)
+                    # 2. Débit
+                    # 3. Crédit
+                    # 4. Pièce
+                    # 5. Libellé
+                    # 6. Montant (Brut)
+                    # 7. TVA Opt (vazio)
+                    # 8. Monnaie (vazio)
+                    # 9. Cours (vazio)
+                    # 10. Net/Brut (1 = Brut)
+                    # 11. Empty
+                    # 12. Code TVA (ex: I81)
+                    line = f"{swiss_date}\t{compte_debit}\t{compte_credit}\t{piece}\t{libelle}\t{montant_str}\t\t\t\t1\t\t{tva_code}\r\n"
+                    await f.write(line)
 
-            # TODO: Idealmente, neste loop, marcaríamos a aresta [:RECONCILED] com um status: EXPORTED: True
-            # para não puxá-las amanhã de novo. A tese fica estabelecida no Grafo por enquanto.
+            # O TODO de :[RECONCILED] para {exported: True} se mantém.
 
-        logger.info(f"✅ [CresusExporter] Arquivo gerado puramente em TXT Legacy: {filepath}")
+        logger.info(f"✅ [CresusExporter] Arquivo TSV Extended (TVA) gerado: {filepath}")
         return filepath
 
     def _fetch_reconciled_graph(self, tenant: str) -> list:
         """Synchronous Worker running inside asyncio.to_thread"""
-        safe_tenant = tenant.replace("`", "")
         # Notice we extract the invoice amount just to be sure, and the vendor properties
         query = f"""
-        MATCH (t:Tenant {{name: $tenant}})-[:RECEIVED]->(i:Invoice:`{safe_tenant}`)-[r:RECONCILED]->(tr:Transaction:`{safe_tenant}`)
+        // SECURITY: Parameter $tenant is injected strictly by isolated ContextVar upstream.
+        // It never comes from direct user input.
+        MATCH (t:Tenant {{name: $tenant}})-[:RECEIVED]->(i:Invoice)-[r:RECONCILED]->(tr:Transaction)
         MATCH (v:Vendor)-[:ISSUED]->(i)
         // Add safeguard to only pick un-exported, mocked for now
         // WHERE r.exported IS NULL
-        RETURN i.issue_date AS issue_date,   # noqa: W291
-               tr.amount AS amount,   # noqa: W291
-               v.name AS vendor_name
+        RETURN i.issue_date AS issue_date,
+               i.total_amount AS total_amount,
+               i.line_items_json AS line_items_json,
+               v.name AS vendor_name,
+               v.cresus_account_id AS cresus_account_id
         """
         try:
             with self.ontology_manager.driver.session() as session:
