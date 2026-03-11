@@ -83,6 +83,24 @@ class MenirSynapse:
                 web.post("/api/v3/documents/{id}/retry", self.handle_retry_document),
             ]
         )
+        
+        # Telegram Bot Integration (SANTOS Tactical Entry)
+        self.tg_bot = None
+        self.tg_dp = None
+        tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
+        if tg_token:
+            from aiogram import Bot, Dispatcher
+            from aiogram.webhook.aiohttp_server import SimpleRequestHandler
+            from aiogram.client.default import DefaultBotProperties
+            
+            self.tg_bot = Bot(token=tg_token, default=DefaultBotProperties(parse_mode="HTML"))
+            self.tg_dp = Dispatcher()
+            self._setup_telegram_handlers()
+            
+            webhook_handler = SimpleRequestHandler(dispatcher=self.tg_dp, bot=self.tg_bot)
+            webhook_handler.register(self.app, path="/webhook/telegram")
+            logger.info("📱 Webhook do Telegram registrado em /webhook/telegram")
+            
         self.http_site = None
         self.socket_server = None
 
@@ -185,6 +203,62 @@ class MenirSynapse:
         )
 
         return self._format_response(payload)
+
+    def _setup_telegram_handlers(self):
+        from aiogram import types, F
+        from src.v3.skills.menir_capture import MenirCapture
+        from src.v3.core.persistence import NodePersistenceOrchestrator
+        
+        async def _run_capture_task(chat_id: int, text: str, image_path: str, tenant_name: str, message_id: int):
+            with locked_tenant_context(tenant_name):
+                try:
+                    capture = MenirCapture(self.logos.intel if self.logos else None, NodePersistenceOrchestrator())
+                    success = await capture.ingest(text=text, current_tenant=tenant_name, image_path=image_path)
+                    
+                    if success:
+                        await self.tg_bot.send_message(
+                            chat_id=chat_id, 
+                            text="✅ Entendido. Memória salva no grafo com sucesso.",
+                            reply_to_message_id=message_id
+                        )
+                    else:
+                        await self.tg_bot.send_message(
+                            chat_id=chat_id, 
+                            text="❌ Não consegui compreender as informações desta mensagem para extrair uma memória.",
+                            reply_to_message_id=message_id
+                        )
+                except Exception as e:
+                    logger.error(f"Erro no processamento background Telegram: {e}")
+                    await self.tg_bot.send_message(
+                        chat_id=chat_id, 
+                        text="❌ Ocorreu um problema técnico ao processar sua mensagem. Tente novamente mais tarde.",
+                        reply_to_message_id=message_id
+                    )
+                finally:
+                    if image_path and os.path.exists(image_path):
+                        try:
+                            os.remove(image_path)
+                        except:
+                            pass
+
+        @self.tg_dp.message(F.text)
+        async def handle_tg_text(message: types.Message):
+            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+            text = message.text or ""
+            asyncio.create_task(_run_capture_task(message.chat.id, text, None, tenant_name, message.message_id))
+            
+        @self.tg_dp.message(F.photo)
+        async def handle_tg_photo(message: types.Message):
+            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+            caption = message.caption or "Analise esta imagem em busca de detalhes importantes."
+            
+            photo = message.photo[-1]
+            file = await self.tg_bot.get_file(photo.file_id)
+            os.makedirs("tmp_media", exist_ok=True)
+            local_path = f"tmp_media/{photo.file_id}.jpg"
+            await self.tg_bot.download_file(file.file_path, local_path)
+            
+            asyncio.create_task(_run_capture_task(message.chat.id, caption, local_path, tenant_name, message.message_id))
 
     # --- HTTP INTERFACE (WEB_UI / AI) ---
     async def handle_auth_token_http(self, request):

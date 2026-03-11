@@ -26,7 +26,11 @@ class locked_tenant_context:
     """
 
     def __init__(self, tenant_id: str):
-        if tenant_id not in ALLOWED_TENANTS:
+        import os
+        personal_tenant = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL").strip()
+        self.ALLOWED_TENANTS = {"BECO", personal_tenant}
+        
+        if tenant_id not in self.ALLOWED_TENANTS:
             raise SecurityContextError(
                 f"TENANT FORGERY: '{tenant_id}' não é um tenant reconhecido pelo Kernel."
             )

@@ -1,155 +1,303 @@
-import logging
 import asyncio
+import logging
 from typing import Any
-from src.v3.core.schemas.personal import PersonalGraphPayload
+
 from src.v3.menir_intel import MenirIntel
-from src.v3.meta_cognition import MenirOntologyManager
-from src.v3.core.schemas.identity import TenantContext
+from src.v3.core.persistence import NodePersistenceOrchestrator
+from src.v3.core.embedding_service import EmbeddingService
+from src.v3.core.neo4j_pool import get_shared_driver
+from src.v3.core.schemas.identity import locked_tenant_context
+
+from src.v3.core.schemas.personal import (
+    CaptureResponse,
+    PersonNode,
+    ProjectNode,
+    LifeEventNode,
+    InsightNode,
+    GoalNode
+)
 
 logger = logging.getLogger("MenirCapture")
+logger.setLevel(logging.INFO)
+
+SIMILARITY_MERGE_THRESHOLD = 0.95
+SIMILARITY_HITL_THRESHOLD = 0.85
 
 class MenirCapture:
     """
-    Skill V2: Captura pessoal e ontologia com desambiguação vetorial.
-    Sprint 2A Requirement:
-    - Camada 1: Lowercase + Strip via Pydantic validator (PersonalGraphPayload)
-    - Camada 2: Neo4j Vector Index Cosine > 0.92 pré-MERGE
+    Skill V2: Captura pessoal e ontologia com desambiguação vetorial de dois estágios (Mem0-like).
+    Regras INVIOLÁVEIS:
+    1. Desambiguação por grafo antes de criar.
+    2. Uma pergunta máxima por input.
+    3. Fronteira de tenant física (Cria REFERENCED_FROM cross-tenant).
+    4. Gravação exclusiva via NodePersistenceOrchestrator.
     """
-    def __init__(self, intel: MenirIntel, ontology_manager: MenirOntologyManager):
+    def __init__(self, intel: MenirIntel, orchestrator: NodePersistenceOrchestrator):
         self.intel = intel
-        self.ontology_manager = ontology_manager
-        self._init_personal_vector_index()
+        self.orchestrator = orchestrator
+        self._ensure_vector_indexes()
 
-    def _init_personal_vector_index(self):
-        query = """
-        CREATE VECTOR INDEX personal_vectors IF NOT EXISTS
-        FOR (e:PersonalEntity) ON (e.embedding)
-        OPTIONS {indexConfig: {
-            `vector.dimensions`: 768,
-            `vector.similarity_function`: 'cosine'
+    def _ensure_vector_indexes(self):
+        driver = get_shared_driver()
+        labels = ["PersonNode", "ProjectNode", "LifeEventNode", "InsightNode", "GoalNode"]
+        with driver.session() as session:
+            for label in labels:
+                index_name = f"{label.lower()}_intent_index"
+                query = f"""
+                CREATE VECTOR INDEX {index_name} IF NOT EXISTS
+                FOR (e:{label}) ON (e.embedding)
+                OPTIONS {{indexConfig: {{
+                    `vector.dimensions`: 768,
+                    `vector.similarity_function`: 'cosine'
+                }}}}
+                """
+                try:
+                    session.run(query)
+                except Exception as e:
+                    if "already exists" not in str(e).lower() and "equivalent" not in str(e).lower():
+                        logger.warning(f"Aviso ao criar index {index_name}: {e}")
+
+    async def ingest(self, text: str, current_tenant: str = None, image_path: str = None) -> dict:
+        import os
+        if current_tenant is None:
+            current_tenant = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+        print(f"\\n🧠 Interpretando com MenirIntel no Tenant: {current_tenant}...")
+        
+        prompt = f"""
+        Extraia as principais entidades do seguinte pensamento ou insight pessoal.
+        Avalie o 'impact_score' de 1 a 10 para classificar a importância central dessa entidade no texto.
+        RETORNE ESTRITAMENTE UM JSON com a seguinte estrutura:
+        {{
+            "entities": [
+                {{
+                    "entity_type": "Person" | "Project" | "LifeEvent" | "Insight" | "Goal",
+                    "name_or_title": "nome principal",
+                    "context": "contexto para desambiguacao",
+                    "impact_score": 10
+                }}
+            ]
         }}
+        ---
+        "{text}"
         """
+        
+        contents_to_send = [prompt]
+        if image_path and os.path.exists(image_path):
+            try:
+                from PIL import Image
+                img = Image.open(image_path)
+                contents_to_send.append(img)
+                print(f"🖼 Anexando documento visual ao contexto cognitivo...")
+            except Exception as e:
+                print(f"⚠️ Erro ao carregar imagem para o Gemini: {e}")
+                
         try:
-            with self.ontology_manager.driver.session() as session:
-                session.run(query)
-                logger.info("✅ Native Vector Index 'personal_vectors' garantido para MenirCapture.")
+            from google.genai import types
+            
+            # Use structured output
+            response = self.intel.client.models.generate_content(
+                model=self.intel.model_id,
+                contents=contents_to_send,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.0
+                ),
+            )
+            payload_json = response.text
+            payload = CaptureResponse.model_validate_json(payload_json)
         except Exception as e:
-            if "already exists" in str(e).lower() or "equivalent" in str(e).lower():
-                pass
-            else:
-                logger.warning(f"Aviso na inicialização do Vector Index Pessoal: {e}")
-
-    async def _safe_vector_search(self, embedding: list[float], tenant_safe: str, min_score: float = 0.92) -> dict | None:
-        """
-        Consulta o Vector Index das Entidades Pessoais usando GDS Vector native.
-        """
-        query = f"""
-        CALL db.index.vector.queryNodes('personal_vectors', 1, $embedding)
-        YIELD node, score
-        WHERE score >= $min_score AND '{tenant_safe}' IN labels(node)
-        RETURN node.name as name, labels(node) as labels, score
-        """
-        def _run():
-            with self.ontology_manager.driver.session() as session:
-                return session.run(query, embedding=embedding, min_score=min_score).single()
-        
-        result = await asyncio.to_thread(_run)
-        if result:
-            return {"name": result["name"], "score": result["score"]}
-        return None
-
-    async def ingest_insight(self, raw_text: str) -> dict[str, Any]:
-        tenant = TenantContext.get()
-        if not tenant:
-            raise ValueError("Isolamento violado. Nenhum Tenant ativo configurado para Captura Pessoal.")
+            print(f"❌ Erro na extração LLM: {e}")
+            return {"success": False}
             
-        safe_tenant = tenant.replace("`", "")
-
-        logger.info(f"🧠 [MenirCapture] Processando Insight Pessoal para Tenant {tenant}")
+        print(f"✨ Entidades extraídas: {len(payload.entities)}")
         
-        prompt = f"""Extraia a ontologia do seguinte pensamento ou insight pessoal:
----
-\"{raw_text}\"
----
-Extraia o mais puramente possível focando em substantivos limpos ou entidades curtas."""
-
-        payload: PersonalGraphPayload = await self.intel.structured_inference(
-            prompt=prompt,
-            response_schema=PersonalGraphPayload
-        )
-
-        # Injeção Cypher com Camada 2
-        nodes_dispatched = []
-        requires_disambiguation_count = 0
-
-        # Mapeamento do nome gerado para o nome real consolidado no banco (se desambiguado)
-        name_resolution_map = {}
-
+        # Estrutura de HITL
+        hitl_candidates = []
+        actions_to_take = [] # list of dicts with entity details
+        
+        # Etapa 1: Recall Vetorial (Fast Match)
         for entity in payload.entities:
-            # Pydantic já garantiu: lower() + strip().
-            entity_name = entity.name
+            query_text = f"{entity.name_or_title} {entity.context}"
+            label_node = f"{entity.entity_type}Node"
             
-            # Gera embedding da entidade
-            embedding = await asyncio.to_thread(self.intel.generate_embedding, entity_name)
+            # Buscar no tenant atual
+            matches_current = await EmbeddingService.semantic_search(query_text, label_node, current_tenant, top_k=1)
+            best_match = matches_current[0] if matches_current else None
             
-            # Checagem de Similaridade Vetorial (Cosine > 0.92)
-            similar_node = await self._safe_vector_search(embedding, safe_tenant, min_score=0.92)
+            if best_match and best_match['score'] >= SIMILARITY_MERGE_THRESHOLD:
+                print(f"🔍 Similaridade {best_match['score']:.2f} (>{SIMILARITY_MERGE_THRESHOLD}) - Match exato encontrado em {current_tenant}: {best_match['name']}")
+                actions_to_take.append({
+                    "action": "MERGE",
+                    "entity": entity,
+                    "target_uid": best_match['id'],
+                    "target_name": best_match['name']
+                })
+                continue
+                
+            if best_match and best_match['score'] >= SIMILARITY_HITL_THRESHOLD:
+                # Ambiguidade dentro do próprio tenant
+                hitl_candidates.append({
+                    "action": "HITL_CURRENT",
+                    "entity": entity,
+                    "target_uid": best_match['id'],
+                    "target_name": best_match['name'],
+                    "score": best_match['score']
+                })
+                continue
+                
+            # Se não encontrou no current_tenant, ou similiaridade < HITL, checar Cross-Tenant BECO (Rule 3)
+            # Para este MVP, verificamos "BECO" se estamos no "SANTOS".
+            other_tenant = "BECO" if current_tenant == "SANTOS" else "SANTOS"
+            matches_other = await EmbeddingService.semantic_search(query_text, label_node, other_tenant, top_k=1)
+            best_other = matches_other[0] if matches_other else None
             
-            async def _merge_cypher(sim, emb):
-                with self.ontology_manager.driver.session() as session:
-                    if sim and sim["name"].lower() != entity_name:
-                        # Acima do limiar (0.92), mas nome não é exatamente idêntico (ex: "maternidade" vs "maternidades")
-                        # Liga o conceito existente com a Flag V0, NÃO cria nó novo.
-                        existing_name = sim["name"]
-                        q_disambiguate = f"""
-                        MATCH (e:PersonalEntity:`{safe_tenant}` {{name: $existing_name}})
-                        SET e.needs_v0_review = true, e.last_ambiguous_alias = $name
-                        SET e:NEEDS_DISAMBIGUATION
-                        """
-                        session.run(q_disambiguate, existing_name=existing_name, name=entity_name)
-                        logger.warning(f"⚠️ Ambiguidade Detectada: '{entity_name}' é 0.92+ similar a '{existing_name}'. Nó existente linkado com Flag V0.")
-                        return existing_name, True
-                    else:
-                        # Inserção Normal Segura (Abaixo do limiar ou Match Exato onde Cypher MERGE funde tranquilamente)
-                        q_normal = f"""
-                        MERGE (e:PersonalEntity:{entity.entity_type}:`{safe_tenant}` {{name: $name}})
-                        SET e.embedding = $emb
-                        """
-                        if entity.description:
-                            q_normal = q_normal.replace("SET e.embedding = $emb", "SET e.embedding = $emb, e.description = $desc")
-                        session.run(q_normal, name=entity_name, emb=emb, desc=entity.description)
-                        return entity_name, False
-
-            final_name, disambiguated = await _merge_cypher(similar_node, embedding)
-            name_resolution_map[entity.name] = final_name
-            nodes_dispatched.append(final_name)
-            if disambiguated:
-                requires_disambiguation_count += 1
+            if best_other and best_other['score'] >= SIMILARITY_MERGE_THRESHOLD:
+                print(f"🔒 Limite de Tenant Atingido. Entidade '{entity.name_or_title}' existe no {other_tenant} (Score {best_other['score']:.2f}).")
+                actions_to_take.append({
+                    "action": "VIRTUAL_CROSS",
+                    "entity": entity,
+                    "target_uid": best_other['id'],
+                    "target_name": best_other['name'],
+                    "target_tenant": other_tenant
+                })
+                continue
+                
+            if best_other and best_other['score'] >= SIMILARITY_HITL_THRESHOLD:
+                hitl_candidates.append({
+                    "action": "HITL_CROSS",
+                    "entity": entity,
+                    "target_uid": best_other['id'],
+                    "target_name": best_other['name'],
+                    "target_tenant": other_tenant,
+                    "score": best_other['score']
+                })
+                continue
+                
+            # Se chegou aqui, é NOVO (Similaridade muito baixa)
+            max_score =  max((best_match['score'] if best_match else 0.0), (best_other['score'] if best_other else 0.0))
+            print(f"✨ Nova Entidade Inferida: {entity.entity_type}({entity.name_or_title}). Similaridade Máxima Encontrada: {max_score:.2f} (<{SIMILARITY_HITL_THRESHOLD}).")
+            actions_to_take.append({
+                "action": "CREATE",
+                "entity": entity,
+                "trust_score": 0.9 # Seguro pois é inédito
+            })
+            
+        # Etapa 2: Resolução de HITL (Max 1 pergunta)
+        pending_hitl_context = None
+        if hitl_candidates:
+            # Ordena por impacto da entidade central no texto
+            hitl_candidates.sort(key=lambda x: x["entity"].impact_score, reverse=True)
+            
+            prime_candidate = hitl_candidates[0]
+            ent = prime_candidate["entity"]
+            print(f"⚠️ Ambiguidade Detectada: Extraído {ent.entity_type}({ent.name_or_title})")
+            
+            pending_hitl_context = prime_candidate
+            
+            # Tratar os demais HITL como Dúvida Silenciosa
+            for rem in hitl_candidates[1:]:
+                print(f"⚠️ Ignorando ambiguidade de {rem['entity'].name_or_title} para evitar múltiplas perguntas (Rule 2). Marcando com trust_score = 0.2")
+                actions_to_take.append({"action": "CREATE", "entity": rem["entity"], "trust_score": 0.2})
+                
+        # Persist ALL other actions asyncly
+        await self._persist_actions(actions_to_take, current_tenant)
         
-        # Conecta os Edges usando o Mapa de Resolução
-        for rel in payload.relationships:
-            resolved_source = name_resolution_map.get(rel.source_name, rel.source_name)
-            resolved_target = name_resolution_map.get(rel.target_name, rel.target_name)
-            
-            safe_rel_type = rel.relation_type.replace("`", "").replace(" ", "_").upper()
-            
-            q_rel = f"""
-            MATCH (a:PersonalEntity:`{safe_tenant}` {{name: $src}})
-            MATCH (b:PersonalEntity:`{safe_tenant}` {{name: $tgt}})
-            MERGE (a)-[r:`{safe_rel_type}`]->(b)
-            SET r.project = $tenant_safe
-            """
-            
-            def _run_rel():
-                with self.ontology_manager.driver.session() as session:
-                    session.run(q_rel, src=resolved_source, tgt=resolved_target, tenant_safe=safe_tenant)
-            
-            await asyncio.to_thread(_run_rel)
+        return {"success": True, "hitl": pending_hitl_context}
 
-        return {
-            "success": True,
-            "nodes_processed": len(nodes_dispatched),
-            "edges_processed": len(payload.relationships),
-            "ambiguities_flagged_V0": requires_disambiguation_count,
-            "message": f"Extração Pessoal V2 completa: {len(nodes_dispatched)} entidades ({requires_disambiguation_count} p/ V0)."
-        }
+    async def resolve_hitl(self, hitl_context: dict, approved: bool, current_tenant: str):
+        actions_to_take = []
+        action_type = hitl_context["action"]
+        ent = hitl_context["entity"]
+        t_name = hitl_context["target_name"]
+        
+        if approved:
+            if action_type == "HITL_CURRENT":
+                actions_to_take.append({"action": "MERGE", "entity": ent, "target_uid": hitl_context["target_uid"], "target_name": t_name})
+            else:
+                actions_to_take.append({
+                    "action": "VIRTUAL_CROSS",
+                    "entity": ent,
+                    "target_uid": hitl_context["target_uid"],
+                    "target_name": t_name,
+                    "target_tenant": hitl_context["target_tenant"]
+                })
+        else:
+            actions_to_take.append({"action": "CREATE", "entity": ent, "trust_score": 0.9})
+            
+        await self._persist_actions(actions_to_take, current_tenant)
+
+    async def _persist_actions(self, actions_to_take: list, current_tenant: str):
+        # Corrigindo bloco de execução async para o Orchestrator
+        with locked_tenant_context(current_tenant):
+            driver = get_shared_driver()
+            with driver.session() as session:
+                with session.begin_transaction() as tx:
+                    for act in actions_to_take:
+                        ent = act["entity"]
+                        node_obj = None
+                        
+                        if ent.entity_type == "Person":
+                            node_obj = PersonNode(uid="", project=current_tenant, name=act.get("target_name", ent.name_or_title), role_or_context=ent.context, trust_score=act.get("trust_score", 0.9))
+                        elif ent.entity_type == "Project":
+                            node_obj = ProjectNode(uid="", project=current_tenant, name=act.get("target_name", ent.name_or_title), description=ent.context)
+                        elif ent.entity_type == "LifeEvent":
+                            node_obj = LifeEventNode(uid="", project=current_tenant, title=act.get("target_name", ent.name_or_title))
+                        elif ent.entity_type == "Insight":
+                            node_obj = InsightNode(uid="", project=current_tenant, content=act.get("target_name", ent.name_or_title), source_context=ent.context)
+                        elif ent.entity_type == "Goal":
+                            node_obj = GoalNode(uid="", project=current_tenant, title=act.get("target_name", ent.name_or_title))
+                        else:
+                            continue
+                            
+                        if act["action"] == "MERGE":
+                            node_obj.uid = act["target_uid"]
+                            print(f"✅ UPDATE/MERGE ({ent.entity_type}: {ent.name_or_title}) -> [{current_tenant}]")
+                        elif act["action"] == "VIRTUAL_CROSS":
+                            node_obj.is_virtual = True
+                            node_obj.referenced_tenant = act["target_tenant"]
+                            node_obj.referenced_uid = act["target_uid"]
+                            print(f"✅ VIRTUAL NODE ({ent.name_or_title}) -> [:REFERENCED_FROM] -> {act['target_tenant']}")
+                        elif act["action"] == "CREATE":
+                            print(f"✅ CREATE ({ent.entity_type}: {ent.name_or_title}) -> [{current_tenant}]")
+                            
+                        # Await the persistence
+                        await self.orchestrator.persist(node_obj, tx)
+                        
+                        # Generate Embedding for the newly created/merged node
+                        node_text_for_embed = f"{ent.name_or_title} {getattr(node_obj, 'role_or_context', '')} {getattr(node_obj, 'description', '')}"
+                        asyncio.create_task(
+                            EmbeddingService.embed_and_persist(node_obj.uid, node_text_for_embed, f"{ent.entity_type}Node", current_tenant)
+                        )
+
+async def _cli_loop():
+    import os
+    tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+    intel = MenirIntel()
+    orch = NodePersistenceOrchestrator()
+    capture = MenirCapture(intel, orch)
+    
+    print("\n[ MENIR CAPTURE (SANTOS DOMAIN) - INTERACTIVE MODE ]\n")
+    while True:
+        try:
+            await asyncio.sleep(1.0) # wait for background embedding tasks
+            line = await asyncio.to_thread(input, "\n[User] > ")
+            if not line.strip():
+                continue
+            if line.strip().lower() in ['exit', 'quit']:
+                break
+            
+            res = await capture.ingest(line, tenant_name)
+            if res and res.get("hitl"):
+                hc = res["hitl"]
+                t_name = hc["target_name"]
+                ans = await asyncio.to_thread(input, f"❓ Você está se referindo a '{t_name}'? [Y/N]: ")
+                approved = ans.strip().lower() == 'y'
+                await capture.resolve_hitl(hc, approved, tenant_name)
+                
+        except EOFError:
+            break
+            
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
+    asyncio.run(_cli_loop())
