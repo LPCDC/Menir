@@ -69,12 +69,23 @@ def check_neo4j_health():
     if not HAS_NEO4J:
         return "MenirOntologyManager indisponível (dependência Neo4j não carregada no script)."
     
-    try:
-        # Tentar instanciar sem kwargs duros caso .env já tenha
+    import concurrent.futures
+
+    def _connect():
         manager = MenirOntologyManager()
-        is_healthy = manager.check_system_health()
+        result = manager.check_system_health()
         manager.close()
-        return "ONLINE (Nós vitais ativos)" if is_healthy else "DEGRADADO (Falhas detectadas)"
+        return result
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_connect)
+            try:
+                is_healthy = future.result(timeout=5)
+                return "ONLINE (Nós vitais ativos)" if is_healthy else "DEGRADADO (Falhas detectadas)"
+            except concurrent.futures.TimeoutError:
+                print("⚠️  [HealthScan] Neo4j não respondeu em 5s — hook continua sem bloquear.")
+                return "TIMEOUT (Neo4j indisponível — commit não bloqueado)"
     except Exception as e:
         return f"OFFLINE ou Erro de conexão: {e}"
 
