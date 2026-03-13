@@ -64,6 +64,9 @@ MENIR-P46-20260312-PHASE46_STEP3
 | ✅ | Relocadas pendências do pdf_classifier com mock de SCANNED, HYBRID e DIGITAL |
 | ✅ | Remoção dos containers orfãos (competent_wescoff, vigorous_black) reportados offline |
 | ✅ | Nova secção de CAPACIDADES NATIVAS adicionadas ao protócolo `_gemini.md` |
+| ✅ | Regra TDD Zona Vermelha adicionada ao `MENIR_ARCHITECT_BRIEF.md` |
+| ✅ | Timeout 5s no Neo4j health check do pós-commit (`menir_health_scan.py`) |
+| ✅ | Crésus Exporter com TVA Extended Format + idempotência `[:RECONCILED exported=True]` |
 
 ---
 
