@@ -128,23 +128,30 @@ class CresusExporter:
             # O TODO de :[RECONCILED] para {exported: True} se mantém.
 
         logger.info(f"✅ [CresusExporter] Arquivo TSV Extended (TVA) gerado: {filepath}")
+
+        # Marcar aresta [:RECONCILED] como exported=True para garantir idempotência.
+        # Apenas chamado após a escrita do arquivo confirmar sucesso.
+        edge_ids = [r["edge_id"] for r in records if r.get("edge_id")]
+        if edge_ids:
+            await asyncio.to_thread(self._mark_exported, edge_ids)
+
         return filepath
 
     def _fetch_reconciled_graph(self, tenant: str) -> list:
         """Synchronous Worker running inside asyncio.to_thread"""
         # Notice we extract the invoice amount just to be sure, and the vendor properties
-        query = f"""
+        query = """
         // SECURITY: Parameter $tenant is injected strictly by isolated ContextVar upstream.
         // It never comes from direct user input.
-        MATCH (t:Tenant {{name: $tenant}})-[:RECEIVED]->(i:Invoice)-[r:RECONCILED]->(tr:Transaction)
+        MATCH (t:Tenant {name: $tenant})-[:RECEIVED]->(i:Invoice)-[r:RECONCILED]->(tr:Transaction)
         MATCH (v:Vendor)-[:ISSUED]->(i)
-        // Add safeguard to only pick un-exported, mocked for now
-        // WHERE r.exported IS NULL
+        WHERE r.exported IS NULL
         RETURN i.issue_date AS issue_date,
                i.total_amount AS total_amount,
                i.line_items_json AS line_items_json,
                v.name AS vendor_name,
-               v.cresus_account_id AS cresus_account_id
+               v.cresus_account_id AS cresus_account_id,
+               elementId(r) AS edge_id
         """
         try:
             with self.ontology_manager.driver.session() as session:
@@ -154,6 +161,22 @@ class CresusExporter:
         except Exception as e:
             logger.exception(f"Failed Cypher Reconciled Extraction: {e}")
             return []
+
+    def _mark_exported(self, edge_ids: list[str]) -> None:
+        """Flags :RECONCILED edges as exported to guarantee idempotência.
+        Runs synchronously inside asyncio.to_thread after successful file write.
+        """
+        query = """
+        UNWIND $edge_ids AS eid
+        MATCH ()-[r:RECONCILED]->() WHERE elementId(r) = eid
+        SET r.exported = true, r.exported_at = datetime()
+        """
+        try:
+            with self.ontology_manager.driver.session() as session:
+                session.run(query, edge_ids=edge_ids)
+            logger.info(f"📦 [CresusExporter] {len(edge_ids)} arestas [:RECONCILED] marcadas como exported=True.")
+        except Exception as e:
+            logger.exception(f"Failed to mark edges as exported: {e}")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260311-PHASE46_STEP2
+MENIR-P46-20260312-PHASE46_STEP3
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -19,8 +19,8 @@ MENIR-P46-20260311-PHASE46_STEP2
 
 ## 📍 FASE ATUAL
 - **Fase:** 46
-- **Etapa:** Step 2 (Dashboard Quarantine Loop) Completada. Aguardando autorização para Step 3 (Crésus Exporter).
-- **Status:** React UI e endpoints do FastAPI para Quarantine Inbox implementados com Strict Tenant Isolation via ContextVars. QA rodado com sucesso no Agent do Browser.
+- **Etapa:** Step 3 (Crésus Exporter) Completada. Exporter funcional com idempotência via `exported=True` nas arestas [:RECONCILED].
+- **Status:** TVA Extended Format (.txt TSV) operacional. Mapeamento `cresus_account_id` progressivo via Nicole no Dashboard de Quarentena.
 - **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
 
 ---
@@ -72,8 +72,8 @@ MENIR-P46-20260311-PHASE46_STEP2
 | ID | Arquivo | Problema | Risco |
 |----|---------|---------|-------|
 | R1 | `invoice_skill.py` | Fixture PDF real da Nicole ainda não processada | 🔴 REVENUE BLOCKER |
-| R2 | `cresus_exporter.py` | Não revisado contra formato .cre real | 🟠 EXPORT BLOCKER |
-| R3 | Dashboard | Dashboard de quarentena não validado em browser | 🟡 UX BLOCKER |
+| ~~R2~~ | ~~`cresus_exporter.py`~~ | ~~Não revisado contra formato .cre real~~ | ✅ RESOLVIDO — TVA Extended + Idempotência |
+| ~~R3~~ | ~~Dashboard~~ | ~~Dashboard de quarentena não validado em browser~~ | ✅ RESOLVIDO — Browser Agent QA ativo |
 
 ---
 
