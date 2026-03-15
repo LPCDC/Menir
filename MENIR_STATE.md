@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260315-PHASE46_STEP4_TASK0
+MENIR-P46-20260315-PHASE46_STEP4_TASK1
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -20,7 +20,7 @@ MENIR-P46-20260315-PHASE46_STEP4_TASK0
 ## 📍 FASE ATUAL
 - **Fase:** 46
 - **Etapa:** Step 4 (BECO Fixture - Swiss QR Parsing)
-- **Status:** Task 0 concluída (Dependências QR: pyzbar, pypdfium2, opencv-headless instaladas).
+- **Status:** Task 0 (Deps) e Task 1 (SwissQRParser via TDD) concluídas. Aguardando aprovação para Task 2.
 - **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
 
 ---
