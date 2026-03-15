@@ -40,3 +40,8 @@ python-dotenv>=1.0.1
 # --- Security ---
 PyJWT>=2.8.0
 aiolimiter==1.2.1
+
+# --- QR & Image Extraction ---
+pyzbar>=0.1.9
+pypdfium2>=4.30.0
+opencv-python-headless>=4.10.0
