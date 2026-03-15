@@ -15,8 +15,6 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Import Horizon 3 Engines
 try:
-    from src.v3.forensic_auditor import ForensicAuditor
-    from src.v3.shacl_validator import BIMValidator
     from src.v3.narrative_verifier import NarrativeVerifier, TLAInvariantException
     H3_MODULES_AVAILABLE = True
 except ImportError as e:
@@ -112,34 +110,7 @@ async def chat(payload: dict = Body(...), token: str = Security(verify_token)):
 # ==========================================
 # Horizon 3 Cognitive Endpoints
 # ==========================================
-@app.post('/tools/fraud_audit')
-async def fraud_audit(payload: dict = Body(...), token: str = Security(verify_token)):
-    if not H3_MODULES_AVAILABLE:
-        raise HTTPException(status_code=501, detail="Forensic Auditor unavailable")
-        
-    project_id = payload.get("project_id", "GatoMia_Default")
-    max_depth = payload.get("max_depth", 4)
-    
-    auditor = ForensicAuditor(project_id)
-    findings = auditor.discover_fraud_rings(max_depth=max_depth)
-    
-    append_log("fraud_audit", {"project": project_id, "findings_count": len(findings)})
-    return {"status": "success", "anomalies_detected": findings}
-
-@app.post('/tools/bim_validate')
-async def bim_validate(payload: dict = Body(...), token: str = Security(verify_token)):
-    if not H3_MODULES_AVAILABLE:
-        raise HTTPException(status_code=501, detail="SHACL Validator unavailable")
-        
-    project_id = payload.get("project_id", "Otani_Default")
-    validator = BIMValidator(project_id)
-    
-    try:
-        violations = validator.validate_building_codes()
-        append_log("bim_validate", {"project": project_id, "violations": len(violations)})
-        return {"status": "success", "compliance_passed": len(violations) == 0, "violations": violations}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# Legacy endpoints fraud_audit and bim_validate removed to sanitize missing zombie imports
 
 @app.post('/tools/verify_narrative')
 async def verify_narrative(payload: dict = Body(...), token: str = Security(verify_token)):

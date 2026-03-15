@@ -93,7 +93,7 @@ FastAPI:                Confirmado ✅
 Embedding model:        gemini-embedding-001 (768-dim) ✅
 Inference model:        gemini-2.5-flash ✅
 vertexai imports:       REMOVIDOS ✅
-mypy errors:            59 residuais
+mypy errors:            139 residuais
 Skills proprietárias:   INSTALADAS ✅
 Sync infra:             INSTALADA ✅
 ```
