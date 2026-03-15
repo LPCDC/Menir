@@ -3,6 +3,8 @@ Menir Core V5.1 - Swiss QR Parser (SIX v2.3 Standard)
 Zero dependencias (Neo4j, FastAPI, Gemini). Módulo Puro de Domínio Contábil.
 """
 
+from decimal import Decimal, InvalidOperation
+
 class SwissQRParserError(Exception):
     pass
 
@@ -45,7 +47,11 @@ class SwissQRParser:
         # 12-18. Ultimate Creditor (Opcional - Avanca indices)
         # 19-20. Payment Amount and Currency
         amount_str = lines[18]
-        amount = float(amount_str) if amount_str else 0.0
+        try:
+            amount = Decimal(amount_str) if amount_str else Decimal("0.0")
+        except InvalidOperation:
+            raise SwissQRParserError(f"Valor do titulo (Amount) invalido: {amount_str}")
+            
         currency = lines[19]
         
         # 21-27. Debtor
@@ -78,6 +84,10 @@ class SwissQRParser:
         if trailer and trailer != "EPD":
             raise SwissQRParserError(f"Trailer invalido. Esperado EPD, recebido {trailer}")
         
+        
+        # Validacao compulsoria
+        self.validate_mod11(account, raise_error=True)
+        
         return {
             "account": account,
             "creditor": creditor,
@@ -92,17 +102,43 @@ class SwissQRParser:
 
     def validate_mod11(self, iban: str, raise_error: bool = False) -> bool:
         """
-        Validates the QR-IBAN with MOD11 logic as mandated by current spec directives.
+        Validates the QR-IBAN using the ISO 7064 MOD97-10 standard.
+        Algorithm:
+        1. Move first 4 characters to the end.
+        2. Replace letters A-Z with 10-35.
+        3. Check mod 97 == 1.
         """
-        # Emula um fail-scenario simulado na fixture de teste (terminado em 1)
-        # Na producao real aplicariamos checksum matematico se o modulus fosse 11 rigoroso.
-        numeric = ''.join(c for c in iban if c.isdigit())
-        
-        is_valid = True
-        if numeric.endswith('1'):
-            is_valid = False
-            
+        if len(iban) < 5:
+            if raise_error:
+                raise SwissQRParserError("QR-IBAN muito curto para validacao MOD11.")
+            return False
+
+        # 1. Puxa os 4 primeiros pro final
+        arranged = iban[4:] + iban[:4]
+
+        # 2. Converte letras em numeros
+        numeric_str = ""
+        for char in arranged:
+            if char.isdigit():
+                numeric_str += char
+            elif char.isalpha():
+                numeric_str += str(ord(char.upper()) - ord('A') + 10)
+            else:
+                if raise_error:
+                    raise SwissQRParserError(f"Caractere invalido no QR-IBAN: {char}")
+                return False
+
+        # 3. Calcula Modulo 97
+        try:
+            checksum = int(numeric_str) % 97
+        except ValueError:
+            if raise_error:
+                    raise SwissQRParserError("Erro no processamento numerico do QR-IBAN.")
+            return False
+
+        is_valid = (checksum == 1)
+
         if not is_valid and raise_error:
-            raise SwissQRParserError("Falha na validacao MOD11 do QR-IBAN detectada.")
-            
+            raise SwissQRParserError(f"Falha na validacao MOD11 (ISO 7064) do QR-IBAN: {iban}")
+
         return is_valid

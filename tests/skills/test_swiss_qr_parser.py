@@ -1,5 +1,10 @@
 import pytest
+from decimal import Decimal
 from src.v3.skills.swiss_qr_parser import SwissQRParser, SwissQRParserError
+
+# Real QR-IBAN from Swiss Style Guide (valid mod 97)
+VALID_QR_IBAN = "CH3600000000000000000"
+INVALID_QR_IBAN = "CH3600000000000000001"
 
 # A valid Style Guide payload (Type S structured addresses)
 # Contains 34 lines as per SIX v2.3 standard.
@@ -7,7 +12,7 @@ VALID_QRR_PAYLOAD = (
     "SPC\n"           # 1. QRType
     "0201\n"          # 2. Version
     "1\n"             # 3. Coding
-    "CH3330000000000000000\n" # 4. Account (QR-IBAN here)
+    f"{VALID_QR_IBAN}\n" # 4. Account (QR-IBAN here)
     "S\n"             # 5. Creditor Address Type (Structured)
     "Creditor Name\n" # 6. Name
     "Musterstrasse\n" # 7. Street
@@ -46,7 +51,7 @@ def test_parse_valid_qrr_payload():
     parser = SwissQRParser()
     result = parser.parse(VALID_QRR_PAYLOAD)
     
-    assert result["account"] == "CH3330000000000000000"
+    assert result["account"] == VALID_QR_IBAN
     assert result["creditor"]["name"] == "Creditor Name"
     assert result["creditor"]["address_type"] == "S"
     assert result["creditor"]["street"] == "Musterstrasse"
@@ -55,7 +60,7 @@ def test_parse_valid_qrr_payload():
     assert result["creditor"]["town"] == "Lausanne"
     assert result["creditor"]["country"] == "CH"
     
-    assert result["amount"] == 100.50
+    assert result["amount"] == Decimal("100.50")
     assert result["currency"] == "CHF"
     
     assert result["reference_type"] == "QRR"
@@ -83,12 +88,21 @@ def test_parse_detects_non():
     assert result["reference"] == ""
 
 def test_mod11_validation():
-    # As explicitly requested: "Deve validar QR-IBAN com MOD11"
+    # As explicitly requested: "Deve validar QR-IBAN com MOD11" ISO 7064
     parser = SwissQRParser()
-    # A mocked validate_mod11 function behavior
-    assert parser.validate_mod11("CH3330000000000000000") == True
+    
+    # Real valid ISO 7064 QR-IBAN
+    assert parser.validate_mod11(VALID_QR_IBAN) == True
     
     # Simulating a failure for a corrupted IBAN
     with pytest.raises(SwissQRParserError) as exc:
-        parser.validate_mod11("CH3330000000000000001", raise_error=True)
-    assert "Falha na validacao MOD11 do QR-IBAN" in str(exc.value)
+        parser.validate_mod11(INVALID_QR_IBAN, raise_error=True)
+    assert "Falha na validacao MOD11 (ISO 7064)" in str(exc.value)
+
+def test_parse_invalid_iban_rejects_payload():
+    parser = SwissQRParser()
+    invalid_payload = VALID_QRR_PAYLOAD.replace(VALID_QR_IBAN, INVALID_QR_IBAN)
+    
+    with pytest.raises(SwissQRParserError) as exc:
+        parser.parse(invalid_payload)
+    assert "Falha na validacao MOD11" in str(exc.value)
