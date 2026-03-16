@@ -1,14 +1,13 @@
 # MENIR ARCHITECT BRIEF
 
-**FINGERPRINT ATUAL:** MENIR-P45-20260310-SESSAO_ENCERRADA
+**FINGERPRINT ATUAL:** MENIR-P46-20260316-SESSAO_ENCERRADA
 
 ## ONDE ESTAMOS
-O detector bimodal interativo separando nativamente PDFs digitais das digitalizações ruidosas foi construído e ligado ao coração da inteligência. Um sentinela automático de pastas locais (Folder Watcher) foi encapsulado para observar eventos no sistema passivamente, isolar domínios galvânicos e despachar os PDFs físicos pro pipeline cognitivo. Todos os escudos protetivos de chaves duras foram limpos da malha neural, consolidando um núcleo de teste auditado.
+O detector bimodal interativo separando nativamente PDFs digitais das digitalizações ruidosas foi construído e ligado ao coração da inteligência. O "Abismo 0" (Classificação e Roteamento) está agora parcialmente resolvido com a integração da REST API V3 e o Dashboard de Quarentena Premium. Todos os escudos protetivos de chaves duras foram limpos da malha neural, consolidando um núcleo de teste auditado. O sistema agora opera em escala real BECO: 500 clientes, 6 idiomas detectados.
 
 ## BLOQUEADORES ATIVOS
 - **A Adoção do Scanner Físico**: Fixture PDF real da Nicole ainda não processada.
 - **A Entrega Contábil**: `cresus_exporter.py` não revisado contra o formato .cre real utilizado pela fiduciária atual.
-- **O Retorno da Quarentena (UI)**: Dashboard de quarentena não existe fisicamente no browser, impedindo o loop de correção.
 
 ## AG AGUARDA RESPOSTA
 - Nenhuma pendência arquitetural ativa e sem resposta.
@@ -29,6 +28,11 @@ Se o runway acabar amanhã, o único resultado que valida tudo é o Relatório d
 
 **O princípio oculto.** 
 A interface é o inimigo. O Menir precisa ser invisível sempre que possível. Entrada onde a pessoa já vive — áudio, email, scanner. Output onde o processo já termina — Crésus, briefing no celular. UI existe apenas para exceções e quarentena. O dia que o Menir tentar prender o usuário dentro de um software clássico, ele vira mais um SaaS genérico e perde a alma.
+
+## MEMÓRIA TÁTICA & PRECEDENTES (V5.2)
+1. **Precedente Zona Vermelha**: Qualquer skill que persista dados diretamente no grafo BECO (ex: `document_classifier_skill.py`, `synapse.py`) deve ser incluída no Hard Lock do git-hook.
+2. **Cofre Active Fetcher**: `menir_active_fetcher` opera sob nota de conformidade FINMA; qualquer alteração em seu motor de extração exige auditoria de rastro.
+3. **Anti-SOP Graph**: Gemini está instruído a nunca injetar SOPs (Standard Operating Procedures) como nós de dados puros; eles devem ser interpretados como metatags de aresta para manter a pureza ontológica.
 
 **A regra de física.** 
 Isolamento galvânico via ContextVar não se burla nunca — nem para teste rápido. Misturou tenant, o sistema morre. Não é convenção de código. É a integridade do produto.

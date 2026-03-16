@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260316-PHASE46_STEP4_TASK6
+MENIR-P46-20260316-SESSAO_ENCERRADA
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -19,8 +19,8 @@ MENIR-P46-20260316-PHASE46_STEP4_TASK6
 
 ## 📍 FASE ATUAL
 - **Fase:** 46
-- **Etapa:** Step 4 (BECO Fixture - Swiss QR Parsing)
-- **Status:** Etapa 4 concluída (Tarefas 0-6). Pipeline QR, Sanitização, Bootstrap e Echo Test validados.
+- **Etapa:** Step 4 (BECO Fixture - Swiss Ingestion - Abismo 0 Fully Resolved)
+- **Status:** Etapa 4 concluída. Pipeline QR, Sanitização, Dashboard de Quarentena e Exportação Crésus validados.
 - **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
 
 ---
@@ -35,6 +35,10 @@ MENIR-P46-20260316-PHASE46_STEP4_TASK6
   - [x] **Tarefa 4**: Sanitização de Clientes (`sanitize_clients.py`) com validação MOD97-10.
   - [x] **Tarefa 5**: Bootstrap de Clientes BECO (`bootstrap_beco_clients.py`) com injeção UNWIND Cypher.
   - [x] **Tarefa 6**: Echo Test (`run_echo_test.py`) com PDFs sintéticos e relatório `echo_report_beco.json`.
+  - [x] **Tarefa 7**: Consolidação e Exposição REST (`POST /api/classify/document`) integrada ao `synapse.py`.
+  - [x] **Tarefa 8**: Dashboard de Quarentena Premium & Promoção de Nós.
+  - [x] **Tarefa 9**: Fix Crésus Export (204 No Content).
+  - [x] **Tarefa 10**: Fix post-commit blocking hooks (Background).
 
 ---
 
