@@ -11,6 +11,8 @@ import logging
 import time
 import os
 import jwt
+import uuid
+import hashlib
 from dataclasses import dataclass, field
 
 from aiohttp import web
@@ -18,6 +20,9 @@ from aiohttp import web
 from src.v3.core.logos import CommandPayload, MenirLogos
 from src.v3.core.schemas.identity import TenantContext, locked_tenant_context
 from src.v3.mcp_server import MenirMCPServer
+from src.v3.skills.document_classifier_skill import DocumentClassifierSkill, DocumentClassification
+from src.v3.core.persistence import NodePersistenceOrchestrator
+from src.v3.core.schemas.base import Document, QuarantineItem, DocumentStatus
 
 logger = logging.getLogger("MenirSynapse")
 
@@ -81,6 +86,8 @@ class MenirSynapse:
                 web.post("/mcp", self.mcp_server.handle_mcp_request),
                 web.get("/api/v3/documents/quarantine", self.handle_get_quarantine),
                 web.post("/api/v3/documents/{id}/retry", self.handle_retry_document),
+                web.post("/api/export/cresus", self.handle_export_cresus),
+                web.post("/api/v3/classify/document", self.handle_classify_document),
             ]
         )
         
@@ -103,7 +110,6 @@ class MenirSynapse:
             
             if os.getenv("TELEGRAM_LONG_POLLING") == "1":
                 # Only for regression and local testing
-                import asyncio
                 asyncio.create_task(self.tg_dp.start_polling(self.tg_bot))
                 logger.info("⚡ Telegram Bot iniciado também em modo LONG POLLING para desenvolvimento.")
                 
@@ -140,7 +146,6 @@ class MenirSynapse:
                     logger.info("▶️  Ingestion RESUMIDA via CommandBus.")
 
                 elif action == "FLUSH_QUARANTINE":
-                    import asyncio
                     await asyncio.to_thread(self.runner.flush_quarantine)
                     logger.info("🗑️  Quarentena liberada via CommandBus.")
 
@@ -212,7 +217,6 @@ class MenirSynapse:
         return self._format_response(payload)
 
     def _setup_telegram_handlers(self):
-        import uuid
         from aiogram import types, F
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         from src.v3.skills.menir_capture import MenirCapture
@@ -509,6 +513,22 @@ class MenirSynapse:
              
         return web.json_response({"success": True, "message": "Document marked as PENDING and flagged for retry."})
 
+    async def handle_export_cresus(self, request):
+        target_tenant = TenantContext.get() or "BECO"
+        
+        try:
+            from src.v3.core.cresus_exporter import CresusExporter
+            exporter = CresusExporter(self.runner.ontology_manager)
+            
+            export_path = await exporter.export_reconciled(tenant=target_tenant)
+            if not export_path:
+                return web.json_response({"error": "Nenhum documento novo reconciliado para exportação."}, status=404)
+                
+            return web.json_response({"success": True, "file_path": export_path})
+        except Exception as e:
+            logger.exception("Cresus Export Failed")
+            return web.json_response({"error": str(e)}, status=500)
+
 
     # --- SOCKET INTERFACE (CLI_LOCAL) ---
     async def handle_socket_client(
@@ -547,7 +567,101 @@ class MenirSynapse:
         writer.close()
         await writer.wait_closed()
 
-    # --- SERVER SPAWNERS ---
+    async def handle_classify_document(self, request):
+        auth_header = request.headers.get("Authorization", "")
+        token = auth_header.replace("Bearer ", "").strip()
+        jwt_secret = os.getenv("MENIR_JWT_SECRET")
+        target_tenant = "BECO"
+        
+        try:
+            if token and jwt_secret:
+                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+                target_tenant = payload.get("tenant_id", "BECO")
+        except jwt.PyJWTError:
+             # Fallback logic mirroring handle_command_http
+             if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
+                 return web.json_response({"error": "Unauthorized"}, status=401)
+             if "SANTOS" in token:
+                 target_tenant = "SANTOS"
+
+        reader = await request.multipart()
+        field = await reader.next()
+        if not field or field.name != 'file':
+            return web.json_response({"error": "Missing 'file' field"}, status=400)
+
+        filename = field.filename or "uploaded_document.pdf"
+        os.makedirs("tmp_uploads", exist_ok=True)
+        file_path = os.path.join("tmp_uploads", f"{uuid.uuid4()}_{filename}")
+        
+        sha256_hash = hashlib.sha256()
+        
+        with open(file_path, "wb") as f:
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                f.write(chunk)
+                sha256_hash.update(chunk)
+        
+        file_sha = sha256_hash.hexdigest()
+
+        try:
+            classifier = DocumentClassifierSkill(self.logos.intel)
+            classification = await classifier.classify_document(file_path)
+            
+            is_quarantine = classification.confidence < 0.7
+            persisted_uid = None
+            
+            with locked_tenant_context(target_tenant):
+                orchestrator = NodePersistenceOrchestrator()
+                with self.runner.ontology_manager.driver.session() as session:
+                    if is_quarantine:
+                        node = QuarantineItem(
+                            uid=str(uuid.uuid4()),
+                            project=target_tenant,
+                            name=filename,
+                            file_hash=file_sha,
+                            reason="LOW_CONFIDENCE",
+                            quarantined_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                            document_type=classification.document_type,
+                            confidence=classification.confidence,
+                            language=classification.language,
+                            origin="UPLOAD"
+                        )
+                    else:
+                        node = Document(
+                            uid=str(uuid.uuid4()),
+                            project=target_tenant,
+                            sha256=file_sha,
+                            name=filename,
+                            source=f"Upload via synapse.py",
+                            origin="UPLOAD",
+                            status=DocumentStatus.PENDING
+                        )
+                        node.metadata = {
+                            "suggested_client": classification.suggested_client_name,
+                            "document_type": classification.document_type,
+                            "confidence": classification.confidence,
+                            "language": classification.language
+                        }
+                    
+                    persisted_uid = await orchestrator.persist(node, session)
+
+            return web.json_response({
+                "uid": persisted_uid,
+                "document_type": classification.document_type,
+                "suggested_client_name": classification.suggested_client_name,
+                "confidence": classification.confidence,
+                "language": classification.language,
+                "path_to_quarantine": is_quarantine
+            })
+            
+        except Exception as e:
+            logger.exception(f"Erro ao classificar documento {filename}")
+            return web.json_response({"error": str(e)}, status=500)
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)
     async def start_servers(self, http_port=8080, socket_port=8081):
         """Inicializa as frentes Bimodais e retorna controle ao Event Loop"""
         # 1. Boot HTTP

@@ -22,8 +22,22 @@ class Document(BaseNode):
     sha256: str
     name: str
     source: str | None = None
+    origin: str = "UPLOAD"  # EMAIL, WHATSAPP, UPLOAD, SCAN, FOLDER_WATCHER
     status: DocumentStatus = DocumentStatus.PENDING
     labels: list[str] = ["Document"]
+
+
+class QuarantineItem(BaseNode):
+    name: str
+    file_hash: str
+    reason: str
+    quarantined_at: str = Field(description="ISO timestamp")
+    status: str = "PENDING"
+    origin: str = "UPLOAD"
+    document_type: str | None = None
+    confidence: float | None = None
+    language: str | None = None
+    labels: list[str] = ["QuarantineItem"]
 
 
 class Relationship(BaseModel):
