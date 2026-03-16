@@ -223,15 +223,35 @@ class MenirCapture:
         if not pending_hitl_context and current_tenant == "SANTOS":
             # Somente ativa para o domínio SANTOS por enquanto
             from src.v3.skills.question_engine import generate_question
-            # O uid do usuário aqui é fixo ou vem do contexto? 
-            # MenirCapture atual não gerencia user_uid explicitamente, passamos "system" ou o próprio tenant
-            follow_up_question = await generate_question(text, current_tenant)
+            
+            user_uid = await self._get_user_uid(current_tenant)
+            follow_up_question = await generate_question(text, user_uid)
 
         return {
             "success": True, 
             "hitl": pending_hitl_context,
             "follow_up_question": follow_up_question
         }
+
+    async def _get_user_uid(self, tenant_id: str) -> str:
+        """
+        Busca o UID do usuário raiz (Criador) para o domínio informado.
+        """
+        def _sync_fetch():
+            driver = get_shared_driver()
+            query = """
+            MATCH (p:Person)-[:SERVES_TENANT]->(t:Tenant {name: $tenant})
+            RETURN p.uuid as uid
+            UNION
+            MATCH (p:Person {uuid: 'root_luiz_001'})
+            RETURN p.uuid as uid
+            LIMIT 1
+            """
+            with driver.session() as session:
+                res = session.run(query, tenant=tenant_id).single()
+                return res["uid"] if res else "system"
+        
+        return await asyncio.to_thread(_sync_fetch)
 
     async def resolve_hitl(self, hitl_context: dict, approved: bool, current_tenant: str):
         actions_to_take = []
@@ -256,11 +276,15 @@ class MenirCapture:
         await self._persist_actions(actions_to_take, current_tenant)
 
     async def _persist_actions(self, actions_to_take: list, current_tenant: str):
-        # Corrigindo bloco de execução async para o Orchestrator
+        """
+        Persistência orquestrada com I/O Não-Bloqueante (Rule 4).
+        """
         with locked_tenant_context(current_tenant):
             driver = get_shared_driver()
-            with driver.session() as session:
-                with session.begin_transaction() as tx:
+            session = await asyncio.to_thread(driver.session)
+            try:
+                tx = await asyncio.to_thread(session.begin_transaction)
+                try:
                     for act in actions_to_take:
                         ent = act["entity"]
                         node_obj = None
@@ -289,7 +313,7 @@ class MenirCapture:
                         elif act["action"] == "CREATE":
                             print(f"✅ CREATE ({ent.entity_type}: {ent.name_or_title}) -> [{current_tenant}]")
                             
-                        # Await the persistence
+                        # Await the persistence (Orchestrator already wraps Cypher in to_thread)
                         await self.orchestrator.persist(node_obj, tx)
                         
                         # Generate Embedding for the newly created/merged node
@@ -297,6 +321,14 @@ class MenirCapture:
                         asyncio.create_task(
                             EmbeddingService.embed_and_persist(node_obj.uid, node_text_for_embed, f"{ent.entity_type}Node", current_tenant)
                         )
+                    
+                    await asyncio.to_thread(tx.commit)
+                except Exception as e:
+                    await asyncio.to_thread(tx.rollback)
+                    logger.error(f"Erro na transação de persistência: {e}")
+                    raise
+            finally:
+                await asyncio.to_thread(session.close)
 
 async def _cli_loop():
     import os
