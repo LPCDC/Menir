@@ -91,11 +91,16 @@ def post_commit():
     print("🩺 Iniciando Health Scan em background...")
     try:
         if os.path.exists("scripts/menir_health_scan.py"):
-            # Launch as a separate process and don't wait
+            # Detach completely on Windows (CREATE_NO_WINDOW | DETACHED_PROCESS)
+            creationflags = 0
+            if os.name == 'nt':
+                creationflags = 0x08000000 | 0x00000008
+                
             subprocess.Popen(
                 [sys.executable, "scripts/menir_health_scan.py"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                creationflags=creationflags,
                 close_fds=True
             )
     except Exception as e:
@@ -104,10 +109,15 @@ def post_commit():
     # 4. Gravar no log_session_to_graph (Background)
     try:
         if os.path.exists("scripts/log_session_to_graph.py"):
+            creationflags = 0
+            if os.name == 'nt':
+                creationflags = 0x08000000 | 0x00000008
+
             subprocess.Popen(
                 [sys.executable, "scripts/log_session_to_graph.py"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                creationflags=creationflags,
                 close_fds=True
             )
     except Exception as e:

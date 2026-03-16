@@ -18,6 +18,8 @@ RED_ZONE_FILES = {
     "src/v3/extensions/astro/genesis.py",
     "src/v3/core/schemas/identity.py",
     "src/v3/menir_bridge.py",
+    "src/v3/core/synapse.py",
+    "src/v3/skills/document_classifier_skill.py",
 }
 
 def check_mypy():
