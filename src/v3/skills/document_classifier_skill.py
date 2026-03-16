@@ -7,9 +7,10 @@ from src.v3.menir_intel import MenirIntel
 logger = logging.getLogger(__name__)
 
 class DocumentClassification(BaseModel):
-    document_type: str = Field(..., description="Tipo do documento (ex: INVOICE, CONTRACT, LETTER, OTHER)")
+    document_type: str = Field(..., description="Tipo do documento (ex: INVOICE, BANK_STATEMENT, CONTRACT, LETTER, OTHER)")
     suggested_client_name: Optional[str] = Field(None, description="Nome do cliente sugerido se encontrado no texto")
     confidence: float = Field(..., description="Confiança na classificação (0.0 a 1.0)")
+    language: str = Field(..., description="Idioma detectado no documento (ex: pt, fr, en, de)")
 
 from src.v3.core.pdf_parser import classify_pdf_type
 
@@ -22,13 +23,14 @@ class DocumentClassifierSkill:
         Classifica um documento usando Gemini Vision.
         """
         prompt = (
-            "Você é o Menir Document Classifier especializado em faturas suíças.\n\n"
+            "Você é o Menir Document Classifier especializado em faturas suíças e documentos administrativos.\n\n"
             "Analise o documento e retorne APENAS UM único objeto JSON (não retorne listas, não retorne nada fora do objeto):\n"
-            "1. document_type: INVOICE, CONTRACT, LETTER, ou OTHER.\n"
+            "1. document_type: INVOICE, BANK_STATEMENT, CONTRACT, LETTER, ou OTHER.\n"
             "2. suggested_client_name: O nome da EMPRESA ou PESSOA (Creditor/Supplier).\n"
             "   - Procure por: 'Creditor: [Nome]' ou 'Supplier: [Nome]'.\n"
             "3. confidence: Score de 0.0 a 1.0.\n"
-            "   - Se for uma 'LETTER' genérica, confidence DEVE ser < 0.7.\n\n"
+            "   - Se for uma 'LETTER' genérica ou documento ambíguo, confidence DEVE ser < 0.7.\n"
+            "4. language: Abreviação de 2 letras do idioma (pt, fr, en, de).\n\n"
             "DOCUMENTO:\n"
         )
 
@@ -49,5 +51,6 @@ class DocumentClassifierSkill:
             return DocumentClassification(
                 document_type="OTHER",
                 suggested_client_name=None,
-                confidence=0.0
+                confidence=0.0,
+                language="??"
             )
