@@ -20,7 +20,7 @@ MENIR-P46-20260316-PHASE46_STEP4_TASK5
 ## 📍 FASE ATUAL
 - **Fase:** 46
 - **Etapa:** Step 4 (BECO Fixture - Swiss QR Parsing)
-- **Status:** Tarefa 5 concluída. Ingestão de clientes via UNWIND Cypher e sanitização MOD97-10 validadas.
+- **Status:** Etapa 4 concluída (Tarefas 0-6). Pipeline QR, Sanitização, Bootstrap e Echo Test validados.
 - **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
 
 ---
@@ -32,8 +32,9 @@ MENIR-P46-20260316-PHASE46_STEP4_TASK5
 - [x] **Fase 46 - Etapa 3**: Refatoração do `src/v3/skills/pdf_classifier.py` eliminando PyMuPDF/fitz.
 - [x] **Fase 46 - Etapa 4**: Integração Pyzbar/Pypdfium2 no Neo4j/Gemini Pipeline.
   - [x] **Tarefa 0-3**: QR Extractor e `invoice_skill.py`.
-  - [x] **Tarefa 4**: Sanitização de Clientes (`sanitize_clients.py`) com validação MOD97-10 reutilizada de QR Parser.
-  - [x] **Tarefa 5**: Bootstrap de Clientes BECO (`bootstrap_beco_clients.py`) com injeção UNWIND Cypher e geração de `echo_report_beco.json`. TDD 100%.
+  - [x] **Tarefa 4**: Sanitização de Clientes (`sanitize_clients.py`) com validação MOD97-10.
+  - [x] **Tarefa 5**: Bootstrap de Clientes BECO (`bootstrap_beco_clients.py`) com injeção UNWIND Cypher.
+  - [x] **Tarefa 6**: Echo Test (`run_echo_test.py`) com PDFs sintéticos e relatório `echo_report_beco.json`.
 
 ---
 

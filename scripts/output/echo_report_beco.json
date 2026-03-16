@@ -1,42 +1,26 @@
 [
     {
-        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
-        "cliente_encontrado": "Ana Paula",
-        "confiança": 1.0
+        "original_filename": "IMG_4587.pdf",
+        "document_type": "INVOICE",
+        "suggested_client_name": "Ana Paula",
+        "suggested_client_uid": "MOCK-UID-ANA-PAULA",
+        "confidence": 0.95,
+        "path_to_quarantine": false
     },
     {
-        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
-        "cliente_encontrado": "Pierre Muller",
-        "confiança": 1.0
+        "original_filename": "scan_001.pdf",
+        "document_type": "INVOICE",
+        "suggested_client_name": "Pierre Muller",
+        "suggested_client_uid": "MOCK-UID-PIERRE-MULLER",
+        "confidence": 0.98,
+        "path_to_quarantine": false
     },
     {
-        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
-        "cliente_encontrado": "Entreprise Vaud SA",
-        "confiança": 1.0
-    },
-    {
-        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
-        "cliente_encontrado": "Geneve Societe",
-        "confiança": 1.0
-    },
-    {
-        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
-        "cliente_encontrado": "Hans IND",
-        "confiança": 1.0
-    },
-    {
-        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
-        "cliente_encontrado": "Corporate GE",
-        "confiança": 1.0
-    },
-    {
-        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
-        "cliente_encontrado": "Small Society",
-        "confiança": 1.0
-    },
-    {
-        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
-        "cliente_encontrado": "Local Co",
-        "confiança": 1.0
+        "original_filename": "document.pdf",
+        "document_type": "LETTER",
+        "suggested_client_name": null,
+        "suggested_client_uid": null,
+        "confidence": 0.45,
+        "path_to_quarantine": true
     }
 ]
