@@ -1,0 +1,42 @@
+[
+    {
+        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
+        "cliente_encontrado": "Ana Paula",
+        "confiança": 1.0
+    },
+    {
+        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
+        "cliente_encontrado": "Pierre Muller",
+        "confiança": 1.0
+    },
+    {
+        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
+        "cliente_encontrado": "Entreprise Vaud SA",
+        "confiança": 1.0
+    },
+    {
+        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
+        "cliente_encontrado": "Geneve Societe",
+        "confiança": 1.0
+    },
+    {
+        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
+        "cliente_encontrado": "Hans IND",
+        "confiança": 1.0
+    },
+    {
+        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
+        "cliente_encontrado": "Corporate GE",
+        "confiança": 1.0
+    },
+    {
+        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
+        "cliente_encontrado": "Small Society",
+        "confiança": 1.0
+    },
+    {
+        "nome_arquivo": "tests/fixtures/beco_clients_sample.csv",
+        "cliente_encontrado": "Local Co",
+        "confiança": 1.0
+    }
+]
