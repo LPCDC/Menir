@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260315-PHASE46_STEP4_TASK2
+MENIR-P46-20260316-PHASE46_STEP4_TASK5
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -20,8 +20,20 @@ MENIR-P46-20260315-PHASE46_STEP4_TASK2
 ## 📍 FASE ATUAL
 - **Fase:** 46
 - **Etapa:** Step 4 (BECO Fixture - Swiss QR Parsing)
-- **Status:** Task 0, 1 e 2 concluídas. Extrator assíncrono `qr_extractor.py` validado via TDD. Aguardando injeção.
+- **Status:** Tarefa 5 concluída. Ingestão de clientes via UNWIND Cypher e sanitização MOD97-10 validadas.
 - **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
+
+---
+
+### Status Atual (Sessão Atual)
+- [x] **Fase 46 - Etapa 0**: Setup das novas regras de V2 (Pesquisa Perplexity e Mockup Visual) registradas em `_gemini.md`.
+- [x] **Fase 46 - Etapa 1**: Remoção de containers Zumbis (`competent_wescoff`, `vigorous_black`). Validação watcher.py e classificador PDF.
+- [x] **Fase 46 - Etapa 2**: Atualização do `src/v3/core/pdf_parser.py` eliminando blocos síncronos IO-bound. Validação do `test_pdf_parser.py`.
+- [x] **Fase 46 - Etapa 3**: Refatoração do `src/v3/skills/pdf_classifier.py` eliminando PyMuPDF/fitz.
+- [x] **Fase 46 - Etapa 4**: Integração Pyzbar/Pypdfium2 no Neo4j/Gemini Pipeline.
+  - [x] **Tarefa 0-3**: QR Extractor e `invoice_skill.py`.
+  - [x] **Tarefa 4**: Sanitização de Clientes (`sanitize_clients.py`) com validação MOD97-10 reutilizada de QR Parser.
+  - [x] **Tarefa 5**: Bootstrap de Clientes BECO (`bootstrap_beco_clients.py`) com injeção UNWIND Cypher e geração de `echo_report_beco.json`. TDD 100%.
 
 ---
 
@@ -30,7 +42,7 @@ MENIR-P46-20260315-PHASE46_STEP4_TASK2
 | # | O que foi feito |
 |---|----------------|
 | ✅ | `vertexai` removido de `menir_intel.py` |
-| ✅ | `identity.py` ContextVar[str\|None] corrigido |
+| ✅ | `identity.py` ContextVar[str|None] corrigido |
 | ✅ | `_gemini.md` extra="allow/forbid" resolvido: forbid em entrada LLM, allow em OGM saída |
 | ✅ | `genesis.py:92` Person() kwargs → metadata{} |
 | ✅ | `cresus_exporter.py:55` return path corrigido |
@@ -63,10 +75,20 @@ MENIR-P46-20260315-PHASE46_STEP4_TASK2
 | ✅ | Análise dos cinco abismos operacionais entre o kernel atual e o produto real |
 | ✅ | Relocadas pendências do pdf_classifier com mock de SCANNED, HYBRID e DIGITAL |
 | ✅ | Remoção dos containers orfãos (competent_wescoff, vigorous_black) reportados offline |
-| ✅ | Nova secção de CAPACIDADES NATIVAS adicionadas ao protócolo `_gemini.md` |
+| ✅ | Nova secção de CAPACIDADES NATIVAS adicionadas ao protocolo `_gemini.md` |
 | ✅ | Regra TDD Zona Vermelha adicionada ao `MENIR_ARCHITECT_BRIEF.md` |
 | ✅ | Timeout 5s no Neo4j health check do pós-commit (`menir_health_scan.py`) |
 | ✅ | Crésus Exporter com TVA Extended Format + idempotência `[:RECONCILED exported=True]` |
+| ✅ | **Fase 46 - Etapa 0**: Setup das novas regras de V2 (Pesquisa Perplexity e Mockup Visual) registradas em `_gemini.md`. |
+| ✅ | **Fase 46 - Etapa 1**: Remoção de containers Zumbis (`competent_wescoff`, `vigorous_black`). Validação watcher.py e classificador PDF. |
+| ✅ | **Fase 46 - Etapa 2**: Atualização do `src/v3/core/pdf_parser.py` eliminando blocos síncronos IO-bound. Validação do `test_pdf_parser.py`. |
+| ✅ | **Fase 46 - Etapa 3**: Refatoração do `src/v3/skills/pdf_classifier.py` eliminando PyMuPDF/fitz. |
+| ✅ | **Fase 46 - Etapa 4 - Tarefa 0**: Dependências adicionadas (pyzbar, pypdfium2, opencv-python-headless). |
+| ✅ | **Fase 46 - Etapa 4 - Tarefa 1**: Validação MOD11 suíça corrigida (MOD97-10 real, ISO 7064) em `swiss_qr_parser.py` e tipos ajustados para Decimal. |
+| ✅ | **Fase 46 - Etapa 4 - Tarefa 2**: Módulo assíncrono `qr_extractor.py` implementado para scan das últimas 3 páginas (300 DPI) usando thread pools. |
+| ✅ | **Fase 46 - Etapa 4 - Tarefa 3**: Integração do Caminho A (QR_DECODE) e Caminho B (GEMINI_FALLBACK) na `invoice_skill.py`. Traceability persistida no Neo4j com `extraction_path` e `extraction_confidence` atualizando a aresta `BELONGS_TO_TENANT`. TDD implementado. |
+| ✅ | **Fase 46 - Etapa 4 - Tarefa 4**: Sanitização de Clientes (`sanitize_clients.py`) com validação MOD97-10. |
+| ✅ | **Fase 46 - Etapa 4 - Tarefa 5**: Bootstrap de Clientes BECO (`bootstrap_beco_clients.py`) e relatório JSON. |
 
 ---
 
