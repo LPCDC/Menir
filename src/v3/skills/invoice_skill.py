@@ -13,6 +13,7 @@ from google.genai import types as genai_types
 from src.v3.core.schemas import InvoiceData
 from src.v3.menir_intel import MenirIntel
 from src.v3.meta_cognition import MenirOntologyManager
+from src.v3.skills import qr_extractor
 
 logger = logging.getLogger("InvoiceSkill")
 
@@ -162,32 +163,39 @@ Schema obrigatório:
   "tip_or_unregulated_amount": 0.0,
   "total_amount": 0.0,
   "items": [{"description": "string", "gross_amount": 0.0, "tva_rate_applied": null}],
-  "requires_manual_justification": false
-}"""
+  "requires_manual_justification": false,
+  "extraction_confidence": 0.95
+}
+OBSERVACAO: O campo extraction_confidence deve ser um numero decimal de 0.0 a 1.0 representando a sua confianca na legibilidade dos dados."""
 
             from typing import Any
             from src.v3.core.pdf_parser import classify_pdf_type, PdfType
 
             api_contents: list[Any] = []
             img_path = None
+            qr_dict = None
 
             if file_path.lower().endswith(".pdf"):
-                logger.info("PDF Classifier: Detectando tipo físico da fatura.")
-                try:
-                    pdf_type, parts = classify_pdf_type(file_path)
-                    logger.info(f"PDF classificado como: {pdf_type.value}")
-                    if pdf_type == PdfType.SCANNED:
-                        # parts are list of PIL Images
-                        prompt = EXTRACTION_PROMPT
-                        api_contents.append(prompt)
-                        api_contents.extend(parts)
-                    else:
-                        # parts is a list with one string element (DIGITAL or HYBRID with reorder prompt)
-                        prompt = EXTRACTION_PROMPT + "\n\nTEXTO DA FATURA:\n" + "".join(parts)
-                        api_contents.append(prompt)
-                except Exception as e:
-                    logger.warning(f"Classificador PDF falhou ({e}). Tentando fallback SLOW_LANE antigo.")
-                    lane = "SLOW_LANE"
+                logger.info("Verificando existencia de Swiss QR Code estruturado (Path A)...")
+                qr_dict = await qr_extractor.extract_qr_from_pdf(file_path)
+                
+                if not qr_dict:
+                    logger.info("PDF Classifier: Detectando tipo fisico da fatura para Gemini Fallback (Path B).")
+                    try:
+                        pdf_type, parts = classify_pdf_type(file_path)
+                        logger.info(f"PDF classificado como: {pdf_type.value}")
+                        if pdf_type == PdfType.SCANNED:
+                            # parts are list of PIL Images
+                            prompt = EXTRACTION_PROMPT
+                            api_contents.append(prompt)
+                            api_contents.extend(parts)
+                        else:
+                            # parts is a list with one string element (DIGITAL or HYBRID with reorder prompt)
+                            prompt = EXTRACTION_PROMPT + "\n\nTEXTO DA FATURA:\n" + "".join(parts)
+                            api_contents.append(prompt)
+                    except Exception as e:
+                        logger.warning(f"Classificador PDF falhou ({e}). Tentando fallback SLOW_LANE antigo.")
+                        lane = "SLOW_LANE"
             elif file_path.lower().endswith(".txt"):
                 logger.info("⚡ FAST_LANE_TXT: Lendo arquivo texto nativo (Fixture).")
                 with open(file_path, "r", encoding="utf-8") as f:
@@ -197,41 +205,60 @@ Schema obrigatório:
             else:
                 lane = "SLOW_LANE"
 
-            # OSL: Se a variável lane for criada por exception no classificador ou por não ser pdf/txt:
-            if locals().get("lane") == "SLOW_LANE":
-                compressor = PayloadCompressor()
-                logger.info("🐢 SLOW_LANE: Redimensionando e enviando arquivo para Gemini Vision.")
-                try:
-                    optimized_path = await asyncio.to_thread(
-                        compressor.compress_for_vision, file_path
-                    )
-                    prompt = EXTRACTION_PROMPT
-                    img_path = optimized_path
-                except Exception:
-                    logger.exception(
-                        f"PayloadCompressor falhou para {file_path}. "
-                        f"Abortando SLOW_LANE — enviando para quarentena."
-                    )
-                    raise
+            # Se qr_dict != None, desviamos para FAST_LANE_QR e ignoramos o LLM
+            if qr_dict:
+                logger.info("CHAVE MESTRA: QR Code decodificado. Ignorando chamadas LLM.")
+                from datetime import date
+                invoice_dict = {
+                    "doc_type": "Facture QR",
+                    "requires_manual_justification": False,
+                    "vendor_name": qr_dict.get("creditor", {}).get("name", "Unknown Creditor"),
+                    "ide_number": None,
+                    "avs_number": None,
+                    "language": "fr",
+                    "vendor_iban": qr_dict.get("account", None),
+                    "issue_date": date.today().isoformat(),
+                    "currency": qr_dict.get("currency", "CHF"),
+                    "subtotal": qr_dict.get("amount", 0.0),
+                    "tip_or_unregulated_amount": 0.0,
+                    "total_amount": qr_dict.get("amount", 0.0),
+                    "items": [{"description": qr_dict.get("unstructured_message", "Fatura QR"), "gross_amount": qr_dict.get("amount", 0.0), "tva_rate_applied": None}],
+                    "extraction_path": "QR_DECODE",
+                    "extraction_confidence": 1.0
+                }
 
-            from datetime import datetime
-            placeholder_date = datetime.now()
-            active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
+            else:
+                # OSL: Se a variável lane for criada por exception no classificador ou por não ser pdf/txt:
+                if locals().get("lane") == "SLOW_LANE":
+                    compressor = PayloadCompressor()
+                    logger.info("🐢 SLOW_LANE: Redimensionando e enviando arquivo para Gemini Vision.")
+                    try:
+                        optimized_path = await asyncio.to_thread(
+                            compressor.compress_for_vision, file_path
+                        )
+                        prompt = EXTRACTION_PROMPT
+                        img_path = optimized_path
+                    except Exception:
+                        logger.exception(
+                            f"PayloadCompressor falhou para {file_path}. "
+                            f"Abortando SLOW_LANE — enviando para quarentena."
+                        )
+                        raise
 
-            # Passa para a UTI Cognitiva com Pydantic Shield
-            # Passamos os api_contents diretamente (se tivermos parts PIL), 
-            # Mas wait, structured_inference processa "contents". Vamos ajustar MenirIntel. 
-            # Precisaremos injetar support para parts manuais em structured_inference.
-            # Por hora enviamos a string concatenada no prompt, ou as imagens.
-            
-            # Se for SCANNED, temos api_contents. 
-            # Em SLOW_LANE, temos img_path. 
-            invoice_dict = await self.intel.structured_inference(
-                prompt=prompt if locals().get("lane") == "SLOW_LANE" else "", # Passaremos parts via kwargs se MenirIntel aceitar
-                image_path=img_path,
-                response_schema=None,
-                raw_parts=api_contents if "api_contents" in locals() and len(api_contents) > 0 else None
-            )
+                from datetime import datetime
+                placeholder_date = datetime.now()
+                active_rules = self.ontology_manager.get_tenant_active_context(tenant, placeholder_date)
+
+                invoice_dict = await self.intel.structured_inference(
+                    prompt=prompt if locals().get("lane") == "SLOW_LANE" else prompt,
+                    image_path=img_path,
+                    response_schema=None,
+                    raw_parts=api_contents if "api_contents" in locals() and len(api_contents) > 0 else None
+                )
+                
+                invoice_dict["extraction_path"] = "GEMINI_FALLBACK"
+                if "extraction_confidence" not in invoice_dict:
+                    invoice_dict["extraction_confidence"] = 0.85
             
             import uuid
             invoice_dict["uid"] = str(uuid.uuid4())

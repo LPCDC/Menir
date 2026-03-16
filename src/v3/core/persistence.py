@@ -8,6 +8,9 @@ from src.v3.core.schemas.financial import InvoiceData
 from src.v3.core.schemas.operational import (
     ClientNode, EmployeeNode, TaxDossierNode, InsuranceNode, SalarySlipNode, TVADeclarationNode
 )
+from src.v3.core.schemas.personal import (
+    PersonNode, ProjectNode, LifeEventNode, InsightNode, GoalNode
+)
 
 class OrphanNodeError(Exception):
     """Exceção levantada quando um nó não tem documento de origem rastreável."""
@@ -30,7 +33,7 @@ class NodePersistenceOrchestrator:
 
             origin_uid = getattr(node, "source_document_uid", None)
 
-            if not isinstance(node, Document):
+            if not isinstance(node, Document) and not isinstance(node, (PersonNode, ProjectNode, LifeEventNode, InsightNode, GoalNode)):
                 if not origin_uid:
                     raise OrphanNodeError(f"Nó {type(node).__name__} rejeitado. Falta source_document_uid para rastreabilidade FINMA.")
                     
@@ -51,9 +54,15 @@ class NodePersistenceOrchestrator:
                 tenant_q = f"""
                 MATCH (n:`{safe_tenant}` {{uid: $uid}})
                 MERGE (t:Tenant {{name: $tenant_safe}})
-                MERGE (n)-[:BELONGS_TO_TENANT]->(t)
+                MERGE (n)-[r:BELONGS_TO_TENANT]->(t)
+                SET r.extraction_path = coalesce($ext_path, r.extraction_path),
+                    r.extraction_confidence = coalesce($ext_conf, r.extraction_confidence)
                 """
-                tx.run(tenant_q, uid=node.uid, tenant_safe=safe_tenant)
+                ext_path = getattr(node, "extraction_path", None)
+                ext_conf_raw = getattr(node, "extraction_confidence", None)
+                ext_conf = float(ext_conf_raw) if ext_conf_raw is not None else None
+                
+                tx.run(tenant_q, uid=node.uid, tenant_safe=safe_tenant, ext_path=ext_path, ext_conf=ext_conf)
                 
                 if not isinstance(node, Document) and origin_uid:
                     derived_q = f"""
@@ -146,5 +155,35 @@ class NodePersistenceOrchestrator:
                             requires_justification=node.requires_manual_justification, project=safe_tenant)
                 tx.run(q_items, uid=node.uid, items_list=items_list, project=safe_tenant)
             await asyncio.to_thread(_run_inv)
+        elif isinstance(node, PersonNode):
+            if node.is_virtual and node.referenced_uid:
+                q = f"""
+                MERGE (n:PersonNode:`{safe_tenant}` {{uid: $uid}})
+                SET n.name = $name, n.is_virtual = true, n.referenced_tenant = $referenced_tenant
+                WITH n
+                MERGE (ref:PersonNode:`{node.referenced_tenant}` {{uid: $referenced_uid}})
+                MERGE (n)-[:REFERENCED_FROM]->(ref)
+                """
+                await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, name=node.name, referenced_tenant=node.referenced_tenant, referenced_uid=node.referenced_uid))
+            else:
+                q = f"MERGE (n:PersonNode:`{safe_tenant}` {{uid: $uid}}) SET n.name = $name, n.role_or_context = $role_or_context, n.trust_score = $trust_score"
+                await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, name=node.name, role_or_context=node.role_or_context, trust_score=node.trust_score))
+
+        elif isinstance(node, ProjectNode):
+            q = f"MERGE (n:ProjectNode:`{safe_tenant}` {{uid: $uid}}) SET n.name = $name, n.description = $description, n.status = $status"
+            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, name=node.name, description=node.description, status=node.status))
+
+        elif isinstance(node, LifeEventNode):
+            q = f"MERGE (n:LifeEventNode:`{safe_tenant}` {{uid: $uid}}) SET n.title = $title, n.date = $date, n.impact_level = $impact_level"
+            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, title=node.title, date=node.date, impact_level=node.impact_level))
+
+        elif isinstance(node, InsightNode):
+            q = f"MERGE (n:InsightNode:`{safe_tenant}` {{uid: $uid}}) SET n.content = $content, n.source_context = $source_context"
+            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, content=node.content, source_context=node.source_context))
+
+        elif isinstance(node, GoalNode):
+            q = f"MERGE (n:GoalNode:`{safe_tenant}` {{uid: $uid}}) SET n.title = $title, n.deadline = $deadline, n.status = $status"
+            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, title=node.title, deadline=node.deadline, status=node.status))
+
         else:
             raise ValueError(f"Orquestrador não sabe persistir o nó do tipo: {type(node).__name__}")

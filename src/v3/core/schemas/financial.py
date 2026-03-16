@@ -2,6 +2,7 @@ import math
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
+from decimal import Decimal
 
 from .base import BaseNode
 
@@ -52,6 +53,14 @@ class InvoiceData(BaseNode):
         default=False,
         description="Flag: Marcar como TRUTH se for um recibo de restaurante ou despesa de representação que exija justificativa do contador.",
     )
+    
+    extraction_path: Literal["QR_DECODE", "GEMINI_FALLBACK"] = Field(
+        description="Rastreabilidade: Caminho arquitetural utilizado para obter os dados."
+    )
+    extraction_confidence: Decimal = Field(
+        description="Confiança da extração (1.0 para QR, ou score calculado pelo LLM para Fallback)."
+    )
+    
     labels: list[str] = ["Invoice", "Document"]  # noqa: RUF012
 
     @model_validator(mode="after")
