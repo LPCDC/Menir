@@ -11,7 +11,7 @@ def mock_intel():
 @pytest.mark.asyncio
 async def test_classify_invoice_portuguese(mock_intel):
     mock_intel.structured_inference.return_value = DocumentClassification(
-        document_type="INVOICE",
+        document_type="INVOICE_SUPPLIER",
         suggested_client_name="Ana Paula",
         confidence=0.98,
         language="pt"
@@ -24,7 +24,7 @@ async def test_classify_invoice_portuguese(mock_intel):
         
         result = await skill.classify_document("dummy.pdf")
         
-        assert result.document_type == "INVOICE"
+        assert result.document_type == "INVOICE_SUPPLIER"
         assert result.language == "pt"
         assert result.confidence > 0.7
         assert result.suggested_client_name == "Ana Paula"
@@ -50,24 +50,44 @@ async def test_classify_bank_statement_french(mock_intel):
         assert result.confidence > 0.7
 
 @pytest.mark.asyncio
-async def test_classify_ambiguous_low_confidence(mock_intel):
+async def test_classify_salary_slip(mock_intel):
     mock_intel.structured_inference.return_value = DocumentClassification(
-        document_type="LETTER",
-        suggested_client_name=None,
-        confidence=0.45,
-        language="en"
+        document_type="SALARY_SLIP",
+        suggested_client_name="Luiz Silva",
+        confidence=0.95,
+        language="pt"
     )
     
     skill = DocumentClassifierSkill(mock_intel)
     
     with patch("src.v3.skills.document_classifier_skill.classify_pdf_type") as mock_parser:
-        mock_parser.return_value = ("DIGITAL", ["Random English letter without context"])
+        mock_parser.return_value = ("DIGITAL", ["Ficha de salário mensal"])
         
-        result = await skill.classify_document("ambiguous.pdf")
+        result = await skill.classify_document("salary.pdf")
         
-        assert result.document_type == "LETTER"
-        assert result.confidence < 0.7
-        assert result.language == "en"
+        assert result.document_type == "SALARY_SLIP"
+        assert result.confidence == 0.95
+
+@pytest.mark.asyncio
+async def test_classify_invalid_type_fallback(mock_intel):
+    # LLM returns a type not in the 12 allowed types
+    mock_intel.structured_inference.return_value = DocumentClassification(
+        document_type="LOVE_LETTER",
+        suggested_client_name=None,
+        confidence=0.9,
+        language="pt"
+    )
+    
+    skill = DocumentClassifierSkill(mock_intel)
+    
+    with patch("src.v3.skills.document_classifier_skill.classify_pdf_type") as mock_parser:
+        mock_parser.return_value = ("DIGITAL", ["Eu te amo"])
+        
+        result = await skill.classify_document("love.pdf")
+        
+        # Should be coerced to OTHER with 0.3 confidence
+        assert result.document_type == "OTHER"
+        assert result.confidence == 0.3
 
 @pytest.mark.asyncio
 async def test_classify_error_fallback(mock_intel):
