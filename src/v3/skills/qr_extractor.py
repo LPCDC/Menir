@@ -24,27 +24,32 @@ def _sync_extract_qr(pdf_path: str) -> dict | None:
             logger.warning("Extrator QR falhou: PDF vazio.")
             return None
             
-        # O padrao SIX v2.3 dita que a fatura QR esta sempre no rodape da ultima pagina
-        last_page = doc[len(doc) - 1]
+        # O padrao SIX v2.3 dita que a fatura QR deveria estar na ultima pagina,
+        # mas PDFs concatenados podem ter anexos depois. Vamos varrer as ultimas 3 paginas de tras para frente.
+        doc_len = len(doc)
+        pages_to_scan = min(doc_len, 3)
         
-        # 300 DPI e o minimo mandatado pelas best practices para leitura confiavel de QRs
-        bitmap = last_page.render(scale=300/72) 
-        pil_image = bitmap.to_pil()
-        
-        # PYZBAR processa melhor em Grayscale
-        grayscale_image = pil_image.convert('L')
-        
-        decoded_symbols = decode(grayscale_image)
-        
-        for symbol in decoded_symbols:
-            payload = symbol.data.decode("utf-8")
-            if payload.startswith("SPC"):
-                # Encontramos um conteudo valido Swiss QR
-                parser = SwissQRParser()
-                return parser.parse(payload)
+        for i in range(1, pages_to_scan + 1):
+            page_idx = doc_len - i
+            page = doc[page_idx]
+            
+            # 300 DPI e o minimo mandatado pelas best practices para leitura confiavel de QRs
+            bitmap = page.render(scale=300/72) 
+            pil_image = bitmap.to_pil()
+            
+            # PYZBAR processa melhor em Grayscale
+            grayscale_image = pil_image.convert('L')
+            decoded_symbols = decode(grayscale_image)
+            
+            for symbol in decoded_symbols:
+                payload = symbol.data.decode("utf-8")
+                if payload.startswith("SPC"):
+                    # Encontramos um conteudo valido Swiss QR
+                    parser = SwissQRParser()
+                    return parser.parse(payload)
 
-        # Se iterou tudo e nao achou ou se nao tinha simbolos
-        logger.warning(f"Extrator QR falhou: Nenhum QR Code padrao SIX/SPC encontrado em {pdf_path}")
+        # Se iterou as 3 ultimas e nao achou ou se nao tinha simbolos
+        logger.warning(f"Extrator QR falhou: Nenhum QR Code padrao SIX/SPC encontrado nas ultimas {pages_to_scan} paginas de {pdf_path}")
         return None
         
     except SwissQRParserError as sqe:
