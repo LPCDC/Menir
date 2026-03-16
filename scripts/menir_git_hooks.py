@@ -12,6 +12,8 @@ RED_ZONE_FILES = {
     "src/v3/extensions/astro/genesis.py",
     "src/v3/core/schemas/identity.py",
     "src/v3/menir_bridge.py",
+    "src/v3/core/synapse.py",
+    "src/v3/skills/document_classifier_skill.py",
 }
 
 def get_current_fingerprint():
@@ -85,20 +87,31 @@ def post_commit():
         except Exception as e:
             print(f"Aviso: Falha ao deletar VELOCITY_OVERRIDE.md: {e}")
             
-    # 3. Chamar Health Scan e Gerar SESSION_BRIEF.md
-    print("🩺 Rodando Health Scan...")
+    # 3. Chamar Health Scan e Gerar SESSION_BRIEF.md (Background)
+    print("🩺 Iniciando Health Scan em background...")
     try:
         if os.path.exists("scripts/menir_health_scan.py"):
-            subprocess.run([sys.executable, "scripts/menir_health_scan.py"], check=False)
+            # Launch as a separate process and don't wait
+            subprocess.Popen(
+                [sys.executable, "scripts/menir_health_scan.py"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                close_fds=True
+            )
     except Exception as e:
-        print(f"Health Scan omitido ou falhou: {e}")
+        print(f"Health Scan falhou ao iniciar: {e}")
         
-    # 4. Gravar no log_session_to_graph
+    # 4. Gravar no log_session_to_graph (Background)
     try:
         if os.path.exists("scripts/log_session_to_graph.py"):
-            subprocess.run([sys.executable, "scripts/log_session_to_graph.py"], check=False)
+            subprocess.Popen(
+                [sys.executable, "scripts/log_session_to_graph.py"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                close_fds=True
+            )
     except Exception as e:
-        print(f"Log para Neo4j omitido ou falhou: {e}")
+        print(f"Log para Neo4j falhou ao iniciar: {e}")
         
     # 5. Append atômico em completed-ag.md se for fix:/chore:
     try:
