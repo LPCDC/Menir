@@ -88,6 +88,9 @@ class MenirSynapse:
                 web.post("/api/v3/documents/{id}/retry", self.handle_retry_document),
                 web.post("/api/export/cresus", self.handle_export_cresus),
                 web.post("/api/v3/classify/document", self.handle_classify_document),
+                web.get("/api/v3/quarantine/documents", self.handle_get_quarantine_documents),
+                web.patch("/api/v3/quarantine/documents/{uid}/accept", self.handle_accept_quarantine_document),
+                web.patch("/api/v3/quarantine/documents/{uid}/correct", self.handle_correct_quarantine_document),
             ]
         )
         
@@ -522,7 +525,7 @@ class MenirSynapse:
             
             export_path = await exporter.export_reconciled(tenant=target_tenant)
             if not export_path:
-                return web.json_response({"error": "Nenhum documento novo reconciliado para exportação."}, status=404)
+                return web.Response(status=204)
                 
             return web.json_response({"success": True, "file_path": export_path})
         except Exception as e:
@@ -662,6 +665,128 @@ class MenirSynapse:
         finally:
             if os.path.exists(file_path):
                 os.remove(file_path)
+
+    async def _get_tenant_from_request(self, request):
+        auth_header = request.headers.get("Authorization", "")
+        token = auth_header.replace("Bearer ", "").strip()
+        jwt_secret = os.getenv("MENIR_JWT_SECRET")
+        target_tenant = "BECO"
+        try:
+            if token and jwt_secret:
+                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+                target_tenant = payload.get("tenant_id", "BECO")
+        except jwt.PyJWTError:
+             if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
+                 raise web.HTTPUnauthorized()
+             if "SANTOS" in token:
+                 target_tenant = "SANTOS"
+        return target_tenant
+
+    async def handle_get_quarantine_documents(self, request):
+        try:
+            target_tenant = await self._get_tenant_from_request(request)
+            with locked_tenant_context(target_tenant):
+                with self.runner.ontology_manager.driver.session() as session:
+                    q = f"MATCH (q:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) RETURN q"
+                    result = session.run(q)
+                    items = [record.data()["q"] for record in result.all()]
+            return web.json_response(items)
+        except Exception as e:
+            logger.exception("Erro ao listar quarentena")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_accept_quarantine_document(self, request):
+        uid = request.match_info.get("uid")
+        try:
+            target_tenant = await self._get_tenant_from_request(request)
+            with locked_tenant_context(target_tenant):
+                orchestrator = NodePersistenceOrchestrator()
+                with self.runner.ontology_manager.driver.session() as session:
+                    # 1. Fetch item
+                    q_fetch = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) RETURN q"
+                    res = session.run(q_fetch, uid=uid).single()
+                    if not res:
+                        return web.json_response({"error": "NotFound"}, status=404)
+                    
+                    q_data = res.data()["q"]
+                    
+                    # 2. Map to Document
+                    new_doc = Document(
+                        uid=str(uuid.uuid4()),
+                        project=target_tenant,
+                        sha256=q_data["file_hash"],
+                        name=q_data["name"],
+                        source=f"Promoted from quarantine {uid}",
+                        origin="UPLOAD",
+                        status=DocumentStatus.PENDING
+                    )
+                    new_doc.metadata = {
+                        "suggested_client": q_data.get("suggested_client"),
+                        "document_type": q_data.get("document_type"),
+                        "confidence": q_data.get("confidence"),
+                        "language": q_data.get("language")
+                    }
+                    
+                    # 3. Persist
+                    persisted_uid = await orchestrator.persist(new_doc, session)
+                    
+                    # 4. Mark Accepted
+                    q_mark = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) SET q.status = 'ACCEPTED'"
+                    session.run(q_mark, uid=uid)
+                    
+            return web.json_response({"status": "ACCEPTED", "promoted_uid": persisted_uid})
+        except Exception as e:
+            logger.exception(f"Erro ao aceitar documento {uid}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_correct_quarantine_document(self, request):
+        uid = request.match_info.get("uid")
+        try:
+            body = await request.json()
+            corrected_client = body.get("client_name")
+            if not corrected_client:
+                 return web.json_response({"error": "Missing client_name"}, status=400)
+
+            target_tenant = await self._get_tenant_from_request(request)
+            with locked_tenant_context(target_tenant):
+                orchestrator = NodePersistenceOrchestrator()
+                with self.runner.ontology_manager.driver.session() as session:
+                    # 1. Fetch item
+                    q_fetch = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) RETURN q"
+                    res = session.run(q_fetch, uid=uid).single()
+                    if not res:
+                        return web.json_response({"error": "NotFound"}, status=404)
+                    
+                    q_data = res.data()["q"]
+                    
+                    # 2. Map to Document with correction
+                    new_doc = Document(
+                        uid=str(uuid.uuid4()),
+                        project=target_tenant,
+                        sha256=q_data["file_hash"],
+                        name=q_data["name"],
+                        source=f"Corrected from quarantine {uid}",
+                        origin="UPLOAD",
+                        status=DocumentStatus.PENDING
+                    )
+                    new_doc.metadata = {
+                        "suggested_client": corrected_client, # OVERRIDDEN
+                        "document_type": q_data.get("document_type"),
+                        "confidence": 1.0, # Now high trust because human corrected it
+                        "language": q_data.get("language")
+                    }
+                    
+                    # 3. Persist
+                    persisted_uid = await orchestrator.persist(new_doc, session)
+                    
+                    # 4. Mark Accepted (Fixed/Corrected)
+                    q_mark = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) SET q.status = 'CORRECTED'"
+                    session.run(q_mark, uid=uid)
+                    
+            return web.json_response({"status": "CORRECTED", "promoted_uid": persisted_uid})
+        except Exception as e:
+            logger.exception(f"Erro ao corrigir documento {uid}")
+            return web.json_response({"error": str(e)}, status=500)
     async def start_servers(self, http_port=8080, socket_port=8081):
         """Inicializa as frentes Bimodais e retorna controle ao Event Loop"""
         # 1. Boot HTTP

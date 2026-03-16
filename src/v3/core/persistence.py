@@ -9,7 +9,10 @@ from src.v3.core.schemas.operational import (
     ClientNode, EmployeeNode, TaxDossierNode, InsuranceNode, SalarySlipNode, TVADeclarationNode
 )
 from src.v3.core.schemas.personal import (
-    PersonNode, ProjectNode, LifeEventNode, InsightNode, GoalNode
+    PersonNode, ProjectNode, LifeEventNode, GoalNode
+)
+from src.v3.core.schemas.santos import (
+    SignalInput, InsightInput, DecisionHubEntry
 )
 
 class OrphanNodeError(Exception):
@@ -33,7 +36,7 @@ class NodePersistenceOrchestrator:
 
             origin_uid = getattr(node, "source_document_uid", None)
 
-            if not isinstance(node, Document) and not isinstance(node, (PersonNode, ProjectNode, LifeEventNode, InsightNode, GoalNode)):
+            if not isinstance(node, Document) and not isinstance(node, (PersonNode, ProjectNode, LifeEventNode, GoalNode, SignalInput, InsightInput, DecisionHubEntry)):
                 if not origin_uid:
                     raise OrphanNodeError(f"Nó {type(node).__name__} rejeitado. Falta source_document_uid para rastreabilidade FINMA.")
                     
@@ -177,9 +180,51 @@ class NodePersistenceOrchestrator:
             q = f"MERGE (n:LifeEventNode:`{safe_tenant}` {{uid: $uid}}) SET n.title = $title, n.date = $date, n.impact_level = $impact_level"
             await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, title=node.title, date=node.date, impact_level=node.impact_level))
 
-        elif isinstance(node, InsightNode):
-            q = f"MERGE (n:InsightNode:`{safe_tenant}` {{uid: $uid}}) SET n.content = $content, n.source_context = $source_context"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, content=node.content, source_context=node.source_context))
+        elif isinstance(node, InsightInput):
+            q = f"""
+            MERGE (n:Insight:`{safe_tenant}` {{uid: $uid}}) 
+            SET n.content = $content, 
+                n.tags = $tags, 
+                n.initial_score = $initial_score,
+                n.decay_lambda = $decay_lambda,
+                n.created_at = datetime($created_at)
+            """
+            await asyncio.to_thread(lambda: tx.run(
+                q, 
+                uid=node.uid, 
+                content=node.content, 
+                tags=node.tags,
+                initial_score=float(node.initial_score),
+                decay_lambda=float(node.decay_lambda),
+                created_at=node.created_at.isoformat()
+            ))
+
+        elif isinstance(node, SignalInput):
+            q = f"""
+            MERGE (n:Signal:`{safe_tenant}` {{uid: $uid}}) 
+            SET n.signal_type = $signal_type, 
+                n.weight = $weight, 
+                n.description = $description,
+                n.origin_tenant_hash = $origin_tenant_hash,
+                n.initial_score = $initial_score,
+                n.decay_lambda = $decay_lambda,
+                n.created_at = datetime($created_at)
+            """
+            await asyncio.to_thread(lambda: tx.run(
+                q, 
+                uid=node.uid, 
+                signal_type=node.signal_type, 
+                weight=float(node.weight),
+                description=node.description,
+                origin_tenant_hash=node.origin_tenant_hash,
+                initial_score=float(node.initial_score),
+                decay_lambda=float(node.decay_lambda),
+                created_at=node.created_at.isoformat()
+            ))
+
+        elif isinstance(node, DecisionHubEntry):
+            q = f"MERGE (n:DecisionHub:`{safe_tenant}` {{uid: $uid}}) SET n.last_update = datetime()"
+            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid))
 
         elif isinstance(node, GoalNode):
             q = f"MERGE (n:GoalNode:`{safe_tenant}` {{uid: $uid}}) SET n.title = $title, n.deadline = $deadline, n.status = $status"

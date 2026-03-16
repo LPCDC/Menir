@@ -218,7 +218,20 @@ class MenirCapture:
         # Persist ALL other actions asyncly
         await self._persist_actions(actions_to_take, current_tenant)
         
-        return {"success": True, "hitl": pending_hitl_context}
+        # Generative Follow-up (Rule 2: Max 1 question per input)
+        follow_up_question = None
+        if not pending_hitl_context and current_tenant == "SANTOS":
+            # Somente ativa para o domínio SANTOS por enquanto
+            from src.v3.skills.question_engine import generate_question
+            # O uid do usuário aqui é fixo ou vem do contexto? 
+            # MenirCapture atual não gerencia user_uid explicitamente, passamos "system" ou o próprio tenant
+            follow_up_question = await generate_question(text, current_tenant)
+
+        return {
+            "success": True, 
+            "hitl": pending_hitl_context,
+            "follow_up_question": follow_up_question
+        }
 
     async def resolve_hitl(self, hitl_context: dict, approved: bool, current_tenant: str):
         actions_to_take = []
@@ -309,6 +322,8 @@ async def _cli_loop():
                 ans = await asyncio.to_thread(input, f"❓ Você está se referindo a '{t_name}'? [Y/N]: ")
                 approved = ans.strip().lower() == 'y'
                 await capture.resolve_hitl(hc, approved, tenant_name)
+            elif res and res.get("follow_up_question"):
+                print(f"\n[Menir] 🤖 {res['follow_up_question']}")
                 
         except EOFError:
             break
