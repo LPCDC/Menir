@@ -1,6 +1,6 @@
 # MENIR ARCHITECT BRIEF
 
-**FINGERPRINT ATUAL:** MENIR-P46-20260316-SESSAO_ENCERRADA
+**FINGERPRINT ATUAL:** MENIR-P46-20260317-MENIR_CAPTURE_REFINED
 
 ## ONDE ESTAMOS
 O detector bimodal interativo separando nativamente PDFs digitais das digitalizações ruidosas foi construído e ligado ao coração da inteligência. O "Abismo 0" (Classificação e Roteamento) está agora parcialmente resolvido com a integração da REST API V3 e o Dashboard de Quarentena Premium. Todos os escudos protetivos de chaves duras foram limpos da malha neural, consolidando um núcleo de teste auditado. O sistema agora opera em escala real BECO: 500 clientes, 6 idiomas detectados.

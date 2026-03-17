@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260316-SESSAO_ENCERRADA
+MENIR-P46-20260317-MENIR_CAPTURE_REFINED
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -38,7 +38,8 @@ MENIR-P46-20260316-SESSAO_ENCERRADA
   - [x] **Tarefa 7**: Consolidação e Exposição REST (`POST /api/classify/document`) integrada ao `synapse.py`.
   - [x] **Tarefa 8**: Dashboard de Quarentena Premium & Promoção de Nós.
   - [x] **Tarefa 9**: Fix Crésus Export (204 No Content).
-  - [x] **Tarefa 10**: Fix post-commit blocking hooks (Background).
+  - [x] **Tarefa 10**: Fix post-commit blocking hooks (Background - Reinforced with Windows Detach).
+  - [x] **Tarefa 11 (Step 8/9)**: Question Engine (SANTOS) Refined & Integrated with async IO and user_uid context.
 
 ---
 
@@ -188,5 +189,5 @@ Após completar qualquer tarefa:
 
 ---
 
-*Gerado por: Claude (Arquiteto Principal) | 05/03/2026*
+*Gerado por: Claude (Arquiteto Principal) | 17/03/2026*
 *Corpo e fingerprint sincronizados — sessão completa registrada*
