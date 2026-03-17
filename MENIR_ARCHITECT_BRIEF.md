@@ -13,11 +13,17 @@ O detector bimodal interativo separando nativamente PDFs digitais das digitaliza
 - Nenhuma pendência arquitetural ativa e sem resposta.
 
 ## DISTÂNCIA DO PRODUTO REAL
-1. **Loop de falha humano**: quarentena existe, interface de correção pela Nicole não existe.
-2. **Entrega ao Crésus**: grafo rico, exportação para o software legado pendente.
-3. **Onboarding**: instalar o Menir hoje exige engenheiro.
-4. **Ingestão móvel**: áudio e foto não entram ainda no sistema.
-5. **Memory decay**: grafo só acumula, nunca consolida nem esquece.
+1. **Loop de falha humano**: resolvido. Dashboard de quarentena com aceite e correção em um clique está operacional. Nicole tem interface.
+2. **Entrega ao Crésus**: MVP funcional. Exporter idempotente com endpoint REST ativo. Bloqueador restante é validação contra formato .cre real com dados da Nicole.
+3. **Onboarding**: ainda exige engenheiro. Não resolvido.
+4. **Ingestão móvel**: Telegram com voz ativo para SANTOS. BECO pendente por durabilidade.
+5. **Memory decay**: parcialmente resolvido. rank_relevance com decaimento exponencial implementado no SANTOS via query-time math.
+
+## SANTOS INTELLIGENCE LAYER
+- **Signal cross-tenant**: Signal cross-tenant com threshold e decay implementados.
+- **DecisionHub**: Agregando sinais de fontes heterogêneas para priorização.
+- **Question Engine**: Ativo — uma pergunta por input baseada em gaps do grafo.
+- **Próxima Fronteira**: Conectar DecisionHub ao SESSION_BRIEF.
 
 ## MEMÓRIA PERMANENTE
 **Visão em dois anos.** 
