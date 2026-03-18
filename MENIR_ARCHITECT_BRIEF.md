@@ -46,3 +46,32 @@ A interface é o inimigo. O Menir precisa ser invisível sempre que possível. E
 
 **A regra de física.** 
 Isolamento galvânico via ContextVar não se burla nunca — nem para teste rápido. Misturou tenant, o sistema morre. Não é convenção de código. É a integridade do produto.
+
+## MAPA DE INGESTÃO BECO
+
+### EMAIL_PASSIVE (chegam por email como anexo PDF)
+- SBB CFF FFS
+- Sunrise
+- Salt Mobile
+- Groupe E
+- La Poste Suisse
+- Helsana
+- CSS Assurance
+- Allianz Suisse
+- Extratos Registre du Commerce (GE e VD)
+
+### PORTAL_ACTIVE (requerem acesso por portal — ingestão passiva impossível)
+- **Swisscom** — `PORTAL_ONLY` ⚠️ Nunca chegará por email. Requer exportação manual por Nicole ou RPA futuro.
+- Romande Énergie
+- SIG Genève (Services Industriels de Genève)
+- BCGE (Banque Cantonale de Genève)
+- BCV (Banque Cantonale Vaudoise)
+- UBS Suisse
+- AFC Genève (Administration Fiscale Cantonale)
+- ACI Vaud (Administration Cantonale des Impôts)
+
+### PHYSICAL_MAIL (chegam por correio físico — requerem scanner)
+- Bordereaux de taxation (cantões GE e VD)
+- Avis de taxation (notificações de cobrança fiscal cantonal)
+
+> **Nota arquitetural**: Swisscom é o único fornecedor confirmado como `PORTAL_ONLY` — nunca chegará por ingestão passiva. O pipeline deve registrar documentos Swisscom como `REQUIRES_MANUAL_EXPORT` na quarentena quando Nicole reportar ausência da fatura.
