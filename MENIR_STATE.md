@@ -43,7 +43,7 @@ MENIR-P46-20260317-MENIR_CAPTURE_REFINED
 
 ---
 
-## ✅ CONCLUÍDO (sessão 05/03/2026)
+## ✅ CONCLUÍDO (sessões 05/03/2026 → 17/03/2026)
 
 | # | O que foi feito |
 |---|----------------|
@@ -95,6 +95,11 @@ MENIR-P46-20260317-MENIR_CAPTURE_REFINED
 | ✅ | **Fase 46 - Etapa 4 - Tarefa 3**: Integração do Caminho A (QR_DECODE) e Caminho B (GEMINI_FALLBACK) na `invoice_skill.py`. Traceability persistida no Neo4j com `extraction_path` e `extraction_confidence` atualizando a aresta `BELONGS_TO_TENANT`. TDD implementado. |
 | ✅ | **Fase 46 - Etapa 4 - Tarefa 4**: Sanitização de Clientes (`sanitize_clients.py`) com validação MOD97-10. |
 | ✅ | **Fase 46 - Etapa 4 - Tarefa 5**: Bootstrap de Clientes BECO (`bootstrap_beco_clients.py`) e relatório JSON. |
+| ✅ | **Fase 46 - Step 8**: SANTOS Intelligence Layer — Signal cross-tenant com threshold e decay temporal implementados. |
+| ✅ | **Fase 46 - Step 8**: DecisionHub agregando sinais de fontes heterogêneas. |
+| ✅ | **Fase 46 - Step 8**: `question_engine.py` — uma pergunta por input baseada em gaps do grafo. TDD com TenantContext. |
+| ✅ | **Fase 46 - Step 9**: `menir_capture.py` refinado — user_uid dinâmico via grafo, `_persist_actions` com `asyncio.to_thread`. |
+| ✅ | **Fase 46 - Step 9**: Hook pós-commit blindado com `CREATE_NO_WINDOW | DETACHED_PROCESS` no Windows. |
 
 ---
 
@@ -146,10 +151,11 @@ Sync infra:             INSTALADA ✅
 [ ] R2: protools.py STRICT_SCHEMA — corrigir ou remover referência
 [ ] R3: meta_cognition.py:36 auth implicit Optional
 [ ] BATERIA: 4 blocos de testes (Neo4j + BECO pipeline + segurança + saúde)
-[ ] invoice_skill.py: lógica real de extração suíça (BECO revenue blocker)
-[ ] FASE 44: Enterprise Dashboard shell React
-[ ] FUTURO: AudioSkill (WhatsApp → Gemini Audio → LeadSkill)
+[x] invoice_skill.py: lógica real de extração suíça (Tarefa 3 — QR + Gemini fallback implementados)
+[x] FASE 44: Enterprise Dashboard shell React (substituído pelo Dashboard de Quarentena Premium)
+[/] FUTURO: AudioSkill (WhatsApp → Gemini Audio → LeadSkill) (Telegram + voz ativo para SANTOS — BECO pendente)
 [ ] FUTURO: TrustScore dinâmico
+[ ] FUTURO: Conectar DecisionHub ao SESSION_BRIEF
 ```
 
 ---
@@ -162,7 +168,7 @@ Sync infra:             INSTALADA ✅
 3. extra="allow" SOMENTE em OGM de saída do grafo
 4. asyncio.to_thread() para todo I/O síncrono em contexto async
 5. Todo nó DEVE ter [:BELONGS_TO_TENANT]
-6. BECO = fiduciária suíça | SANTOS = pessoal/Ana Caroline
+6. BECO = fiduciária suíça | SANTOS = domínio pessoal de Luiz
 7. Confiar no repo quando contradizer documentação
 8. BECO é prioridade de receita — runway limitado
 9. (:Menir) e (:User) são os dois nós raiz — meta-camada acima dos tenants

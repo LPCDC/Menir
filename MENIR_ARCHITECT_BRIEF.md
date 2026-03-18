@@ -6,8 +6,8 @@
 O detector bimodal interativo separando nativamente PDFs digitais das digitalizações ruidosas foi construído e ligado ao coração da inteligência. O "Abismo 0" (Classificação e Roteamento) está agora parcialmente resolvido com a integração da REST API V3 e o Dashboard de Quarentena Premium. Todos os escudos protetivos de chaves duras foram limpos da malha neural, consolidando um núcleo de teste auditado. O sistema agora opera em escala real BECO: 500 clientes, 6 idiomas detectados.
 
 ## BLOQUEADORES ATIVOS
-- **A Adoção do Scanner Físico**: Fixture PDF real da Nicole ainda não processada.
-- **A Entrega Contábil**: `cresus_exporter.py` não revisado contra o formato .cre real utilizado pela fiduciária atual.
+- **A Adoção do Scanner Físico**: Fixture PDF real da Nicole ainda não processada. (R1 — REVENUE BLOCKER)
+- ~~**A Entrega Contábil**: `cresus_exporter.py` não revisado.~~ ✅ RESOLVIDO — Exporter idempotente com TVA Extended Format e endpoint REST ativo. Bloqueador restante: validação contra formato `.cre` real com dados reais da Nicole.
 
 ## AG AGUARDA RESPOSTA
 - Nenhuma pendência arquitetural ativa e sem resposta.
@@ -35,10 +35,14 @@ Se o runway acabar amanhã, o único resultado que valida tudo é o Relatório d
 **O princípio oculto.** 
 A interface é o inimigo. O Menir precisa ser invisível sempre que possível. Entrada onde a pessoa já vive — áudio, email, scanner. Output onde o processo já termina — Crésus, briefing no celular. UI existe apenas para exceções e quarentena. O dia que o Menir tentar prender o usuário dentro de um software clássico, ele vira mais um SaaS genérico e perde a alma.
 
-## MEMÓRIA TÁTICA & PRECEDENTES (V5.2)
+## MEMÓRIA TÁTICA & PRECEDENTES (V5.5)
 1. **Precedente Zona Vermelha**: Qualquer skill que persista dados diretamente no grafo BECO (ex: `document_classifier_skill.py`, `synapse.py`) deve ser incluída no Hard Lock do git-hook.
 2. **Cofre Active Fetcher**: `menir_active_fetcher` opera sob nota de conformidade FINMA; qualquer alteração em seu motor de extração exige auditoria de rastro.
 3. **Anti-SOP Graph**: Gemini está instruído a nunca injetar SOPs (Standard Operating Procedures) como nós de dados puros; eles devem ser interpretados como metatags de aresta para manter a pureza ontológica.
+4. **Isolamento Galvânico no path de endpoint**: tenant jamais aparece na URL — é sempre extraído via ContextVar. Padrão canônico: `/api/v{n}/recurso`.
+5. **Durabilidade assimétrica por tenant**: SANTOS tolera perda eventual (pessoal de Luiz); BECO não tolera — toda persistência BECO exige commit explícito com rastreabilidade FINMA.
+6. **Mapeamento progressivo Nicole → cresus_account_id**: clientes são mapeados incrementalmente à medida que Nicole valida na quarentena — nunca em batch sem supervisão humana.
+7. **Anti-inchaço de entidades**: schema só é criado quando a skill que o usa está pronta para ser codificada. Criar schema antes da skill é dívida técnica silenciosa que confunde o Gemini.
 
 **A regra de física.** 
 Isolamento galvânico via ContextVar não se burla nunca — nem para teste rápido. Misturou tenant, o sistema morre. Não é convenção de código. É a integridade do produto.
