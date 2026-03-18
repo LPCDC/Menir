@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260317-MENIR_CAPTURE_REFINED
+MENIR-P46-20260318-PRE_TASK7_COMPLETE
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
