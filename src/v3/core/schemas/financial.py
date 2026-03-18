@@ -53,6 +53,14 @@ class InvoiceData(BaseNode):
         default=False,
         description="Flag: Marcar como TRUTH se for um recibo de restaurante ou despesa de representação que exija justificativa do contador.",
     )
+    is_recurring: bool = Field(
+        default=False,
+        description="Flag: True se for uma fatura recorrente (assinatura mensal, prémio de seguro, impostos periódicos).",
+    )
+    purchase_order_number: str | None = Field(
+        default=None,
+        description="Número de ordem de compra (PO Number) da empresa emissora. Nulo se não aplicável.",
+    )
     
     extraction_path: Literal["QR_DECODE", "GEMINI_FALLBACK"] = Field(
         description="Rastreabilidade: Caminho arquitetural utilizado para obter os dados."
