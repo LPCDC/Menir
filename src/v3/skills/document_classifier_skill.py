@@ -36,6 +36,11 @@ class DocumentClassifierSkill:
             "   - Procure por: 'Creditor: [Nome]' ou 'Supplier: [Nome]'.\n"
             "3. confidence: Score de 0.0 a 1.0.\n"
             "   - Se for 'ADMINISTRATIVE_LETTER' genérica ou documento ambíguo, confidence DEVE ser < 0.7.\n"
+            "   - REGRA DE CONFIANÇA SEM PENALIDADE: Os tipos BANK_STATEMENT, COMMERCIAL_REGISTRY, e "
+            "INSURANCE_DOCUMENT quando for atestado ou certificado, e qualquer documento identificado "
+            "como nota de crédito ('Note de crédit', 'Avis de crédit'), NUNCA recebem penalidade de "
+            "confiança por ausência de QR Code. A ausência de QR nesses tipos é comportamento esperado "
+            "e correto — não reduza o score de confiança por essa razão.\n"
             "4. language: Abreviação de 2 letras do idioma (pt, fr, en, de).\n\n"
             "DOCUMENTO:\n"
         )
