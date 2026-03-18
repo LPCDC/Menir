@@ -49,3 +49,45 @@
 
 ## [2026-03-10T21:08:52.511691Z] - Commit Automático
 - docs: MENIR_ARCHITECT_BRIEF V1 sessao V0 Luiz presente.
+
+## [2026-03-11T17:50:00Z] — Auditoria V0 (identity.py)
+> Nota de Auditoria
+- Commit `0463d0c` tocou `identity.py` (Zona Vermelha / Arquivo V0) via `VELOCITY_OVERRIDE` sem sessão explícita com o Arquiteto.
+- Mudança aceita retroativamente pelo Arquiteto por implementar decisão pré-existente no `MENIR_ARCHITECT_BRIEF.md` (Personal Tenant).
+- **Nova Regra de Processo:** Arquivos V0 bloqueados durante o sprint devem ter bloqueio documentado no `inbox.md` aguardando a presença de Luiz. `VELOCITY_OVERRIDE` autônomo está proibido.
+
+## [2026-03-13T02:49:37.701203Z] - Commit Automático
+- fix: add 5s timeout to post-commit Neo4j health check
+
+## [2026-03-13T02:50:42.924729Z] - Commit Automático
+- docs: add red zone TDD rule to ARCHITECT_BRIEF and sync MENIR_STATE to PHASE46_STEP3
+
+## [2026-03-15T17:41:35.333202Z] - Commit Automático
+- fix: remove zombie imports forensic_auditor and shacl_validator
+
+## [2026-03-15T23:13:53.105490Z] - Commit Automático
+- fix: real MOD11 IBAN validation + Decimal amount in swiss_qr_parser [Phase 46]
+
+## [2026-03-16T15:18:37.046664Z] - Commit Automático
+- fix: scan last 3 pages back-to-front in qr_extractor
+
+## [2026-03-16T21:45:22.549771Z] - Commit Automático
+- fix: make post-commit hook non-blocking regardless of Neo4j state.
+
+## [2026-03-16T22:17:22.677135Z] - Commit Automático
+- fix: user_uid param and async IO in menir_capture
+
+## [2026-03-16T22:18:30.647519Z] - Commit Automático
+- chore: diagnostic commit for hook hang
+
+## [2026-03-16T22:19:17.650965Z] - Commit Automático
+- fix: user_uid param and async IO in menir_capture
+
+## [2026-03-17T16:31:48.692686Z] - Commit Automático
+- docs: update ARCHITECT_BRIEF with SANTOS layer and corrected product distance
+
+## [2026-03-18T06:05:23.879905Z] - Commit Automático
+- docs: fix 7 inconsistencies across STATE and BRIEF (SANTOS history, version, blockers, principles)
+
+## [2026-03-18T16:37:57.362366Z] - Commit Automático
+- chore: gitignore sensitive outputs and temp files
