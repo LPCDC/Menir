@@ -4,3 +4,16 @@ __pycache__/
 *.pyc
 logs/
 Menir_Inbox/Quarantine/
+
+# Crésus exports (dados sensíveis de clientes BECO)
+Menir_Cresus_Out/
+
+# Logs de pytest e arquivos temporários
+pytest_err*.log
+pytest_out*.log
+
+# Fixtures de teste e arquivos de diagnóstico
+dummy_hook_test.txt
+dummy_odontologico.jpg
+dummy_voice.wav
+tmp_find_che.py
