@@ -73,6 +73,7 @@ class DocumentClassifierSkill:
             path = "QR_DECODE" if p_type == "DIGITAL" else "GEMINI_FALLBACK"
             
             # Nota: transformamos os tipos de DocumentClassification para os tipos de InvoiceData se necessário
+            # InvoiceData temporário: criado apenas para alimentar o trust_score_engine, não persiste no grafo.
             mock_data = InvoiceData(
                 uid="temp", project="TEMP", source_document_uid="temp",
                 vendor_name=result.suggested_client_name or "Unknown",
