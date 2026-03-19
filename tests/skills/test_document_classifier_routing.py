@@ -32,7 +32,7 @@ async def test_routing_fast_lane_high_confidence(mock_intel):
         mock_parser.return_value = ("DIGITAL", ["Texto Frequente"])
         
         # O método classify_document deve retornar o destino agora
-        classification, target = await skill.classify_document("high.pdf")
+        classification, score, target = await skill.classify_document("high.pdf")
         
         assert target == "PRODUCTION"
         assert classification.confidence >= 0.85
@@ -54,7 +54,7 @@ async def test_routing_quarantine_low_confidence(mock_intel):
         # Simula SCANNED (que perde pontos no engine se não tiver QR)
         mock_parser.return_value = ("SCANNED", ["Imagem ruidosa"])
         
-        classification, target = await skill.classify_document("low.pdf")
+        classification, score, target = await skill.classify_document("low.pdf")
         
         assert target == "QUARANTINE"
         assert classification.confidence < 0.85

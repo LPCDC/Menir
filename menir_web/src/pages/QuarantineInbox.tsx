@@ -7,6 +7,8 @@ interface QuarantineDocument {
   document_type: string;
   suggested_client: string;
   confidence: number;
+  trust_score: number;
+  routing_decision: string;
   language: string;
   quarantined_at: string;
   reason: string;
@@ -15,6 +17,7 @@ interface QuarantineDocument {
 const QuarantineInbox: React.FC = () => {
   const [documents, setDocuments] = useState<QuarantineDocument[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<QuarantineDocument | null>(null);
+  const [filter, setFilter] = useState<string>("ALL"); // ALL, PRODUCTION, QUARANTINE
   const [loading, setLoading] = useState(false);
   const [correctedClient, setCorrectedClient] = useState("");
   const [isCorrecting, setIsCorrecting] = useState(false);
@@ -42,6 +45,17 @@ const QuarantineInbox: React.FC = () => {
   useEffect(() => {
     fetchQuarantine();
   }, []);
+
+  const getScoreColor = (score: number) => {
+    if (score >= 0.85) return '#4dff4d'; // Verde
+    if (score >= 0.70) return '#ffaa00'; // Laranja
+    return '#ff4d4d'; // Vermelho
+  };
+
+  const filteredDocuments = documents.filter(doc => {
+    if (filter === "ALL") return true;
+    return doc.routing_decision === filter;
+  });
 
   const handleAccept = async () => {
     if (!selectedDoc) return;
@@ -100,7 +114,7 @@ const QuarantineInbox: React.FC = () => {
     }}>
       {/* Sidebar - Glassmorphism */}
       <div className="sidebar" style={{
-        width: '300px',
+        width: '320px',
         background: 'rgba(255, 255, 255, 0.05)',
         backdropFilter: 'blur(10px)',
         borderRight: '1px solid rgba(255, 255, 255, 0.1)',
@@ -108,13 +122,36 @@ const QuarantineInbox: React.FC = () => {
         flexDirection: 'column',
         padding: '20px'
       }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ color: '#ff4d4d' }}>●</span> Quarentena
-          <span style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '10px' }}>{documents.length}</span>
+          <span style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '10px' }}>{filteredDocuments.length}</span>
         </h2>
 
+        {/* Filter Selection */}
+        <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '4px', marginBottom: '15px' }}>
+          {["ALL", "PRODUCTION", "QUARANTINE"].map(f => (
+            <button 
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                flex: 1,
+                padding: '6px',
+                fontSize: '0.65rem',
+                borderRadius: '6px',
+                border: 'none',
+                background: filter === f ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: filter === f ? '#fff' : '#888',
+                cursor: 'pointer',
+                fontWeight: filter === f ? 700 : 400
+              }}
+            >
+              {f === "ALL" ? "TODOS" : f}
+            </button>
+          ))}
+        </div>
+
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {documents.map(doc => (
+          {filteredDocuments.map(doc => (
             <div 
               key={doc.uid}
               onClick={() => {
@@ -133,13 +170,18 @@ const QuarantineInbox: React.FC = () => {
               }}
             >
               <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '5px', color: '#fff' }}>{doc.name}</div>
-              <div style={{ fontSize: '0.75rem', color: '#aaa', display: 'flex', justifyContent: 'space-between' }}>
-                <span>{doc.document_type}</span>
-                <span style={{ color: doc.confidence < 0.5 ? '#ff4d4d' : '#ffaa00' }}>{(doc.confidence * 100).toFixed(0)}%</span>
+              <div style={{ fontSize: '0.75rem', color: '#aaa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.document_type}</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                   <span title="Gemini Confidence" style={{ color: '#aaa' }}>{(doc.confidence * 100).toFixed(0)}%</span>
+                   <span title="Menir Trust Score" style={{ color: getScoreColor(doc.trust_score || 0), fontWeight: 700 }}>
+                     {( (doc.trust_score || 0) * 100).toFixed(0)}
+                   </span>
+                </div>
               </div>
             </div>
           ))}
-          {!loading && documents.length === 0 && <div style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>Nenhum item pendente</div>}
+          {!loading && filteredDocuments.length === 0 && <div style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>Nenhum item pendente</div>}
           {loading && <div style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>Carregando...</div>}
         </div>
       </div>
@@ -164,7 +206,7 @@ const QuarantineInbox: React.FC = () => {
             </div>
 
             {/* Actions Panel */}
-            <div style={{ width: '350px', padding: '30px', background: 'rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ width: '380px', padding: '30px', background: 'rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '10px', color: '#fff' }}>Detalhes da Captura</h3>
               
               <div className="detail-item">
@@ -172,14 +214,44 @@ const QuarantineInbox: React.FC = () => {
                 <div style={{ fontSize: '1.2rem', fontWeight: 500, color: '#4da6ff' }}>{selectedDoc.suggested_client}</div>
               </div>
 
-              <div className="detail-item">
-                <label style={{ fontSize: '0.8rem', color: '#888' }}>Tipo de Documento</label>
-                <div>{selectedDoc.document_type}</div>
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: '#888' }}>Trust Score</label>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: getScoreColor(selectedDoc.trust_score || 0) }}>
+                    {((selectedDoc.trust_score || 0) * 100).toFixed(0)}%
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: '#888' }}>Roteamento</label>
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    fontWeight: 700, 
+                    padding: '4px 8px', 
+                    borderRadius: '4px', 
+                    background: selectedDoc.routing_decision === 'PRODUCTION' ? 'rgba(77, 255, 77, 0.1)' : 'rgba(255, 77, 77, 0.1)',
+                    color: selectedDoc.routing_decision === 'PRODUCTION' ? '#4dff4d' : '#ff4d4d',
+                    display: 'inline-block',
+                    marginTop: '5px'
+                  }}>
+                    {selectedDoc.routing_decision}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: '#888' }}>Tipo</label>
+                  <div style={{ fontSize: '0.85rem' }}>{selectedDoc.document_type}</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: '#888' }}>Idioma</label>
+                  <div style={{ textTransform: 'uppercase', fontSize: '0.85rem' }}>{selectedDoc.language}</div>
+                </div>
               </div>
 
               <div className="detail-item">
-                <label style={{ fontSize: '0.8rem', color: '#888' }}>Idioma Detectado</label>
-                <div style={{ textTransform: 'uppercase' }}>{selectedDoc.language}</div>
+                <label style={{ fontSize: '0.8rem', color: '#888' }}>Motivo da Quarentena</label>
+                <div style={{ fontSize: '0.85rem', color: '#ffaa00' }}>{selectedDoc.reason}</div>
               </div>
 
               <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
