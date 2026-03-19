@@ -36,6 +36,8 @@ class QuarantineItem(BaseNode):
     origin: str = "UPLOAD"
     document_type: str | None = None
     confidence: float | None = None
+    trust_score: float | None = None
+    routing_decision: str | None = None
     language: str | None = None
     labels: list[str] = ["QuarantineItem"]
 

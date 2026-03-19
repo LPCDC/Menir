@@ -88,7 +88,7 @@ class DocumentClassifierSkill:
             target = "PRODUCTION" if score >= 0.85 else "QUARANTINE"
             
             logger.info(f"Roteamento para {file_path}: {target} (Score: {score:.2f})")
-            return result, target
+            return result, float(score), target
         except Exception as e:
             logger.error(f"Falha na classificação do documento {file_path}: {e}")
             return DocumentClassification(
@@ -96,4 +96,4 @@ class DocumentClassifierSkill:
                 suggested_client_name=None,
                 confidence=0.0,
                 language="??"
-            ), "QUARANTINE"
+            ), 0.0, "QUARANTINE"

@@ -97,3 +97,9 @@
 
 ## [2026-03-18T17:19:47.073564Z] - Commit Automático
 - docs: add BECO ingestion map to ARCHITECT_BRIEF
+
+## [2026-03-19T19:58:28.561282Z] - Commit Automático
+- chore: add trust_score_engine to red zone
+
+## [2026-03-19T20:03:02.340451Z] - Commit Automático
+- docs: add VELOCITY_OVERRIDE authorization protocol to ARCHITECT_BRIEF

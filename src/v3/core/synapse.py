@@ -436,42 +436,17 @@ class MenirSynapse:
             return web.Response(text=response_str)
 
     async def handle_get_quarantine(self, request):
-        target_tenant = TenantContext.get() or "BECO"
-        safe_tenant = target_tenant.replace("`", "")
-        
-        query = f"""
-        MATCH (d:Document:`{safe_tenant}`)
-        WHERE d.status = 'QUARANTINE'
-        RETURN d.uid AS id, d.name AS name, d.file_hash AS file_hash, d.quarantine_reason AS reason, d.quarantined_at AS date
-        ORDER BY d.quarantined_at DESC
-        LIMIT 50
-        """
-        
-        def _fetch():
-            try:
-                with self.runner.ontology_manager.driver.session() as s:
-                    return [dict(rec) for rec in s.run(query)]
-            except Exception as e:
-                logger.error(f"Erro ao buscar quarentena: {e}")
-                return []
-        
-        try:
-            docs = await asyncio.to_thread(_fetch)
-            
-            # Format datetimes
-            for d in docs:
-                if d.get("date"):
-                    if hasattr(d["date"], "iso_format"):
-                        d["date"] = d["date"].iso_format()
-                    elif hasattr(d["date"], "isoformat"):
-                        d["date"] = d["date"].isoformat()
-                    else:
-                        d["date"] = str(d["date"])
-                        
-            return web.json_response({"documents": docs})
-        except Exception as e:
-            logger.error(f"Fatal erro no handle_get_quarantine: {e}")
-            return web.json_response({"documents": []})
+        """Standard GET for Quarantine nodes (v1 compatible)"""
+        target_tenant = await self._get_tenant_from_request(request)
+        with locked_tenant_context(target_tenant):
+            with self.runner.ontology_manager.driver.session() as session:
+                query = f"MATCH (d:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) " \
+                        "RETURN d.uid AS id, d.name AS name, d.file_hash AS file_hash, " \
+                        "d.quarantine_reason AS reason, d.quarantined_at AS date, " \
+                        "d.trust_score AS trust_score, d.routing_decision AS routing_decision"
+                result = session.run(query)
+                data = [record.data() for record in result.all()]
+                return web.json_response(data)
 
     async def handle_retry_document(self, request):
         doc_id = request.match_info['id']
@@ -610,9 +585,10 @@ class MenirSynapse:
 
         try:
             classifier = DocumentClassifierSkill(self.logos.intel)
-            classification = await classifier.classify_document(file_path)
+            classification, trust_score, routing_target = await classifier.classify_document(file_path)
             
-            is_quarantine = classification.confidence < 0.7
+            # TrustScore Logic (Task 8)
+            is_quarantine = routing_target == "QUARANTINE"
             persisted_uid = None
             
             with locked_tenant_context(target_tenant):
@@ -628,6 +604,8 @@ class MenirSynapse:
                             quarantined_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                             document_type=classification.document_type,
                             confidence=classification.confidence,
+                            trust_score=trust_score,
+                            routing_decision=routing_target,
                             language=classification.language,
                             origin="UPLOAD"
                         )
@@ -683,17 +661,15 @@ class MenirSynapse:
         return target_tenant
 
     async def handle_get_quarantine_documents(self, request):
-        try:
-            target_tenant = await self._get_tenant_from_request(request)
-            with locked_tenant_context(target_tenant):
-                with self.runner.ontology_manager.driver.session() as session:
-                    q = f"MATCH (q:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) RETURN q"
-                    result = session.run(q)
-                    items = [record.data()["q"] for record in result.all()]
-            return web.json_response(items)
-        except Exception as e:
-            logger.exception("Erro ao listar quarentena")
-            return web.json_response({"error": str(e)}, status=500)
+        """GET list of nodes in quarentena for this tenant."""
+        target_tenant = await self._get_tenant_from_request(request)
+        with locked_tenant_context(target_tenant):
+            with self.runner.ontology_manager.driver.session() as session:
+                query = f"MATCH (q:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) " \
+                        "RETURN q { .*, date: q.quarantined_at } AS q"
+                result = session.run(query)
+                items = [record.data()["q"] for record in result.all()]
+                return web.json_response(items)
 
     async def handle_accept_quarantine_document(self, request):
         uid = request.match_info.get("uid")
