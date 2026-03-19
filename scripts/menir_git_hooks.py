@@ -14,6 +14,7 @@ RED_ZONE_FILES = {
     "src/v3/menir_bridge.py",
     "src/v3/core/synapse.py",
     "src/v3/skills/document_classifier_skill.py",
+    "src/v3/core/trust_score_engine.py",
 }
 
 def get_current_fingerprint():
