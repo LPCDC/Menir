@@ -17,7 +17,7 @@ def mock_intel():
 
 @pytest.mark.asyncio
 async def test_routing_fast_lane_high_confidence(mock_intel):
-    """Documento com confiança > 0.95 deve ser marcado para PRODUCTION."""
+    """Documento com confiança > 0.85 deve ser marcado para PRODUCTION."""
     mock_intel.structured_inference.return_value = DocumentClassification(
         document_type="INVOICE_SUPPLIER",
         suggested_client_name="Vendor High",
@@ -35,12 +35,12 @@ async def test_routing_fast_lane_high_confidence(mock_intel):
         classification, target = await skill.classify_document("high.pdf")
         
         assert target == "PRODUCTION"
-        assert classification.confidence >= 0.95
+        assert classification.confidence >= 0.85
 
 
 @pytest.mark.asyncio
 async def test_routing_quarantine_low_confidence(mock_intel):
-    """Documento com confiança < 0.95 deve ser marcado para QUARANTINE."""
+    """Documento com confiança < 0.85 deve ser marcado para QUARANTINE."""
     mock_intel.structured_inference.return_value = DocumentClassification(
         document_type="INVOICE_SUPPLIER",
         suggested_client_name="Vendor Low",
@@ -57,4 +57,4 @@ async def test_routing_quarantine_low_confidence(mock_intel):
         classification, target = await skill.classify_document("low.pdf")
         
         assert target == "QUARANTINE"
-        assert classification.confidence < 0.95
+        assert classification.confidence < 0.85
