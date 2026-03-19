@@ -46,8 +46,9 @@ class Camt053Skill:
             tree = ET.parse(file_path)
             root = tree.getroot()
 
-            # Namespace typical de CAMT.053
-            ns = {"ns": "urn:iso:std:iso:20022:tech:xsd:camt.053.001.02"}
+            # Namespace flexivel
+            ns_uri = root.tag.split("}")[0][1:] if "}" in root.tag else "urn:iso:std:iso:20022:tech:xsd:camt.053.001.02"
+            ns = {"ns": ns_uri}
 
             transactions = []
             acct_iban = root.findtext(".//ns:Acct/ns:Id/ns:IBAN", namespaces=ns) or "UNKNOWN_IBAN"
@@ -55,8 +56,9 @@ class Camt053Skill:
             for entry in root.findall(".//ns:Ntry", namespaces=ns):
                 tx_id = (
                     entry.findtext("ns:NtryRef", namespaces=ns)
-                    or entry.findtext("ns:AcctSvcrRef", namespaces=ns)
+                    or entry.findtext(".//ns:AcctSvcrRef", namespaces=ns)
                     or entry.findtext("ns:AddtlNtryInf", namespaces=ns)
+                    or str(uuid.uuid4())[:8]
                 )
                 amount_str = entry.findtext("ns:Amt", namespaces=ns) or "0"
                 cd_ind = entry.findtext(".//ns:CdtDbtInd", namespaces=ns) or "CRDT"
@@ -66,11 +68,12 @@ class Camt053Skill:
                     or entry.findtext("ns:Dt", namespaces=ns)
                 )
                 remittance = entry.findtext(".//ns:RmtInf/ns:Ustrd", namespaces=ns) or ""
-                debtor_iban = (
-                    entry.findtext(".//ns:Dbtr/ns:FinInstnId/ns:IBAN", namespaces=ns) or ""
-                )
-                creditor_iban = (
-                    entry.findtext(".//ns:Cdtr/ns:FinInstnId/ns:IBAN", namespaces=ns) or ""
+                
+                # Capturar Devedor (Foco no Ultimate Debtor para faturas)
+                debtor_name = (
+                    entry.findtext(".//ns:RltdPties/ns:UltmtDbtr/ns:Nm", namespaces=ns)
+                    or entry.findtext(".//ns:RltdPties/ns:Dbtr/ns:Nm", namespaces=ns)
+                    or ""
                 )
 
                 try:
@@ -81,21 +84,17 @@ class Camt053Skill:
                 if cd_ind == "DBIT":
                     amount = -amount
 
-                if tx_id:
-                    transactions.append(
-                        {
-                            "tx_id": tx_id,
-                            "amount": amount,
-                            "currency": "CHF",
-                            "booking_date": booking_date or "",
-                            "debtor_iban": debtor_iban,
-                            "creditor_iban": creditor_iban,
-                            "remittance_info": remittance,
-                            "acct_iban": acct_iban,
-                        }
-                    )
-                else:
-                    logger.warning("Entrada sem tx_id ignorada — sem NtryRef nem AcctSvcrRef.")
+                transactions.append(
+                    {
+                        "tx_id": tx_id,
+                        "amount": amount,
+                        "currency": "CHF",
+                        "booking_date": booking_date or "",
+                        "debtor_name": debtor_name,
+                        "remittance_info": remittance,
+                        "acct_iban": acct_iban,
+                    }
+                )
 
             # 2. Injeção Idempotente no Neo4j
             if transactions:
@@ -134,27 +133,23 @@ class Camt053Skill:
 
         query = f"""
         UNWIND $transactions AS tx
-          # noqa: W293
+        
         // 1. O Tenant
         MERGE (t:Tenant {{name: $tenant}})
-          # noqa: W293
-        // 2. A Conta Bancária (A conta cujo extrato estamos lendo - Ponto de Ancoragem)
-        // Assume-se neste mock que o debtor ou creditor da nossa visão reflete nossa conta base
-        // Iremos generalizar a BankAccount baseada no IBAN do Tenant extraído do cabeçalho do XML.
-        // Simulando a extração do cabeçalho para amarrar as transações:
+        
+        // 2. A Conta Bancária
         MERGE (ba:BankAccount:`{safe_tenant}` {{iban: tx.acct_iban}})
         MERGE (t)-[:OWNS_ACCOUNT]->(ba)
 
-        // 3. A Transação de forma Idempotente (Pelo tx_id bancário)
+        // 3. A Transacao de forma Idempotente (Pelo tx_id bancario)
         MERGE (tr:Transaction:`{safe_tenant}` {{tx_id: tx.tx_id}})
         SET tr.amount = tx.amount,
             tr.currency = tx.currency,
             tr.booking_date = tx.booking_date,
-            tr.debtor_iban = tx.debtor_iban,
-            tr.creditor_iban = tx.creditor_iban,
+            tr.debtor_name = tx.debtor_name,
             tr.remittance_info = tx.remittance_info,
             tr.ingested_at = datetime()
-              # noqa: W293
+            
         // 4. Aresta de Posse (A BankAccount possui esta Transação)
         MERGE (ba)-[:HAS_TRANSACTION]->(tr)
         """
@@ -164,7 +159,7 @@ class Camt053Skill:
                 with session.begin_transaction() as tx:
                     tx.run(query, tenant=tenant, transactions=transactions)
             logger.info(
-                f"✅ Injeção Cypher concluída: {len(transactions)} transações bancárias enraizadas no Tenant '{tenant}'."
+                f"Injection Cypher concluida: {len(transactions)} transacoes bancarias enraizadas no Tenant '{tenant}'."
             )
         except Exception as e:
             logger.exception(f"Erro transacional ao injetar no Neo4j: {e}")

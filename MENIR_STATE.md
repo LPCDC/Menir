@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260319-GRAND_FINALE_COMPLETE
+MENIR-P46-20260319-SWISS_INCEPTION_RECONCILED
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -19,8 +19,13 @@ MENIR-P46-20260319-GRAND_FINALE_COMPLETE
 
 ## 📍 FASE ATUAL
 - **Fase:** 46
-- **Etapa:** Step 4 (BECO Fixture - Swiss Ingestion - Abismo 0 Fully Resolved)
-- **Status:** Etapa 4 concluída. Pipeline QR, Sanitização, Dashboard de Quarentena e Exportação Crésus validados.
+- **Etapa:** Step 5 (BECO Real Data - Swiss Inception - Sprint Results)
+- **Status:** Ingestão de faturas Excel, extratos CAMT053 e Reconciliação Bancária concluídos para o tenant BECO.
+- **Resultados da Sprint:**
+  - 8 faturas processadas (My Cafe Bar, Gastro Food, etc.)
+  - 71 transações CAMT053 injetadas (BCGE Janeiro 2026)
+  - 3 reconciliações automáticas confirmadas (Fuzzy Match)
+  - 1 duplicate guard ativo (Colisão 6029/2026 detectada)
 - **Dívida Técnica Pendente:** TECH_DEBT_NEO4J_ASYNC (Driver async nativo postergado para Fase 46).
 
 ---
@@ -28,6 +33,11 @@ MENIR-P46-20260319-GRAND_FINALE_COMPLETE
 ### Status Atual (Sessão Atual)
 - [x] **Fase 46 - Etapa 0**: Setup das novas regras de V2 (Pesquisa Perplexity e Mockup Visual) registradas em `_gemini.md`.
 - [x] **Fase 46 - Etapa 1**: Remoção de containers Zumbis (`competent_wescoff`, `vigorous_black`). Validação watcher.py e classificador PDF.
+- [x] **Fase 46 - Step 4 (Swiss Inception)**:
+  - [x] Tarefa 1: Excel Invoice Parser (Nicole's Sheet) implementado e testado.
+  - [x] Tarefa 2: Duplicate Guard (Collision Detection) ativo.
+  - [x] Tarefa 3: Bank Reconciliation (CAMT053) — 3 faturas reconciliadas.
+  - [x] Tarefa 4: Relatório Financeiro (Ghost Hours Prototype) gerado em JSON.
 - [x] **Fase 46 - Etapa 2**: Atualização do `src/v3/core/pdf_parser.py` eliminando blocos síncronos IO-bound. Validação do `test_pdf_parser.py`.
 - [x] **Fase 46 - Etapa 3**: Refatoração do `src/v3/skills/pdf_classifier.py` eliminando PyMuPDF/fitz.
 - [x] **Fase 46 - Etapa 4**: Integração Pyzbar/Pypdfium2 no Neo4j/Gemini Pipeline.
@@ -157,7 +167,8 @@ Sync infra:             INSTALADA ✅
 [ ] R2: protools.py STRICT_SCHEMA — corrigir ou remover referência
 [ ] R3: meta_cognition.py:36 auth implicit Optional
 [ ] BATERIA: 4 blocos de testes (Neo4j + BECO pipeline + segurança + saúde)
-[x] invoice_skill.py: lógica real de extração suíça (Tarefa 3 — QR + Gemini fallback implementados)
+[ ] BECO: Ingerir Excel consolidado dos 300 clientes (Em breve)
+[ ] BECO: Campo BillingRule no nó Client para contexto tácito por cliente
 [x] FASE 44: Enterprise Dashboard shell React (substituído pelo Dashboard de Quarentena Premium)
 [/] FUTURO: AudioSkill (WhatsApp → Gemini Audio → LeadSkill) (Telegram + voz ativo para SANTOS — BECO pendente)
 [ ] FUTURO: TrustScore dinâmico

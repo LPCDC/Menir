@@ -1,0 +1,76 @@
+{
+    "tenant": "BECO",
+    "period": "January 2026",
+    "invoices": {
+        "total_issued": 8,
+        "total_amount_billed": 4465.0,
+        "paid": [
+            {
+                "number": "6026/2026",
+                "client": "My Café Bar Sàrl",
+                "amount": 400.0,
+                "status": "PAID",
+                "reconciled_with": "ZV20260105/605403",
+                "match_method": "AUTO_AMOUNT_MONTH"
+            },
+            {
+                "number": "6021/2026",
+                "client": "Gastro Food Swiss SA",
+                "amount": 575.0,
+                "status": "PAID",
+                "reconciled_with": "ZV20260107/322451",
+                "match_method": "FUZZY_RELATION_MATCH"
+            },
+            {
+                "number": "6018/2026",
+                "client": "Toutou Propre Sàrl",
+                "amount": 250.0,
+                "status": "PAID",
+                "reconciled_with": "ZV20260129/043603",
+                "match_method": "FUZZY_RELATION_MATCH"
+            }
+        ],
+        "unpaid": [
+            {
+                "number": "6023/2026",
+                "client": "ALMATT Sàrl",
+                "amount": 300.0,
+                "status": null
+            },
+            {
+                "number": "",
+                "client": "Association Judo Club Geo de Genève",
+                "amount": 1800.0,
+                "status": null
+            },
+            {
+                "number": "6030/2026",
+                "client": "AMORIM DOS SANTOS Glayce",
+                "amount": 900.0,
+                "status": null
+            },
+            {
+                "number": "6029/2026",
+                "client": "CHARBONNIER Daisy",
+                "amount": 120.0,
+                "status": null
+            },
+            {
+                "number": "6031/2026",
+                "client": "TISCHLER Laurent",
+                "amount": 120.0,
+                "status": null
+            }
+        ],
+        "quarantined": [
+            {
+                "num": "6029/2026",
+                "reason": "Invoice number collision with BECO_02.2026_Facture Février 2026 CHARBONNIER Daisy.xlsx"
+            }
+        ]
+    },
+    "bank_reconciliation": {
+        "reconciled_count": 3,
+        "total_received": 0.0
+    }
+}
