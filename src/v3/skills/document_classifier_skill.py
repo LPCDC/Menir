@@ -84,7 +84,7 @@ class DocumentClassifierSkill:
             )
             
             score = calculate_trust_score(mock_data)
-            target = "PRODUCTION" if score >= 0.95 else "QUARANTINE"
+            target = "PRODUCTION" if score >= 0.85 else "QUARANTINE"
             
             logger.info(f"Roteamento para {file_path}: {target} (Score: {score:.2f})")
             return result, target
