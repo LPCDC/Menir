@@ -14,6 +14,8 @@ O detector bimodal interativo separando nativamente PDFs digitais das digitaliza
 
 ## DISTÂNCIA DO PRODUTO REAL
 1. **Loop de falha humano**: resolvido. Dashboard de quarentena com aceite e correção em um clique está operacional. Nicole tem interface.
+- **Sessão Hard-Lock**: Mudanças em arquivos de Zona Vermelha exigem o arquivo `VELOCITY_OVERRIDE.md` com o fingerprint atual.
+- **Protocolo V0 (Novo)**: O AG jamais cria o `VELOCITY_OVERRIDE.md` de forma autônoma. O AG deve solicitar autorização, aguardar confirmação explícita do arquiteto (Luiz), e só então criar o arquivo. Ausência de confirmação = Aguardar bloqueado.
 2. **Entrega ao Crésus**: MVP funcional. Exporter idempotente com endpoint REST ativo. Bloqueador restante é validação contra formato .cre real com dados da Nicole.
 3. **Onboarding**: ainda exige engenheiro. Não resolvido.
 4. **Ingestão móvel**: Telegram com voz ativo para SANTOS. BECO pendente por durabilidade.
