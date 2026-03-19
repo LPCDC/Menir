@@ -91,3 +91,9 @@
 
 ## [2026-03-18T16:37:57.362366Z] - Commit Automático
 - chore: gitignore sensitive outputs and temp files
+
+## [2026-03-18T16:38:35.700170Z] - Commit Automático
+- chore: commit untracked production files and test suites
+
+## [2026-03-18T17:19:47.073564Z] - Commit Automático
+- docs: add BECO ingestion map to ARCHITECT_BRIEF

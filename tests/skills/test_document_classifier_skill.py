@@ -22,12 +22,13 @@ async def test_classify_invoice_portuguese(mock_intel):
     with patch("src.v3.skills.document_classifier_skill.classify_pdf_type") as mock_parser:
         mock_parser.return_value = ("DIGITAL", ["Texto de fatura em português"])
         
-        result = await skill.classify_document("dummy.pdf")
+        result, target = await skill.classify_document("dummy.pdf")
         
         assert result.document_type == "INVOICE_SUPPLIER"
         assert result.language == "pt"
         assert result.confidence > 0.7
         assert result.suggested_client_name == "Ana Paula"
+        assert target in ["PRODUCTION", "QUARANTINE"]
 
 @pytest.mark.asyncio
 async def test_classify_bank_statement_french(mock_intel):
@@ -43,7 +44,7 @@ async def test_classify_bank_statement_french(mock_intel):
     with patch("src.v3.skills.document_classifier_skill.classify_pdf_type") as mock_parser:
         mock_parser.return_value = ("DIGITAL", ["Extrait de compte bancaire en français"])
         
-        result = await skill.classify_document("bank.pdf")
+        result, target = await skill.classify_document("bank.pdf")
         
         assert result.document_type == "BANK_STATEMENT"
         assert result.language == "fr"
@@ -63,7 +64,7 @@ async def test_classify_salary_slip(mock_intel):
     with patch("src.v3.skills.document_classifier_skill.classify_pdf_type") as mock_parser:
         mock_parser.return_value = ("DIGITAL", ["Ficha de salário mensal"])
         
-        result = await skill.classify_document("salary.pdf")
+        result, target = await skill.classify_document("salary.pdf")
         
         assert result.document_type == "SALARY_SLIP"
         assert result.confidence == 0.95
@@ -83,7 +84,7 @@ async def test_classify_invalid_type_fallback(mock_intel):
     with patch("src.v3.skills.document_classifier_skill.classify_pdf_type") as mock_parser:
         mock_parser.return_value = ("DIGITAL", ["Eu te amo"])
         
-        result = await skill.classify_document("love.pdf")
+        result, target = await skill.classify_document("love.pdf")
         
         # Should be coerced to OTHER with 0.3 confidence
         assert result.document_type == "OTHER"
@@ -98,7 +99,7 @@ async def test_classify_error_fallback(mock_intel):
     with patch("src.v3.skills.document_classifier_skill.classify_pdf_type") as mock_parser:
         mock_parser.return_value = ("DIGITAL", ["..."])
         
-        result = await skill.classify_document("error.pdf")
+        result, _ = await skill.classify_document("error.pdf")
         
         assert result.document_type == "OTHER"
         assert result.confidence == 0.0

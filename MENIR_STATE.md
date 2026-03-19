@@ -8,7 +8,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P46-20260318-PRE_TASK7_COMPLETE
+MENIR-P46-20260319-TASK7_COMPLETE
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -35,7 +35,13 @@ MENIR-P46-20260318-PRE_TASK7_COMPLETE
   - [x] **Tarefa 4**: Sanitização de Clientes (`sanitize_clients.py`) com validação MOD97-10.
   - [x] **Tarefa 5**: Bootstrap de Clientes BECO (`bootstrap_beco_clients.py`) com injeção UNWIND Cypher.
   - [x] **Tarefa 6**: Echo Test (`run_echo_test.py`) com PDFs sintéticos e relatório `echo_report_beco.json`.
-  - [x] **Tarefa 7**: Consolidação e Exposição REST (`POST /api/classify/document`) integrada ao `synapse.py`.
+  - [x] Tarefa 7: Produção & Integração (REST API + Persistência + Prompt v2)
+    - [x] 7.1: Endpoint REST `POST /api/classify/document` (TDD)
+    - [x] 7.2: Prompt v2 (12 tipos) + Validação DocumentClassification (TDD)
+    - [x] 7.3: Persistência Nó `(:Document) ou (:QuarantineItem)` com `origin` (TDD)
+    - [x] 7.4: TrustScore Engine (Calculated Confidence)
+    - [x] 7.5: Dynamic Routing (Fast Lane vs Quarantine)
+    - [x] 7.6: TDD Cycle — 100% coverage for routing logic
   - [x] **Tarefa 8**: Dashboard de Quarentena Premium & Promoção de Nós.
   - [x] **Tarefa 9**: Fix Crésus Export (204 No Content).
   - [x] **Tarefa 10**: Fix post-commit blocking hooks (Background - Reinforced with Windows Detach).
