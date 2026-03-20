@@ -441,21 +441,15 @@ class MenirSynapse:
         target_tenant = "BECO"
         
         try:
-            if token:
-                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-                target_tenant = payload.get("tenant_id", "BECO")
-            else:
-                # No token provided
-                if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
-                    return web.json_response({"error": "Missing Token. Isolation lock active."}, status=401)
-                target_tenant = "BECO"
+            if not token:
+                logger.warning("Unauthenticated access attempt blocked in handle_command_http.")
+                return web.json_response({"error": "Missing Token. Isolation lock active."}, status=401)
+            
+            payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+            target_tenant = payload.get("tenant_id", "BECO")
         except jwt.PyJWTError:
-            # Invalid token
-            if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
-                return web.json_response({"error": "Invalid JWT Token. Isolation lock active."}, status=401)
-            else:
-                logger.warning("Falha de validação JWT no CommandBus. Assumindo BECO (Safe Default).")
-                target_tenant = "BECO"
+            logger.warning("Invalid JWT Token provided to handle_command_http.")
+            return web.json_response({"error": "Invalid JWT Token. Isolation lock active."}, status=401)
 
         data = await request.json()
         raw_intent = data.get("intent", "")
@@ -490,7 +484,7 @@ class MenirSynapse:
         with locked_tenant_context(target_tenant):
             with self.runner.ontology_manager.driver.session() as session:
                 query = f"MATCH (d:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) " \
-                        "RETURN d.id AS id, d.name AS name, d.file_hash AS file_hash, " \
+                        "RETURN d.uid AS id, d.name AS name, d.file_hash AS file_hash, " \
                         "d.quarantine_reason AS reason, d.quarantined_at AS date, " \
                         "d.trust_score AS trust_score, d.routing_decision AS routing_decision"
                 result = session.run(query)
@@ -601,15 +595,15 @@ class MenirSynapse:
         target_tenant = "BECO"
         
         try:
-            if token and jwt_secret:
-                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-                target_tenant = payload.get("tenant_id", "BECO")
+            if not token or not jwt_secret:
+                logger.warning("Unauthenticated access attempt blocked in handle_classify_document.")
+                return web.json_response({"error": "Unauthorized"}, status=401)
+            
+            payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+            target_tenant = payload.get("tenant_id", "BECO")
         except jwt.PyJWTError:
-             # Fallback logic mirroring handle_command_http
-             if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
-                 return web.json_response({"error": "Unauthorized"}, status=401)
-             logger.warning("Falha de validação JWT no DocumentClassifier. Assumindo BECO (Safe Default).")
-             target_tenant = "BECO"
+             logger.warning("Invalid JWT Token provided to handle_classify_document.")
+             return web.json_response({"error": "Unauthorized"}, status=401)
 
         reader = await request.multipart()
         field = await reader.next()
@@ -709,14 +703,13 @@ class MenirSynapse:
         jwt_secret = os.getenv("MENIR_JWT_SECRET")
         target_tenant = "BECO"
         try:
-            if token and jwt_secret:
-                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-                target_tenant = payload.get("tenant_id", "BECO")
+            if not token or not jwt_secret:
+                raise web.HTTPUnauthorized()
+            
+            payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+            target_tenant = payload.get("tenant_id", "BECO")
         except jwt.PyJWTError:
-             if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
-                 raise web.HTTPUnauthorized()
-             logger.warning("Falha de validação JWT no Request Parser. Assumindo BECO (Safe Default).")
-             target_tenant = "BECO"
+             raise web.HTTPUnauthorized()
         return target_tenant
 
     async def handle_get_quarantine_documents(self, request):
