@@ -17,12 +17,15 @@ from dataclasses import dataclass, field
 
 from aiohttp import web
 
+from typing import Any, cast, Literal
 from src.v3.core.logos import CommandPayload, MenirLogos
+from src.v3.core.schemas.base import BaseNode
 from src.v3.core.schemas.identity import TenantContext, locked_tenant_context
 from src.v3.mcp_server import MenirMCPServer
 from src.v3.skills.document_classifier_skill import DocumentClassifierSkill, DocumentClassification
 from src.v3.core.persistence import NodePersistenceOrchestrator
 from src.v3.core.schemas.base import Document, QuarantineItem, DocumentStatus
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 
 logger = logging.getLogger("MenirSynapse")
 
@@ -149,7 +152,7 @@ class MenirSynapse:
                     logger.info("▶️  Ingestion RESUMIDA via CommandBus.")
 
                 elif action == "FLUSH_QUARANTINE":
-                    await asyncio.to_thread(self.runner.flush_quarantine)
+                    await run_in_custom_executor(io_pool, self.runner.flush_quarantine)
                     logger.info("🗑️  Quarentena liberada via CommandBus.")
 
                 else:
@@ -204,8 +207,9 @@ class MenirSynapse:
             logger.error("❌ CRITICAL: No TenantContext active during command queuing.")
             return "ERROR: Internal Security Breach (No Tenant Context)."
 
+        from typing import cast, Literal
         payload: CommandPayload = await self.logos.interpret_intent(
-            raw_input, origin, tenant_id=tenant_id
+            raw_input, cast(Literal["CLI_LOCAL", "WEB_UI", "AI_ORACLE", "CRON"], origin), tenant_id=tenant_id
         )
 
         # Enqueue with strict priority
@@ -226,9 +230,13 @@ class MenirSynapse:
         from src.v3.core.persistence import NodePersistenceOrchestrator
         
         async def _run_capture_task(chat_id: int, text: str, media_path: str, tenant_name: str, message_id: int):
+            if not self.logos or not self.logos.intel:
+                logger.error("❌ Telegram Logic Error: Logos/Intel offline during capture.")
+                return
+
             with locked_tenant_context(tenant_name):
                 try:
-                    capture = MenirCapture(self.logos.intel if self.logos else None, NodePersistenceOrchestrator())
+                    capture = MenirCapture(self.logos.intel, NodePersistenceOrchestrator())
                     res = await capture.ingest(text=text, current_tenant=tenant_name, media_path=media_path)
                     
                     if res and res.get("success"):
@@ -244,31 +252,35 @@ class MenirSynapse:
                                     InlineKeyboardButton(text="👎 NÃO", callback_data=f"hitl:{hitl_id}:no")
                                 ]
                             ])
-                            await self.tg_bot.send_message(
-                                chat_id=chat_id,
-                                text=f"❓ Ambiguidade Detectada: Você está se referindo a '{t_name}'?",
-                                reply_markup=kb,
-                                reply_to_message_id=message_id
-                            )
+                            if self.tg_bot:
+                                await self.tg_bot.send_message(
+                                    chat_id=chat_id,
+                                    text=f"❓ Ambiguidade Detectada: Você está se referindo a '{t_name}'?",
+                                    reply_markup=kb,
+                                    reply_to_message_id=message_id
+                                )
                         else:
+                            if self.tg_bot:
+                                await self.tg_bot.send_message(
+                                    chat_id=chat_id, 
+                                    text="✅ Entendido. Memória salva no grafo com sucesso.",
+                                    reply_to_message_id=message_id
+                                )
+                    else:
+                        if self.tg_bot:
                             await self.tg_bot.send_message(
                                 chat_id=chat_id, 
                                 text="✅ Entendido. Memória salva no grafo com sucesso.",
                                 reply_to_message_id=message_id
                             )
-                    else:
-                        await self.tg_bot.send_message(
-                            chat_id=chat_id, 
-                            text="❌ Não consegui compreender as informações desta mensagem para extrair uma memória.",
-                            reply_to_message_id=message_id
-                        )
                 except Exception as e:
                     logger.error(f"Erro no processamento background Telegram: {e}")
-                    await self.tg_bot.send_message(
-                        chat_id=chat_id, 
-                        text="❌ Ocorreu um problema técnico ao processar sua mensagem. Tente novamente mais tarde.",
-                        reply_to_message_id=message_id
-                    )
+                    if self.tg_bot:
+                        await self.tg_bot.send_message(
+                            chat_id=chat_id, 
+                            text="❌ Ocorreu um problema técnico ao processar sua mensagem. Tente novamente mais tarde.",
+                            reply_to_message_id=message_id
+                        )
                 finally:
                     if media_path and os.path.exists(media_path):
                         try:
@@ -276,71 +288,104 @@ class MenirSynapse:
                         except:
                             pass
 
+        if not self.tg_dp:
+            return
+
         @self.tg_dp.message(F.text)
         async def handle_tg_text(message: types.Message):
             tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
             text = message.text or ""
-            asyncio.create_task(_run_capture_task(message.chat.id, text, None, tenant_name, message.message_id))
+            asyncio.create_task(_run_capture_task(message.chat.id, text, "", tenant_name, message.message_id))
             
         @self.tg_dp.message(F.photo)
-        async def handle_tg_photo(message: types.Message):
-            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
-            caption = message.caption or "Analise esta imagem em busca de detalhes importantes."
-            
-            photo = message.photo[-1]
-            file = await self.tg_bot.get_file(photo.file_id)
-            os.makedirs("tmp_media", exist_ok=True)
-            local_path = f"tmp_media/{photo.file_id}.jpg"
-            await self.tg_bot.download_file(file.file_path, local_path)
-            
-            asyncio.create_task(_run_capture_task(message.chat.id, caption, local_path, tenant_name, message.message_id))
-            
+        async def wrap_photo(message: Any):
+            await self.handle_tg_photo(message)
+
         @self.tg_dp.message(F.voice)
-        async def handle_tg_voice(message: types.Message):
-            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
-            text = "Analise o áudio anexado para extrair entidades e insights e transcreva seu conteúdo principal caso seja necessário para contexto."
-            
-            voice = message.voice
-            file = await self.tg_bot.get_file(voice.file_id)
-            os.makedirs("tmp_media", exist_ok=True)
-            local_path = f"tmp_media/{voice.file_id}.ogg"
-            await self.tg_bot.download_file(file.file_path, local_path)
-            
-            
-            asyncio.create_task(_run_capture_task(message.chat.id, text, local_path, tenant_name, message.message_id))
+        async def wrap_voice(message: Any):
+            await self.handle_tg_voice(message)
+    async def handle_tg_photo(self, message: Any):
+        from aiogram import types
+        if not isinstance(message, types.Message): return
+        tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+        caption = message.caption or "Analise esta imagem em busca de detalhes importantes."
+        
+        photo = message.photo[-1] if message.photo else None
+        if not photo or not self.tg_bot:
+            return
+
+        file = await self.tg_bot.get_file(photo.file_id)
+        if not file.file_path: return
+        os.makedirs("tmp_media", exist_ok=True)
+        local_path = f"tmp_media/{photo.file_id}.jpg"
+        await self.tg_bot.download_file(file.file_path, local_path)
+        
+        asyncio.create_task(_run_capture_task(message.chat.id, caption, local_path, tenant_name, message.message_id))
+
+    async def handle_tg_voice(self, message: Any):
+        from aiogram import types
+        if not isinstance(message, types.Message): return
+        tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+        text = "Analise o áudio anexado para extrair entidades e insights e transcreva seu conteúdo principal caso seja necessário para contexto."
+        
+        voice = message.voice
+        if not voice or not self.tg_bot: return
+        
+        file = await self.tg_bot.get_file(voice.file_id)
+        if not file.file_path: return
+        os.makedirs("tmp_media", exist_ok=True)
+        local_path = f"tmp_media/{voice.file_id}.ogg"
+        await self.tg_bot.download_file(file.file_path, local_path)
+        
+        asyncio.create_task(_run_capture_task(message.chat.id, text, local_path, tenant_name, message.message_id))
             
         @self.tg_dp.callback_query(F.data.startswith('hitl:'))
-        async def handle_tg_hitl_callback(callback: types.CallbackQuery):
-            parts = callback.data.split(':')
-            if len(parts) != 3:
-                return
-            hitl_id = parts[1]
-            answer = parts[2]
-            
-            hc = self.active_hitls.get(hitl_id)
-            if not hc:
+        async def wrap_hitl_callback(callback: Any):
+            from aiogram import types
+            if isinstance(callback, types.CallbackQuery):
+                await self.handle_tg_hitl_callback(callback)
+
+    async def handle_tg_hitl_callback(self, callback: Any):
+        from aiogram import types
+        if not isinstance(callback, types.CallbackQuery) or not callback.data:
+            return
+        parts = callback.data.split(':')
+        if len(parts) != 3:
+            return
+        hitl_id = parts[1]
+        answer = parts[2]
+        
+        hc = self.active_hitls.get(hitl_id)
+        if not hc:
+            if callback.message and hasattr(callback.message, "edit_text"):
                 await callback.message.edit_text("❌ Contexto expirado ou já resolvido.")
-                return
+            return
+            
+        tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+        
+        with locked_tenant_context(tenant_name):
+            try:
+                if not self.logos or not self.logos.intel:
+                    await callback.answer("⚠️ Sistema de IA indisponível.")
+                    return
+                from src.v3.skills.menir_capture import MenirCapture
+                capture = MenirCapture(self.logos.intel, NodePersistenceOrchestrator())
+                approved = (answer == 'yes')
+                await capture.resolve_hitl(hc, approved, tenant_name)
                 
-            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
-            
-            with locked_tenant_context(tenant_name):
-                try:
-                    capture = MenirCapture(self.logos.intel if self.logos else None, NodePersistenceOrchestrator())
-                    approved = (answer == 'yes')
-                    await capture.resolve_hitl(hc, approved, tenant_name)
-                    
-                    if approved:
+                if approved:
+                    if callback.message and hasattr(callback.message, "edit_text"):
                         await callback.message.edit_text(f"✅ Confirmado (SIM). Memória '{hc.get('target_name')}' amarrada ao grafo.")
-                    else:
+                else:
+                    if callback.message and hasattr(callback.message, "edit_text"):
                         await callback.message.edit_text("✅ Negado (NÃO). Uma nova entidade autônoma foi criada no grafo.")
-                    
-                    del self.active_hitls[hitl_id]
-                except Exception as e:
-                    logger.error(f"Erro no HITL telegram callback: {e}")
-                    await callback.answer("❌ Erro ao processar resolução.", show_alert=True)
-            
-            await callback.answer()
+                
+                del self.active_hitls[hitl_id]
+            except Exception as e:
+                logger.error(f"Erro no HITL telegram callback: {e}")
+                await callback.answer("❌ Erro ao processar resolução.", show_alert=True)
+        
+        await callback.answer()
 
     # --- HTTP INTERFACE (WEB_UI / AI) ---
     async def handle_auth_token_http(self, request):
@@ -371,7 +416,7 @@ class MenirSynapse:
             limit = "Unknown"
 
         try:
-            is_healthy = await asyncio.to_thread(self.runner.ontology_manager.check_system_health)
+            is_healthy = await run_in_custom_executor(io_pool, self.runner.ontology_manager.check_system_health)
             degraded = not is_healthy
         except Exception:
             degraded = True
@@ -399,14 +444,18 @@ class MenirSynapse:
             if token:
                 payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
                 target_tenant = payload.get("tenant_id", "BECO")
-        except jwt.PyJWTError:
-            strict_auth = os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true"
-            if strict_auth:
-                 return web.json_response({"error": "Invalid JWT Token. Isolation lock active."}, status=401)
             else:
-                 logger.warning("Falha de validação JWT no CommandBus. Assumindo BECO. (STRICT_AUTH=false)")
-                 if "SANTOS" in token:
-                     target_tenant = "SANTOS"
+                # No token provided
+                if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
+                    return web.json_response({"error": "Missing Token. Isolation lock active."}, status=401)
+                target_tenant = "BECO"
+        except jwt.PyJWTError:
+            # Invalid token
+            if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
+                return web.json_response({"error": "Invalid JWT Token. Isolation lock active."}, status=401)
+            else:
+                logger.warning("Falha de validação JWT no CommandBus. Assumindo BECO (Safe Default).")
+                target_tenant = "BECO"
 
         data = await request.json()
         raw_intent = data.get("intent", "")
@@ -441,7 +490,7 @@ class MenirSynapse:
         with locked_tenant_context(target_tenant):
             with self.runner.ontology_manager.driver.session() as session:
                 query = f"MATCH (d:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) " \
-                        "RETURN d.uid AS id, d.name AS name, d.file_hash AS file_hash, " \
+                        "RETURN d.id AS id, d.name AS name, d.file_hash AS file_hash, " \
                         "d.quarantine_reason AS reason, d.quarantined_at AS date, " \
                         "d.trust_score AS trust_score, d.routing_decision AS routing_decision"
                 result = session.run(query)
@@ -485,7 +534,7 @@ class MenirSynapse:
                 res = s.run(query_update, **params).single()
                 return dict(res["d"]) if res else None
                 
-        doc = await asyncio.to_thread(_update)
+        doc = await run_in_custom_executor(io_pool, _update)
         if not doc:
              return web.json_response({"error": "No document found"}, status=404)
              
@@ -559,8 +608,8 @@ class MenirSynapse:
              # Fallback logic mirroring handle_command_http
              if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
                  return web.json_response({"error": "Unauthorized"}, status=401)
-             if "SANTOS" in token:
-                 target_tenant = "SANTOS"
+             logger.warning("Falha de validação JWT no DocumentClassifier. Assumindo BECO (Safe Default).")
+             target_tenant = "BECO"
 
         reader = await request.multipart()
         field = await reader.next()
@@ -584,31 +633,38 @@ class MenirSynapse:
         file_sha = sha256_hash.hexdigest()
 
         try:
+            if not self.logos or not self.logos.intel:
+                return web.json_response({"error": "Logos/Intel offline"}, status=503)
+
             classifier = DocumentClassifierSkill(self.logos.intel)
-            classification, trust_score, routing_target = await classifier.classify_document(file_path)
+            cls_result = await classifier.classify_document(file_path)
+            # Unpack the 3-tuple: (doc_analysis, confidence, target_tenant)
+            doc_analysis, confidence, routing_target = cls_result
             
             # TrustScore Logic (Task 8)
-            is_quarantine = routing_target == "QUARANTINE"
-            persisted_uid = None
+            is_quarantine = (routing_target == "QUARANTINE")
+            persisted_uid: str | None = None
             
             with locked_tenant_context(target_tenant):
                 orchestrator = NodePersistenceOrchestrator()
                 with self.runner.ontology_manager.driver.session() as session:
                     if is_quarantine:
-                        node = QuarantineItem(
+                        node: BaseNode = QuarantineItem(
                             uid=str(uuid.uuid4()),
                             project=target_tenant,
                             name=filename,
                             file_hash=file_sha,
                             reason="LOW_CONFIDENCE",
                             quarantined_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                            document_type=classification.document_type,
-                            confidence=classification.confidence,
-                            trust_score=trust_score,
-                            routing_decision=routing_target,
-                            language=classification.language,
                             origin="UPLOAD"
                         )
+                        node.metadata = {
+                            "document_type": doc_analysis.document_type,
+                            "confidence": doc_analysis.confidence,
+                            "trust_score": confidence,
+                            "routing_decision": routing_target,
+                            "language": doc_analysis.language
+                        }
                     else:
                         node = Document(
                             uid=str(uuid.uuid4()),
@@ -620,20 +676,23 @@ class MenirSynapse:
                             status=DocumentStatus.PENDING
                         )
                         node.metadata = {
-                            "suggested_client": classification.suggested_client_name,
-                            "document_type": classification.document_type,
-                            "confidence": classification.confidence,
-                            "language": classification.language
+                            "suggested_client": doc_analysis.suggested_client_name,
+                            "document_type": doc_analysis.document_type,
+                            "confidence": doc_analysis.confidence,
+                            "language": doc_analysis.language,
+                            "trust_score": confidence,
+                            "routing_decision": routing_target,
+                            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
                         }
                     
                     persisted_uid = await orchestrator.persist(node, session)
 
             return web.json_response({
                 "uid": persisted_uid,
-                "document_type": classification.document_type,
-                "suggested_client_name": classification.suggested_client_name,
-                "confidence": classification.confidence,
-                "language": classification.language,
+                "document_type": doc_analysis.document_type,
+                "suggested_client_name": doc_analysis.suggested_client_name,
+                "confidence": doc_analysis.confidence,
+                "language": doc_analysis.language,
                 "path_to_quarantine": is_quarantine
             })
             
@@ -656,8 +715,8 @@ class MenirSynapse:
         except jwt.PyJWTError:
              if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
                  raise web.HTTPUnauthorized()
-             if "SANTOS" in token:
-                 target_tenant = "SANTOS"
+             logger.warning("Falha de validação JWT no Request Parser. Assumindo BECO (Safe Default).")
+             target_tenant = "BECO"
         return target_tenant
 
     async def handle_get_quarantine_documents(self, request):
@@ -746,16 +805,17 @@ class MenirSynapse:
                         status=DocumentStatus.PENDING
                     )
                     new_doc.metadata = {
-                        "suggested_client": corrected_client, # OVERRIDDEN
+                        "suggested_client": corrected_client,
                         "document_type": q_data.get("document_type"),
-                        "confidence": 1.0, # Now high trust because human corrected it
-                        "language": q_data.get("language")
+                        "confidence": q_data.get("confidence"),
+                        "language": q_data.get("language"),
+                        "was_corrected": True
                     }
                     
                     # 3. Persist
                     persisted_uid = await orchestrator.persist(new_doc, session)
                     
-                    # 4. Mark Accepted (Fixed/Corrected)
+                    # 4. Mark Corrected
                     q_mark = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) SET q.status = 'CORRECTED'"
                     session.run(q_mark, uid=uid)
                     
@@ -763,17 +823,3 @@ class MenirSynapse:
         except Exception as e:
             logger.exception(f"Erro ao corrigir documento {uid}")
             return web.json_response({"error": str(e)}, status=500)
-    async def start_servers(self, http_port=8080, socket_port=8081):
-        """Inicializa as frentes Bimodais e retorna controle ao Event Loop"""
-        # 1. Boot HTTP
-        runner_app = web.AppRunner(self.app)
-        await runner_app.setup()
-        self.http_site = web.TCPSite(runner_app, "0.0.0.0", http_port)
-        await self.http_site.start()
-        logger.info(f"🌐 Synapse HTTP Mesh rodando em 0.0.0.0:{http_port}")
-
-        # 2. Boot Raw Socket (CLI)
-        self.socket_server = await asyncio.start_server(
-            self.handle_socket_client, "127.0.0.1", socket_port
-        )
-        logger.info(f"💻 Synapse CLI Socket rodando em 127.0.0.1:{socket_port}")
