@@ -204,8 +204,9 @@ class MenirSynapse:
             logger.error("❌ CRITICAL: No TenantContext active during command queuing.")
             return "ERROR: Internal Security Breach (No Tenant Context)."
 
+        from typing import cast, Literal
         payload: CommandPayload = await self.logos.interpret_intent(
-            raw_input, origin, tenant_id=tenant_id
+            raw_input, cast(Literal["CLI_LOCAL", "WEB_UI", "AI_ORACLE", "CRON"], origin), tenant_id=tenant_id
         )
 
         # Enqueue with strict priority
@@ -226,9 +227,13 @@ class MenirSynapse:
         from src.v3.core.persistence import NodePersistenceOrchestrator
         
         async def _run_capture_task(chat_id: int, text: str, media_path: str, tenant_name: str, message_id: int):
+            if not self.logos or not self.logos.intel:
+                logger.error("❌ Telegram Logic Error: Logos/Intel offline during capture.")
+                return
+
             with locked_tenant_context(tenant_name):
                 try:
-                    capture = MenirCapture(self.logos.intel if self.logos else None, NodePersistenceOrchestrator())
+                    capture = MenirCapture(self.logos.intel, NodePersistenceOrchestrator())
                     res = await capture.ingest(text=text, current_tenant=tenant_name, media_path=media_path)
                     
                     if res and res.get("success"):
@@ -244,31 +249,35 @@ class MenirSynapse:
                                     InlineKeyboardButton(text="👎 NÃO", callback_data=f"hitl:{hitl_id}:no")
                                 ]
                             ])
-                            await self.tg_bot.send_message(
-                                chat_id=chat_id,
-                                text=f"❓ Ambiguidade Detectada: Você está se referindo a '{t_name}'?",
-                                reply_markup=kb,
-                                reply_to_message_id=message_id
-                            )
+                            if self.tg_bot:
+                                await self.tg_bot.send_message(
+                                    chat_id=chat_id,
+                                    text=f"❓ Ambiguidade Detectada: Você está se referindo a '{t_name}'?",
+                                    reply_markup=kb,
+                                    reply_to_message_id=message_id
+                                )
                         else:
+                            if self.tg_bot:
+                                await self.tg_bot.send_message(
+                                    chat_id=chat_id, 
+                                    text="✅ Entendido. Memória salva no grafo com sucesso.",
+                                    reply_to_message_id=message_id
+                                )
+                    else:
+                        if self.tg_bot:
                             await self.tg_bot.send_message(
                                 chat_id=chat_id, 
                                 text="✅ Entendido. Memória salva no grafo com sucesso.",
                                 reply_to_message_id=message_id
                             )
-                    else:
-                        await self.tg_bot.send_message(
-                            chat_id=chat_id, 
-                            text="❌ Não consegui compreender as informações desta mensagem para extrair uma memória.",
-                            reply_to_message_id=message_id
-                        )
                 except Exception as e:
                     logger.error(f"Erro no processamento background Telegram: {e}")
-                    await self.tg_bot.send_message(
-                        chat_id=chat_id, 
-                        text="❌ Ocorreu um problema técnico ao processar sua mensagem. Tente novamente mais tarde.",
-                        reply_to_message_id=message_id
-                    )
+                    if self.tg_bot:
+                        await self.tg_bot.send_message(
+                            chat_id=chat_id, 
+                            text="❌ Ocorreu um problema técnico ao processar sua mensagem. Tente novamente mais tarde.",
+                            reply_to_message_id=message_id
+                        )
                 finally:
                     if media_path and os.path.exists(media_path):
                         try:
@@ -276,18 +285,24 @@ class MenirSynapse:
                         except:
                             pass
 
+        if not self.tg_dp:
+            return
+
         @self.tg_dp.message(F.text)
         async def handle_tg_text(message: types.Message):
             tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
             text = message.text or ""
-            asyncio.create_task(_run_capture_task(message.chat.id, text, None, tenant_name, message.message_id))
+            asyncio.create_task(_run_capture_task(message.chat.id, text, "", tenant_name, message.message_id))
             
         @self.tg_dp.message(F.photo)
         async def handle_tg_photo(message: types.Message):
             tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
             caption = message.caption or "Analise esta imagem em busca de detalhes importantes."
             
-            photo = message.photo[-1]
+            photo = message.photo[-1] if message.photo else None
+            if not photo or not self.tg_bot:
+                return
+
             file = await self.tg_bot.get_file(photo.file_id)
             os.makedirs("tmp_media", exist_ok=True)
             local_path = f"tmp_media/{photo.file_id}.jpg"
@@ -301,6 +316,8 @@ class MenirSynapse:
             text = "Analise o áudio anexado para extrair entidades e insights e transcreva seu conteúdo principal caso seja necessário para contexto."
             
             voice = message.voice
+            if not voice or not self.tg_bot: return
+            
             file = await self.tg_bot.get_file(voice.file_id)
             os.makedirs("tmp_media", exist_ok=True)
             local_path = f"tmp_media/{voice.file_id}.ogg"
