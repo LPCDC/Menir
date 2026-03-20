@@ -328,6 +328,8 @@ class MenirSynapse:
             
         @self.tg_dp.callback_query(F.data.startswith('hitl:'))
         async def handle_tg_hitl_callback(callback: types.CallbackQuery):
+            if not callback.data:
+                return
             parts = callback.data.split(':')
             if len(parts) != 3:
                 return
@@ -336,7 +338,8 @@ class MenirSynapse:
             
             hc = self.active_hitls.get(hitl_id)
             if not hc:
-                await callback.message.edit_text("❌ Contexto expirado ou já resolvido.")
+                if callback.message and hasattr(callback.message, "edit_text"):
+                    await callback.message.edit_text("❌ Contexto expirado ou já resolvido.")
                 return
                 
             tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
@@ -348,9 +351,11 @@ class MenirSynapse:
                     await capture.resolve_hitl(hc, approved, tenant_name)
                     
                     if approved:
-                        await callback.message.edit_text(f"✅ Confirmado (SIM). Memória '{hc.get('target_name')}' amarrada ao grafo.")
+                        if callback.message and hasattr(callback.message, "edit_text"):
+                            await callback.message.edit_text(f"✅ Confirmado (SIM). Memória '{hc.get('target_name')}' amarrada ao grafo.")
                     else:
-                        await callback.message.edit_text("✅ Negado (NÃO). Uma nova entidade autônoma foi criada no grafo.")
+                        if callback.message and hasattr(callback.message, "edit_text"):
+                            await callback.message.edit_text("✅ Negado (NÃO). Uma nova entidade autônoma foi criada no grafo.")
                     
                     del self.active_hitls[hitl_id]
                 except Exception as e:
