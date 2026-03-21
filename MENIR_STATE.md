@@ -6,7 +6,7 @@ Cópia espelho: `~/.gemini/antigravity/brain/MENIR_STATE.md`
 
 ## 🔑 FINGERPRINT DE SESSÃO
 ```
-MENIR-P47-20260321-TAURI-MVP-SSE
+MENIR-P47-20260321-BILLING-BITEMPORAL-MERGED
 ```
 - AG: anuncie este fingerprint ao iniciar sessão.
 - Claude: confirme antes de qualquer instrução.
@@ -17,8 +17,8 @@ MENIR-P47-20260321-TAURI-MVP-SSE
 
 ## 📍 FASE ATUAL
 - **Fase:** 47
-- **Etapa:** Momento 2 - Etapa 7 Concluída
-- **Status:** Menir Companion Tauri MVP funcional com SSE e REST POST sob isolamento galvânico.
+- **Etapa:** Momento 2 - Etapa 8 Concluída
+- **Status:** Contratos Bitemporais Suíços O(1) com APOC Optimistic Locking e ASGI Lifespan Cleanup implementados.
 - **Resultados da Sprint:**
   - Boilerplate Tauri: Inicializado e configurado para Windows (Texto Puro).
   - Synapse: Endpoints `/api/v3/events/companion` (SSE) e `/api/v3/companion/command` (REST) ativos.
@@ -32,7 +32,8 @@ MENIR-P47-20260321-TAURI-MVP-SSE
 - [x] **Fase 47 - Etapa 6**: Priority Gateway (SANTOS < 200ms) implementado e validado (15ms).
 - [x] **Hotfix ID-47-01**: Deadlocked resolved in `synapse.py`.
 - [x] **Fase 47 - Etapa 7**: Menir Companion Tauri MVP (SSE + REST).
-- [ ] **MOMENTO 2 (PENDENTE)**: Iniciar Etapa 8 - BillingRule.
+- [x] **Fase 47 - Etapa 8**: BillingRule O(1) Bitemporal Topology (Optimistic Lock & ASGI Lifespan).
+- [ ] **MOMENTO 2 (PENDENTE)**: Iniciar Etapa 9 - Integração SSE.
 
 ---
 
@@ -61,6 +62,7 @@ MENIR-P47-20260321-TAURI-MVP-SSE
 16. Postbox é append-only — nunca sobrescrever, purgar para Neo4j no flip de fingerprint
 17. Proibido session.run() direto em fluxos financeiros (Use execute_write).
 18. Proibido shutil.move() para arquivamento Synology (Use FastArchiveWorker).
+19. APOC 2026.02.3 é uma dependência homologada e confirmada no Aura Free. O uso de apoc.util.validate() está autorizado para validações transacionais (ex: Escudo Otimista e Bitemporal).
 
 ---
 
