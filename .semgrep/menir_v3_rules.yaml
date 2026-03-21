@@ -1,0 +1,31 @@
+rules:
+  - id: prohibit-direct-session-run-finance
+    patterns:
+      - pattern: $SESSION.run(...)
+      - pattern-not: $SESSION.execute_write(...)
+      - pattern-not: $SESSION.execute_read(...)
+    message: |
+      [ARQUITETURA] Violação de Conformidade FINMA.
+      Não use session.run() diretamente para operações financeiras (BECO).
+      Use session.execute_write() ou execute_read() para garantir idempotência e retries automáticos.
+    languages: [python]
+    severity: ERROR
+    paths:
+      include:
+        - "src/v3/skills/camt053_skill.py"
+        - "src/v3/skills/invoice_skill.py"
+        - "src/v3/core/reconciliation.py"
+        - "src/v3/core/cresus_exporter.py"
+
+  - id: prohibit-shutil-move-cross-fs
+    patterns:
+      - pattern: shutil.move($SRC, $DEST)
+    message: |
+      [ARQUITETURA] Risco de I/O Bloqueante e Corrupção.
+      shutil.move() entre sistemas de arquivos distintos (SSD -> Synology) não é atômico e bloqueia o event loop.
+      Na Fase 48, use o FastArchiveWorker com padrão 'copy-then-rename'.
+    languages: [python]
+    severity: WARNING
+    paths:
+      include:
+        - "src/v3/core/menir_runner.py"

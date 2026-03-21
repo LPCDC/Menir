@@ -10,22 +10,11 @@ from typing import Any
 
 from src.v3.graph_schema import STRICT_SCHEMA
 from src.v3.mcp.security import PiiFilter
-from src.v3.menir_bridge import MenirBridge
+from src.v3.menir_bridge import MenirBridge, get_bridge
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 
 # Initialize Helper Logger
 logger = logging.getLogger("MenirMCPTools")
-
-_bridge_singleton: "MenirBridge | None" = None
-
-def _get_bridge() -> "MenirBridge":
-    """
-    Retorna instância singleton do MenirBridge.
-    Evita abrir novo pool de 50 conexões Neo4j por request.
-    """
-    global _bridge_singleton
-    if _bridge_singleton is None:
-        _bridge_singleton = MenirBridge()
-    return _bridge_singleton
 
 # ==========================================
 # Tool Logic
@@ -87,7 +76,7 @@ class MenirTools:
         """
         Fetches Node properties + 1-Hop Relationships with 5s Timeout.
         """
-        bridge = _get_bridge()  # Assuming Env Vars are set
+        bridge = get_bridge()  # Assuming Env Vars are set
         try:
             # Enforce 5s Timeout on Neo4j Operation
             async def _fetch():
@@ -95,7 +84,7 @@ class MenirTools:
                 # Since we are in an async function, we can run it in an executor if needed,
                 # but for simplicity we rely on the bridge's internal speed.
                 # However, to strictly enforce timeout at Python level:
-                return await asyncio.to_thread(_get_node_data, bridge, uuid)
+                return await run_in_custom_executor(io_pool, _get_node_data, bridge, uuid)
 
             data = await asyncio.wait_for(_fetch(), timeout=5.0)
 
@@ -160,14 +149,14 @@ class MenirTools:
             )
 
         def _run():
-            bridge = _get_bridge()
+            bridge = get_bridge()
             with bridge.driver.session() as session:
                 # Na v6.0 introduziremos Neo4j Role-Based Access Control por Tenant real.
                 result = session.run(cypher_query)
                 return [record.data() for record in result]
 
         try:
-            return await asyncio.to_thread(_run)
+            return await run_in_custom_executor(io_pool, _run)
         except Exception as e:
             logger.exception("Falha ao executar query_memory via MCP.")
             return [{"error": str(e)}]

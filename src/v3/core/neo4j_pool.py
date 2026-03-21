@@ -10,7 +10,7 @@ import atexit
 from threading import Lock
 from typing import Optional
 
-from neo4j import GraphDatabase, Driver
+from neo4j import AsyncGraphDatabase, AsyncDriver
 
 logger = logging.getLogger("Neo4jPool")
 
@@ -36,27 +36,25 @@ class Neo4jPoolManager:
         if not password:
             logger.warning("NEO4J_PASSWORD is not set. Database connections will fail.")
 
-        self.driver: Driver = GraphDatabase.driver(
+        self.driver: AsyncDriver = AsyncGraphDatabase.driver(
             uri, 
             auth=(user, password),
             max_connection_lifetime=3600,
             max_connection_pool_size=50,
             connection_acquisition_timeout=60.0
         )
-        # Verify connection
-        try:
-            self.driver.verify_connectivity()
-            logger.info("✅ Unified Neo4j Driver Instance created successfully.")
-        except Exception as e:
-            logger.exception(f"❌ Failed to verify unified Neo4j connectivity: {e}")
+        # Async verify_connectivity in a separate thread if needed, or skip for bootstrap
+        # In this singleton _init, we can't easily await.
+        # We will verify on first use or use a simplified check.
+        logger.info("✅ Unified Neo4j AsyncDriver Instance created.")
 
-    def get_driver(self) -> Driver:
+    def get_driver(self) -> AsyncDriver:
         return self.driver
 
-    def close(self):
+    async def close(self):
         if hasattr(self, "driver") and self.driver:
-            self.driver.close()
-            logger.info("🔌 Unified Neo4j Driver Instance closed.")
+            await self.driver.close()
+            logger.info("🔌 Unified Neo4j AsyncDriver Instance closed.")
 
 # Ensure graceful shutdown
 @atexit.register
@@ -64,6 +62,6 @@ def shutdown_pool():
     if Neo4jPoolManager._instance:
         Neo4jPoolManager._instance.close()
 
-def get_shared_driver() -> Driver:
+def get_shared_driver() -> AsyncDriver:
     """Helper method to access the unified driver."""
     return Neo4jPoolManager().get_driver()

@@ -23,8 +23,27 @@ PROPOSALS_DIR = Path("data/proposals/inbox") # Governance Queue
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("menir_server")
 
+# --- Lifespan ---
+from contextlib import asynccontextmanager
+import tempfile
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Sweep orphaned ASGI cross-process locks upon container/uvicorn restart
+    lock_dir = Path(tempfile.gettempdir()) / "menir_tenant_locks"
+    if lock_dir.exists():
+        now = time.time()
+        for f in lock_dir.glob("*.lock"):
+            try:
+                if now - f.stat().st_mtime > 60:
+                    f.unlink()
+                    logger.info(f"🧹 Lifespan Sweep: Orfan lock {f.name} expurgado (>60s de idade).")
+            except OSError:
+                pass
+    yield
+
 # --- FastAPI App ---
-app = FastAPI(title="Menir Bridge", version=VERSION)
+app = FastAPI(title="Menir Bridge", version=VERSION, lifespan=lifespan)
 security = HTTPBearer()
 
 # --- Security ---

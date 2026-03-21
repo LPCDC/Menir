@@ -20,6 +20,7 @@ from src.v3.core.schemas.identity import TenantContext
 from src.v3.core.neo4j_pool import get_shared_driver
 from src.v3.core.embedding_service import EmbeddingService
 from src.v3.core.schemas.base import DocumentStatus
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 
 logger = logging.getLogger("menir.lead_skill")
 
@@ -115,7 +116,7 @@ class LeadSkill:
                 return result.single()
 
         try:
-            record = await asyncio.to_thread(_persist)
+            record = await run_in_custom_executor(io_pool, _persist)
             if not record:
                 raise RuntimeError("MERGE retornou vazio — verificar constraints.")
 

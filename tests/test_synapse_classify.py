@@ -53,7 +53,8 @@ async def test_classify_document_handler_direct(mock_runner, mock_intel):
     with patch("src.v3.core.synapse.DocumentClassifierSkill.classify_document", new_callable=AsyncMock) as mock_classify, \
          patch("src.v3.core.synapse.NodePersistenceOrchestrator.persist", new_callable=AsyncMock) as mock_persist:
         
-        mock_classify.return_value = mock_classification
+        # Unpack the 3-tuple: (doc_analysis, confidence, target_tenant)
+        mock_classify.return_value = (mock_classification, 0.95, "BECO")
         mock_persist.return_value = "doc-uid-123"
         
         response = await synapse.handle_classify_document(mock_request)
@@ -97,7 +98,7 @@ async def test_classify_document_quarantine_direct(mock_runner, mock_intel):
     with patch("src.v3.core.synapse.DocumentClassifierSkill.classify_document", new_callable=AsyncMock) as mock_classify, \
          patch("src.v3.core.synapse.NodePersistenceOrchestrator.persist", new_callable=AsyncMock) as mock_persist:
         
-        mock_classify.return_value = mock_classification
+        mock_classify.return_value = (mock_classification, 0.4, "QUARANTINE")
         mock_persist.return_value = "q-uid-456"
         
         response = await synapse.handle_classify_document(mock_request)

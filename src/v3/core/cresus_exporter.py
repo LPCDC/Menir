@@ -10,6 +10,7 @@ import os
 import json
 from collections import defaultdict
 from datetime import datetime
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 
 logger = logging.getLogger("CresusExporter")
 
@@ -55,7 +56,7 @@ class CresusExporter:
 
         # O Ponto Cego de Performance: Nós vamos delegar o tráfego da rede do Driver Neo4j
         # para uma thread síncrona, e aguardar os resultados.
-        records = await asyncio.to_thread(self._fetch_reconciled_graph, tenant)
+        records = await run_in_custom_executor(io_pool, self._fetch_reconciled_graph, tenant)
 
         if not records:
             logger.info(f"🚫 [CresusExporter] Nenhuma fatura nova reconciliada para {tenant}.")
@@ -133,7 +134,7 @@ class CresusExporter:
         # Apenas chamado após a escrita do arquivo confirmar sucesso.
         edge_ids = [r["edge_id"] for r in records if r.get("edge_id")]
         if edge_ids:
-            await asyncio.to_thread(self._mark_exported, edge_ids)
+            await run_in_custom_executor(io_pool, self._mark_exported, edge_ids)
 
         return filepath
 

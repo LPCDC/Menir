@@ -108,14 +108,17 @@ class MenirIntel:
         import asyncio
         try:
             from google import genai as genai_v3
+            from src.v3.core.concurrency import run_in_custom_executor, io_pool
             from google.genai import types
             # Use strict text-embedding-004 to maintain storage compatibility
             async with self.limiter:
-                result = await asyncio.to_thread(
+                result = await run_in_custom_executor(
+                    io_pool,
                     self.client.models.embed_content,
                     model="models/gemini-embedding-001",
                     contents=text,
-                    config=types.EmbedContentConfig(output_dimensionality=768)
+                    config=types.EmbedContentConfig(output_dimensionality=768),
+                    http_config={"timeout": 30.0}
                 )
             if result and result.embeddings and result.embeddings[0].values:
                 return result.embeddings[0].values
@@ -190,9 +193,9 @@ class MenirIntel:
             if (time.time() - self._persona_cache_ts) < 3600 and getattr(self, "_persona_cache_val", None):
                 return getattr(self, "_persona_cache_val")
 
-        import asyncio
+        from src.v3.core.concurrency import run_in_custom_executor, io_pool
         try:
-            persona = await asyncio.to_thread(self._fetch_system_persona)
+            persona = await run_in_custom_executor(io_pool, self._fetch_system_persona)
             self._persona_cache_val = persona
             self._persona_cache_ts = time.time()
             return persona
@@ -281,12 +284,15 @@ class MenirIntel:
 
             async with self.intel_semaphore:
                 async with self.limiter:
+                    from src.v3.core.concurrency import run_in_custom_executor, io_pool
                     # Wraps inference in I/O Thread to prevent Event Loop blocking
-                    response = await asyncio.to_thread(
+                    response = await run_in_custom_executor(
+                        io_pool,
                         self.client.models.generate_content,
                         model=model_to_use,
                         contents=contents,
-                        config=config
+                        config=config,
+                        http_config={"timeout": 60.0}
                     )
 
             from typing import cast

@@ -8,7 +8,7 @@ import logging
 import uuid
 
 from src.v3.core.schemas import Person
-from src.v3.menir_bridge import MenirBridge
+from src.v3.menir_bridge import MenirBridge, get_bridge
 
 from .schema import CelestialBody, House, ZodiacSign
 
@@ -101,7 +101,7 @@ def ingest_daniella(bridge: MenirBridge):
 
 
 def main():
-    bridge = MenirBridge()
+    bridge = get_bridge()
     try:
         seed_static_data(bridge)
         ingest_daniella(bridge)
