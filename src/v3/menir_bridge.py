@@ -26,6 +26,37 @@ load_dotenv(override=True)
 logger = logging.getLogger("MenirBridge")
 
 
+
+_bridge_instance: "MenirBridge | None" = None
+
+
+def get_bridge() -> "MenirBridge":
+    """
+    Returns the global MenirBridge singleton.
+    Raises RuntimeError if called before Neo4jPoolManager is initialized.
+    """
+    global _bridge_instance
+    if _bridge_instance is None:
+        # Check if the shared driver is actually initialized/available
+        # get_shared_driver() will attempt to create it, but we want to ensure
+        # it was intended to be ready (e.g. via lifespan).
+        # In this architecture, get_shared_driver() is the source of truth.
+        try:
+            from src.v3.core.neo4j_pool import Neo4jPoolManager
+            if Neo4jPoolManager._instance is None:
+                raise RuntimeError(
+                    "MenirBridge access attempted before Neo4jPoolManager initialization. "
+                    "Ensure lifespan/boot_sequence has run."
+                )
+            _bridge_instance = MenirBridge()
+        except Exception as e:
+            if isinstance(e, RuntimeError):
+                raise e
+            logger.exception("Failed to initialize MenirBridge singleton.")
+            raise RuntimeError(f"MenirBridge initialization failed: {e}") from e
+    return _bridge_instance
+
+
 class MenirBridge:
     def __init__(self, uri=None, auth=None):
         # Pool credentials and URI are handled by get_shared_driver
@@ -45,7 +76,7 @@ class MenirBridge:
         ),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    def check_evidence(self, sha256: str) -> bool:
+    async def check_evidence(self, sha256: str) -> bool:
         """Recovery Mode Check (Resilient)."""
         project = TenantContext.get()
         if not project:
@@ -57,14 +88,15 @@ class MenirBridge:
         MATCH (d:Document:`{safe_tenant}` {{sha256: $sha, project: $proj}})
         RETURN count(d) > 0 as exists
         """
-        with self.driver.session() as session:
-            result = session.run(query, sha=sha256, proj=project).single()
-            if result and result["exists"]:
+        async with self.driver.session() as session:
+            result = await session.run(query, sha=sha256, proj=project)
+            record = await result.single()
+            if record and record["exists"]:
                 logger.info(f"Recovery Hit: {sha256[:8]}... exists in {project}.")
                 return True
             return False
 
-    def check_document_exists(self, sha256: str) -> bool:
+    async def check_document_exists(self, sha256: str) -> bool:
         """Alias for check_evidence since Runner calls this."""
         tenant_id = TenantContext.get()
         if not tenant_id:
@@ -72,9 +104,10 @@ class MenirBridge:
 
         safe_tenant = tenant_id.replace("`", "")
         query = f"MATCH (d:Document:`{safe_tenant}` {{sha256: $sha}}) RETURN count(d) > 0 as exists"
-        with self.driver.session() as session:
-            result = session.run(query, sha=sha256).single()
-            return result["exists"] if result else False
+        async with self.driver.session() as session:
+            result = await session.run(query, sha=sha256)
+            record = await result.single()
+            return record["exists"] if record else False
 
     @retry(
         stop=stop_after_attempt(5),
@@ -84,7 +117,7 @@ class MenirBridge:
         ),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    def merge_node(self, node: BaseNode):
+    async def merge_node(self, node: BaseNode):
         """
         Type-Safe Node Upsert using Pydantic Models.
         Retries on connection glitches.
@@ -129,8 +162,8 @@ class MenirBridge:
                 "props": props,
             }
 
-        with self.driver.session() as session:
-            session.run(query, **params)
+        async with self.driver.session() as session:
+            await session.run(query, **params)
             # No try/except needed here, Tenacity handles the retries.
             # If it fails 5 times, it raises the exception up to the Runner.
 
@@ -142,7 +175,7 @@ class MenirBridge:
         ),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    def merge_relationship(self, rel: Relationship):
+    async def merge_relationship(self, rel: Relationship):
         """
         Type-Safe Edge Upsert (Resilient).
         """
@@ -161,8 +194,8 @@ class MenirBridge:
         SET r += $props, r.project = $proj
         """
 
-        with self.driver.session() as session:
-            session.run(
+        async with self.driver.session() as session:
+            await session.run(
                 query,
                 src=rel.source_uid,
                 tgt=rel.target_uid,
@@ -170,7 +203,7 @@ class MenirBridge:
                 props=rel.properties,
             )
 
-    def link_author(self, doc_hash: str, author_name: str):
+    async def link_author(self, doc_hash: str, author_name: str):
         """
         V3.1: Connects Person to Document.
         Not retried via Tenacity yet (non-critical path), kept as is.
@@ -208,9 +241,9 @@ class MenirBridge:
         """
 
         try:
-            with self.driver.session() as session:
+            async with self.driver.session() as session:
                 # 1. Try Exact
-                result = session.run(query_exact, name=safe_name, sha=doc_hash).single()
+                result = await (await session.run(query_exact, name=safe_name, sha=doc_hash)).single()
                 if result:
                     logger.info(
                         f"Metadata Link: Linked '{safe_name}' to '{result['linked_name']}' (EXACT)."
@@ -218,9 +251,9 @@ class MenirBridge:
                     return
 
                 # 2. Try Fuzzy
-                result = session.run(
+                result = await (await session.run(
                     query_fuzzy, name=safe_name, first_name=first_name, sha=doc_hash
-                ).single()
+                )).single()
                 if result:
                     logger.info(
                         f"Metadata Link: Linked '{safe_name}' to '{result['linked_name']}' (FUZZY)."
@@ -233,7 +266,7 @@ class MenirBridge:
         except Exception as e:
             logger.exception(f"Metadata Link Error: {e}")
 
-    def init_vector_index(self):
+    async def init_vector_index(self):
         """
         Creates a Vector Index for Native RAG.
         Dimensions: 384 (all-MiniLM-L6-v2)
@@ -248,8 +281,8 @@ class MenirBridge:
         }}
         """
         try:
-            with self.driver.session() as session:
-                session.run(query)
+            async with self.driver.session() as session:
+                await session.run(query)
                 logger.info("✅ Native Vector Index 'menir_vectors' Ready.")
         except exceptions.ClientError as e:
             if "already exists" in str(e).lower() or "equivalent" in str(e).lower():
@@ -260,7 +293,7 @@ class MenirBridge:
             logger.warning(f"Vector Index Init Warning: {e}")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-    def merge_chunk(self, chunk_id: str, text: str, embedding: list, doc_sha: str):
+    async def merge_chunk(self, chunk_id: str, text: str, embedding: list, doc_sha: str):
         """
         Ingests a Text Chunk with Vector Embedding.
         Links it to the parent Document.
@@ -279,10 +312,10 @@ class MenirBridge:
             c.generated_at = datetime()
         MERGE (c)-[:BELONGS_TO]->(d)
         """
-        with self.driver.session() as session:
-            session.run(query, uid=chunk_id, text=text, embedding=embedding, doc_sha=doc_sha)
+        async with self.driver.session() as session:
+            await session.run(query, uid=chunk_id, text=text, embedding=embedding, doc_sha=doc_sha)
 
-    def vector_search(
+    async def vector_search(
         self, embedding: list, limit: int = 5, min_score: float = 0.7
     ):
         """
@@ -299,6 +332,6 @@ class MenirBridge:
         WHERE score >= $min_score AND '{safe_tenant}' IN labels(node)
         RETURN node.text as text, score, node.uid as uid
         """
-        with self.driver.session() as session:
-            result = session.run(query, limit=limit, embedding=embedding, min_score=min_score)
-            return [{"text": r["text"], "score": r["score"]} for r in result]
+        async with self.driver.session() as session:
+            result = await session.run(query, limit=limit, embedding=embedding, min_score=min_score)
+            return [{"text": r["text"], "score": r["score"]} for r in await result.list()]

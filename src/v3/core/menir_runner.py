@@ -42,6 +42,7 @@ logging.basicConfig(
 from src.v3.core.reconciliation import ReconciliationEngine  # noqa: E402
 from src.v3.menir_intel import MenirIntel  # noqa: E402
 from src.v3.meta_cognition import MenirOntologyManager  # noqa: E402
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 
 # Imported Locally inside MenirAsyncRunner.__init__ to prevent Circular Imports
 
@@ -206,7 +207,7 @@ class MenirAsyncRunner:
 
                     # 0. The Circuit Breaker (Phase 32)
                     # Verifica a resiliência estrutural antes de gastar cota LLM
-                    is_healthy = await asyncio.to_thread(self.ontology_manager.check_system_health)
+                    is_healthy = await run_in_custom_executor(io_pool, self.ontology_manager.check_system_health)
                     if not is_healthy:
                         logger.error(
                             "🛑 WATCHDOG HALTED: System is operating with dead FATAL dependencies. Skipping processing cycle."
@@ -227,7 +228,7 @@ class MenirAsyncRunner:
                     from src.v3.core.schemas.identity import locked_tenant_context
                     
                     with locked_tenant_context(tenant):
-                        await asyncio.to_thread(self.reconciliation_engine.run_matching_cycle)
+                        await run_in_custom_executor(io_pool, self.reconciliation_engine.run_matching_cycle)
 
             except Exception as e:
                 logger.exception(f"🚨 Watchdog Loop Crash: {e}")

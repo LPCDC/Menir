@@ -4,8 +4,9 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Optional, List, Any
 from src.v3.menir_intel import MenirIntel
-from src.v3.menir_bridge import MenirBridge
+from src.v3.menir_bridge import MenirBridge, get_bridge
 from src.v3.core.schemas.identity import TenantContext
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 
 logger = logging.getLogger("QuestionEngine")
 
@@ -20,18 +21,18 @@ async def generate_question(user_input: str, user_uid: str) -> Optional[str]:
             raise RuntimeError("question_engine chamado fora de contexto galvânico")
 
         intel = MenirIntel()
-        bridge = MenirBridge()
+        bridge = get_bridge()
 
         # 1. Extrair entidades mencionadas
         entities = await _extract_entities(intel, user_input)
-        if not entities and not await _has_urgent_signals(bridge, tenant):
+        if not entities and not await _has_urgent_signals(tenant):
             return None
 
         # 2. Buscar gaps nas entidades conhecidas
-        gaps = await _find_gaps(bridge, tenant, entities)
+        gaps = await _find_gaps(tenant, entities)
 
         # 3. Consultar DecisionHub por sinais urgentes
-        signals = await _get_urgent_signals(bridge, tenant)
+        signals = await _get_urgent_signals(tenant)
 
         # 4. Formular pergunta final
         if not gaps and not signals:
@@ -61,7 +62,8 @@ async def _extract_entities(intel: MenirIntel, user_input: str) -> List[str]:
     except Exception:
         return []
 
-async def _find_gaps(bridge: MenirBridge, tenant: str, entities: List[str]) -> List[dict]:
+async def _find_gaps(tenant: str, entities: List[str]) -> List[dict]:
+    bridge = get_bridge()
     if not entities:
         return []
 
@@ -112,9 +114,10 @@ async def _find_gaps(bridge: MenirBridge, tenant: str, entities: List[str]) -> L
                     })
         return gaps
     
-    return await asyncio.to_thread(_sync_query)
+    return await run_in_custom_executor(io_pool, _sync_query)
 
-async def _has_urgent_signals(bridge: MenirBridge, tenant: str) -> bool:
+async def _has_urgent_signals(tenant: str) -> bool:
+    bridge = get_bridge()
     def _sync_query():
         # Check rápido para ver se vale a pena continuar se não houver entidades
         query = f"""
@@ -131,9 +134,10 @@ async def _has_urgent_signals(bridge: MenirBridge, tenant: str) -> bool:
         except Exception:
             return False
             
-    return await asyncio.to_thread(_sync_query)
+    return await run_in_custom_executor(io_pool, _sync_query)
 
-async def _get_urgent_signals(bridge: MenirBridge, tenant: str) -> List[dict]:
+async def _get_urgent_signals(tenant: str) -> List[dict]:
+    bridge = get_bridge()
     def _sync_query():
         query = f"""
         MATCH (s:Signal)-[:AFFECTS]->(hub:DecisionHub)-[:BELONGS_TO_TENANT]->(t:Tenant {{name: $tenant}})
@@ -154,7 +158,7 @@ async def _get_urgent_signals(bridge: MenirBridge, tenant: str) -> List[dict]:
             pass
         return signals
 
-    return await asyncio.to_thread(_sync_query)
+    return await run_in_custom_executor(io_pool, _sync_query)
 
 async def _formulate_question(intel: MenirIntel, user_input: str, gaps: List[dict], signals: List[dict]) -> Optional[str]:
     context_str = f"INPUT USUÁRIO: {user_input}\n\n"

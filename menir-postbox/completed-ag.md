@@ -106,3 +106,6 @@
 
 ## [2026-03-19T20:46:01.643248Z] - Commit Automático
 - chore: complete grand finale audit for SIG Geneve Path A
+
+## [2026-03-21T04:14:30.730262Z] - Commit Automático
+- chore: hardening Fase 47 (Semgrep & Driver Isolation)

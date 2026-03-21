@@ -18,6 +18,7 @@ def _sync_extract_qr(pdf_path: str) -> dict | None:
         logger.warning(f"Dependencias de extracao QR (pypdfium2/pyzbar) nao instaladas: {e}")
         return None
 
+    doc = None
     try:
         doc = pdfium.PdfDocument(pdf_path)
         if len(doc) == 0:
@@ -31,22 +32,31 @@ def _sync_extract_qr(pdf_path: str) -> dict | None:
         
         for i in range(1, pages_to_scan + 1):
             page_idx = doc_len - i
-            page = doc[page_idx]
-            
-            # 300 DPI e o minimo mandatado pelas best practices para leitura confiavel de QRs
-            bitmap = page.render(scale=300/72) 
-            pil_image = bitmap.to_pil()
-            
-            # PYZBAR processa melhor em Grayscale
-            grayscale_image = pil_image.convert('L')
-            decoded_symbols = decode(grayscale_image)
-            
-            for symbol in decoded_symbols:
-                payload = symbol.data.decode("utf-8")
-                if payload.startswith("SPC"):
-                    # Encontramos um conteudo valido Swiss QR
-                    parser = SwissQRParser()
-                    return parser.parse(payload)
+            page = None
+            textpage = None
+            bitmap = None
+            try:
+                page = doc[page_idx]
+                textpage = page.get_textpage()
+                
+                bitmap = page.render(scale=300/72) 
+                pil_image = bitmap.to_pil()
+                
+                grayscale_image = pil_image.convert('L')
+                decoded_symbols = decode(grayscale_image)
+                
+                for symbol in decoded_symbols:
+                    payload = symbol.data.decode("utf-8")
+                    if payload.startswith("SPC"):
+                        parser = SwissQRParser()
+                        return parser.parse(payload)
+            finally:
+                if bitmap:
+                    bitmap.close()
+                if textpage:
+                    textpage.close()
+                if page:
+                    page.close()
 
         # Se iterou as 3 ultimas e nao achou ou se nao tinha simbolos
         logger.warning(f"Extrator QR falhou: Nenhum QR Code padrao SIX/SPC encontrado nas ultimas {pages_to_scan} paginas de {pdf_path}")
@@ -66,7 +76,9 @@ def _sync_extract_qr(pdf_path: str) -> dict | None:
 async def extract_qr_from_pdf(pdf_path: str) -> dict | None:
     """
     Assincronamente extrai, decodifica e analisa um Swiss QR Code Type S (SIX v2.3) de um PDF.
-    Isola a carga pesada de CPU/RAM (pypdfium2 renders e pyzbar decodes) da main event loop via to_thread.
+    Isola a carga pesada de CPU/RAM (pypdfium2 renders e pyzbar decodes) da main event loop via cpu_pool.
     Retorna None silenciosamente se o codigo estiver corrompido, ilegivel, ou se faltar o documento.
     """
-    return await asyncio.to_thread(_sync_extract_qr, pdf_path)
+    from src.v3.core.concurrency import run_in_custom_executor, cpu_pool, pdf_mem_semaphore
+    async with pdf_mem_semaphore:
+        return await run_in_custom_executor(cpu_pool, _sync_extract_qr, pdf_path)

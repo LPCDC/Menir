@@ -1,13 +1,13 @@
 # MENIR SESSION BRIEF
-> Gerado em: 2026-03-19 23:47:04 UTC
+> Gerado em: 2026-03-21 04:16:41 UTC
 
 ## 1. ESTADO ATUAL (SNAPSHOT)
 ```text
-Fingerprint : MENIR-P46-20260319-SWISS_INCEPTION_RECONCILED
+Fingerprint : MENIR-P47-20260321-HARDENING-SEMGREP-ISOLATION
 Mypy Count  : Falha ao ler mypy
 SDKs Mortas : vertexai, text-embedding-004
-Zona Velh.  : Nenhum arquivo de risco modificado.
-Neo4j Graph : ONLINE (Nós vitais ativos)
+Zona Velh.  : src/v3/core/cresus_exporter.py, src/v3/core/synapse.py, src/v3/extensions/astro/genesis.py, src/v3/menir_bridge.py, src/v3/skills/document_classifier_skill.py, src/v3/skills/invoice_skill.py
+Neo4j Graph : OFFLINE ou Erro de conexão: 'AsyncSession' object does not support the context manager protocol
 
 ```
 

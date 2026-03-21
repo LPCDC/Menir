@@ -32,6 +32,7 @@ from tenacity import (
 GEMINI_EMBEDDING_MODEL = "models/gemini-embedding-001"
 
 from src.v3.core.neo4j_pool import get_shared_driver
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 
 logger = logging.getLogger("menir.embedding")
 
@@ -96,8 +97,9 @@ class EmbeddingService:
             if not embedding:
                 raise ValueError("Falha na geração de embedding: Retorno vazio do Gemini.")
 
-            # Etapa 2: persistir no grafo (I/O de rede — to_thread)
-            await asyncio.to_thread(
+            # Etapa 2: persistir no grafo (I/O de rede — custom executor)
+            await run_in_custom_executor(
+                io_pool,
                 cls._persist_embedding_sync,
                 label, node_id, embedding, tenant
             )
@@ -153,7 +155,7 @@ class EmbeddingService:
                     )
                     return [record.data() for record in result]
 
-            return await asyncio.to_thread(_search)
+            return await run_in_custom_executor(io_pool, _search)
 
         except Exception:
             logger.exception(f"Falha na busca semântica para: {query_text[:60]}")

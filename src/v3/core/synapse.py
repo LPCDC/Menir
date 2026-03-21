@@ -17,12 +17,15 @@ from dataclasses import dataclass, field
 
 from aiohttp import web
 
+from typing import Any, cast, Literal
 from src.v3.core.logos import CommandPayload, MenirLogos
+from src.v3.core.schemas.base import BaseNode
 from src.v3.core.schemas.identity import TenantContext, locked_tenant_context
 from src.v3.mcp_server import MenirMCPServer
 from src.v3.skills.document_classifier_skill import DocumentClassifierSkill, DocumentClassification
 from src.v3.core.persistence import NodePersistenceOrchestrator
 from src.v3.core.schemas.base import Document, QuarantineItem, DocumentStatus
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 
 logger = logging.getLogger("MenirSynapse")
 
@@ -91,6 +94,8 @@ class MenirSynapse:
                 web.get("/api/v3/quarantine/documents", self.handle_get_quarantine_documents),
                 web.patch("/api/v3/quarantine/documents/{uid}/accept", self.handle_accept_quarantine_document),
                 web.patch("/api/v3/quarantine/documents/{uid}/correct", self.handle_correct_quarantine_document),
+                web.get("/api/v3/events/companion", self.handle_companion_sse),
+                web.post("/api/v3/companion/command", self.handle_companion_command),
             ]
         )
         
@@ -149,7 +154,7 @@ class MenirSynapse:
                     logger.info("▶️  Ingestion RESUMIDA via CommandBus.")
 
                 elif action == "FLUSH_QUARANTINE":
-                    await asyncio.to_thread(self.runner.flush_quarantine)
+                    await run_in_custom_executor(io_pool, self.runner.flush_quarantine)
                     logger.info("🗑️  Quarentena liberada via CommandBus.")
 
                 else:
@@ -295,74 +300,94 @@ class MenirSynapse:
             asyncio.create_task(_run_capture_task(message.chat.id, text, "", tenant_name, message.message_id))
             
         @self.tg_dp.message(F.photo)
-        async def handle_tg_photo(message: types.Message):
-            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
-            caption = message.caption or "Analise esta imagem em busca de detalhes importantes."
-            
-            photo = message.photo[-1] if message.photo else None
-            if not photo or not self.tg_bot:
-                return
+        async def wrap_photo(message: Any):
+            await self.handle_tg_photo(message)
 
-            file = await self.tg_bot.get_file(photo.file_id)
-            os.makedirs("tmp_media", exist_ok=True)
-            local_path = f"tmp_media/{photo.file_id}.jpg"
-            await self.tg_bot.download_file(file.file_path, local_path)
-            
-            asyncio.create_task(_run_capture_task(message.chat.id, caption, local_path, tenant_name, message.message_id))
-            
         @self.tg_dp.message(F.voice)
-        async def handle_tg_voice(message: types.Message):
-            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
-            text = "Analise o áudio anexado para extrair entidades e insights e transcreva seu conteúdo principal caso seja necessário para contexto."
-            
-            voice = message.voice
-            if not voice or not self.tg_bot: return
-            
-            file = await self.tg_bot.get_file(voice.file_id)
-            os.makedirs("tmp_media", exist_ok=True)
-            local_path = f"tmp_media/{voice.file_id}.ogg"
-            await self.tg_bot.download_file(file.file_path, local_path)
-            
-            
-            asyncio.create_task(_run_capture_task(message.chat.id, text, local_path, tenant_name, message.message_id))
+        async def wrap_voice(message: Any):
+            await self.handle_tg_voice(message)
+    async def handle_tg_photo(self, message: Any):
+        from aiogram import types
+        if not isinstance(message, types.Message): return
+        tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+        caption = message.caption or "Analise esta imagem em busca de detalhes importantes."
+        
+        photo = message.photo[-1] if message.photo else None
+        if not photo or not self.tg_bot:
+            return
+
+        file = await self.tg_bot.get_file(photo.file_id)
+        if not file.file_path: return
+        os.makedirs("tmp_media", exist_ok=True)
+        local_path = f"tmp_media/{photo.file_id}.jpg"
+        await self.tg_bot.download_file(file.file_path, local_path)
+        
+        asyncio.create_task(_run_capture_task(message.chat.id, caption, local_path, tenant_name, message.message_id))
+
+    async def handle_tg_voice(self, message: Any):
+        from aiogram import types
+        if not isinstance(message, types.Message): return
+        tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+        text = "Analise o áudio anexado para extrair entidades e insights e transcreva seu conteúdo principal caso seja necessário para contexto."
+        
+        voice = message.voice
+        if not voice or not self.tg_bot: return
+        
+        file = await self.tg_bot.get_file(voice.file_id)
+        if not file.file_path: return
+        os.makedirs("tmp_media", exist_ok=True)
+        local_path = f"tmp_media/{voice.file_id}.ogg"
+        await self.tg_bot.download_file(file.file_path, local_path)
+        
+        asyncio.create_task(_run_capture_task(message.chat.id, text, local_path, tenant_name, message.message_id))
             
         @self.tg_dp.callback_query(F.data.startswith('hitl:'))
-        async def handle_tg_hitl_callback(callback: types.CallbackQuery):
-            if not callback.data:
-                return
-            parts = callback.data.split(':')
-            if len(parts) != 3:
-                return
-            hitl_id = parts[1]
-            answer = parts[2]
+        async def wrap_hitl_callback(callback: Any):
+            from aiogram import types
+            if isinstance(callback, types.CallbackQuery):
+                await self.handle_tg_hitl_callback(callback)
+
+    async def handle_tg_hitl_callback(self, callback: Any):
+        from aiogram import types
+        if not isinstance(callback, types.CallbackQuery) or not callback.data:
+            return
+        parts = callback.data.split(':')
+        if len(parts) != 3:
+            return
+        hitl_id = parts[1]
+        answer = parts[2]
+        
+        hc = self.active_hitls.get(hitl_id)
+        if not hc:
+            if callback.message and hasattr(callback.message, "edit_text"):
+                await callback.message.edit_text("❌ Contexto expirado ou já resolvido.")
+            return
             
-            hc = self.active_hitls.get(hitl_id)
-            if not hc:
-                if callback.message and hasattr(callback.message, "edit_text"):
-                    await callback.message.edit_text("❌ Contexto expirado ou já resolvido.")
-                return
+        tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
+        
+        with locked_tenant_context(tenant_name):
+            try:
+                if not self.logos or not self.logos.intel:
+                    await callback.answer("⚠️ Sistema de IA indisponível.")
+                    return
+                from src.v3.skills.menir_capture import MenirCapture
+                capture = MenirCapture(self.logos.intel, NodePersistenceOrchestrator())
+                approved = (answer == 'yes')
+                await capture.resolve_hitl(hc, approved, tenant_name)
                 
-            tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
-            
-            with locked_tenant_context(tenant_name):
-                try:
-                    capture = MenirCapture(self.logos.intel if self.logos else None, NodePersistenceOrchestrator())
-                    approved = (answer == 'yes')
-                    await capture.resolve_hitl(hc, approved, tenant_name)
-                    
-                    if approved:
-                        if callback.message and hasattr(callback.message, "edit_text"):
-                            await callback.message.edit_text(f"✅ Confirmado (SIM). Memória '{hc.get('target_name')}' amarrada ao grafo.")
-                    else:
-                        if callback.message and hasattr(callback.message, "edit_text"):
-                            await callback.message.edit_text("✅ Negado (NÃO). Uma nova entidade autônoma foi criada no grafo.")
-                    
-                    del self.active_hitls[hitl_id]
-                except Exception as e:
-                    logger.error(f"Erro no HITL telegram callback: {e}")
-                    await callback.answer("❌ Erro ao processar resolução.", show_alert=True)
-            
-            await callback.answer()
+                if approved:
+                    if callback.message and hasattr(callback.message, "edit_text"):
+                        await callback.message.edit_text(f"✅ Confirmado (SIM). Memória '{hc.get('target_name')}' amarrada ao grafo.")
+                else:
+                    if callback.message and hasattr(callback.message, "edit_text"):
+                        await callback.message.edit_text("✅ Negado (NÃO). Uma nova entidade autônoma foi criada no grafo.")
+                
+                del self.active_hitls[hitl_id]
+            except Exception as e:
+                logger.error(f"Erro no HITL telegram callback: {e}")
+                await callback.answer("❌ Erro ao processar resolução.", show_alert=True)
+        
+        await callback.answer()
 
     # --- HTTP INTERFACE (WEB_UI / AI) ---
     async def handle_auth_token_http(self, request):
@@ -392,8 +417,14 @@ class MenirSynapse:
         except Exception:
             limit = "Unknown"
 
+        from src.v3.core.priority_gateway import get_gateway
+        gateway = get_gateway()
+        
         try:
-            is_healthy = await asyncio.to_thread(self.runner.ontology_manager.check_system_health)
+            is_healthy = await gateway.execute(
+                priority=1, 
+                coro=run_in_custom_executor(io_pool, self.runner.ontology_manager.check_system_health)
+            )
             degraded = not is_healthy
         except Exception:
             degraded = True
@@ -404,6 +435,7 @@ class MenirSynapse:
             "status": status_text,
             "concurrency_slots_available": limit,
             "command_queue_size": self.command_bus.qsize(),
+            "priority_gate_queue": gateway.queue.qsize(),
             "degraded": degraded,
         })
 
@@ -418,17 +450,15 @@ class MenirSynapse:
         target_tenant = "BECO"
         
         try:
-            if token:
-                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-                target_tenant = payload.get("tenant_id", "BECO")
+            if not token:
+                logger.warning("Unauthenticated access attempt blocked in handle_command_http.")
+                return web.json_response({"error": "Missing Token. Isolation lock active."}, status=401)
+            
+            payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+            target_tenant = payload.get("tenant_id", "BECO")
         except jwt.PyJWTError:
-            strict_auth = os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true"
-            if strict_auth:
-                 return web.json_response({"error": "Invalid JWT Token. Isolation lock active."}, status=401)
-            else:
-                 logger.warning("Falha de validação JWT no CommandBus. Assumindo BECO. (STRICT_AUTH=false)")
-                 if "SANTOS" in token:
-                     target_tenant = "SANTOS"
+            logger.warning("Invalid JWT Token provided to handle_command_http.")
+            return web.json_response({"error": "Invalid JWT Token. Isolation lock active."}, status=401)
 
         data = await request.json()
         raw_intent = data.get("intent", "")
@@ -507,7 +537,7 @@ class MenirSynapse:
                 res = s.run(query_update, **params).single()
                 return dict(res["d"]) if res else None
                 
-        doc = await asyncio.to_thread(_update)
+        doc = await run_in_custom_executor(io_pool, _update)
         if not doc:
              return web.json_response({"error": "No document found"}, status=404)
              
@@ -574,15 +604,15 @@ class MenirSynapse:
         target_tenant = "BECO"
         
         try:
-            if token and jwt_secret:
-                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-                target_tenant = payload.get("tenant_id", "BECO")
+            if not token or not jwt_secret:
+                logger.warning("Unauthenticated access attempt blocked in handle_classify_document.")
+                return web.json_response({"error": "Unauthorized"}, status=401)
+            
+            payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+            target_tenant = payload.get("tenant_id", "BECO")
         except jwt.PyJWTError:
-             # Fallback logic mirroring handle_command_http
-             if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
-                 return web.json_response({"error": "Unauthorized"}, status=401)
-             if "SANTOS" in token:
-                 target_tenant = "SANTOS"
+             logger.warning("Invalid JWT Token provided to handle_classify_document.")
+             return web.json_response({"error": "Unauthorized"}, status=401)
 
         reader = await request.multipart()
         field = await reader.next()
@@ -606,31 +636,38 @@ class MenirSynapse:
         file_sha = sha256_hash.hexdigest()
 
         try:
+            if not self.logos or not self.logos.intel:
+                return web.json_response({"error": "Logos/Intel offline"}, status=503)
+
             classifier = DocumentClassifierSkill(self.logos.intel)
-            classification, trust_score, routing_target = await classifier.classify_document(file_path)
+            cls_result = await classifier.classify_document(file_path)
+            # Unpack the 3-tuple: (doc_analysis, confidence, target_tenant)
+            doc_analysis, confidence, routing_target = cls_result
             
             # TrustScore Logic (Task 8)
-            is_quarantine = routing_target == "QUARANTINE"
-            persisted_uid = None
+            is_quarantine = (routing_target == "QUARANTINE")
+            persisted_uid: str | None = None
             
             with locked_tenant_context(target_tenant):
                 orchestrator = NodePersistenceOrchestrator()
                 with self.runner.ontology_manager.driver.session() as session:
                     if is_quarantine:
-                        node = QuarantineItem(
+                        node: BaseNode = QuarantineItem(
                             uid=str(uuid.uuid4()),
                             project=target_tenant,
                             name=filename,
                             file_hash=file_sha,
                             reason="LOW_CONFIDENCE",
                             quarantined_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                            document_type=classification.document_type,
-                            confidence=classification.confidence,
-                            trust_score=trust_score,
-                            routing_decision=routing_target,
-                            language=classification.language,
                             origin="UPLOAD"
                         )
+                        node.metadata = {
+                            "document_type": doc_analysis.document_type,
+                            "confidence": doc_analysis.confidence,
+                            "trust_score": confidence,
+                            "routing_decision": routing_target,
+                            "language": doc_analysis.language
+                        }
                     else:
                         node = Document(
                             uid=str(uuid.uuid4()),
@@ -642,20 +679,30 @@ class MenirSynapse:
                             status=DocumentStatus.PENDING
                         )
                         node.metadata = {
-                            "suggested_client": classification.suggested_client_name,
-                            "document_type": classification.document_type,
-                            "confidence": classification.confidence,
-                            "language": classification.language
+                            "suggested_client": doc_analysis.suggested_client_name,
+                            "document_type": doc_analysis.document_type,
+                            "confidence": doc_analysis.confidence,
+                            "language": doc_analysis.language,
+                            "trust_score": confidence,
+                            "routing_decision": routing_target,
+                            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
                         }
                     
-                    persisted_uid = await orchestrator.persist(node, session)
+                    from src.v3.core.priority_gateway import get_gateway
+                    gateway = get_gateway()
+                    # SANTOS (Interactive) priority = 0, others = 1
+                    prio = 0 if target_tenant == "SANTOS" else 1
+                    persisted_uid = await gateway.execute(
+                        priority=prio,
+                        coro=orchestrator.persist(node, session)
+                    )
 
             return web.json_response({
                 "uid": persisted_uid,
-                "document_type": classification.document_type,
-                "suggested_client_name": classification.suggested_client_name,
-                "confidence": classification.confidence,
-                "language": classification.language,
+                "document_type": doc_analysis.document_type,
+                "suggested_client_name": doc_analysis.suggested_client_name,
+                "confidence": doc_analysis.confidence,
+                "language": doc_analysis.language,
                 "path_to_quarantine": is_quarantine
             })
             
@@ -672,65 +719,67 @@ class MenirSynapse:
         jwt_secret = os.getenv("MENIR_JWT_SECRET")
         target_tenant = "BECO"
         try:
-            if token and jwt_secret:
-                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-                target_tenant = payload.get("tenant_id", "BECO")
+            if not token or not jwt_secret:
+                raise web.HTTPUnauthorized()
+            
+            payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+            target_tenant = payload.get("tenant_id", "BECO")
         except jwt.PyJWTError:
-             if os.getenv("MENIR_STRICT_AUTH", "false").lower() == "true":
-                 raise web.HTTPUnauthorized()
-             if "SANTOS" in token:
-                 target_tenant = "SANTOS"
+             raise web.HTTPUnauthorized()
         return target_tenant
 
     async def handle_get_quarantine_documents(self, request):
         """GET list of nodes in quarentena for this tenant."""
         target_tenant = await self._get_tenant_from_request(request)
-        with locked_tenant_context(target_tenant):
-            with self.runner.ontology_manager.driver.session() as session:
-                query = f"MATCH (q:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) " \
-                        "RETURN q { .*, date: q.quarantined_at } AS q"
-                result = session.run(query)
-                items = [record.data()["q"] for record in result.all()]
-                return web.json_response(items)
+        async with get_shared_driver().session() as session:
+            query = f"MATCH (q:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) " \
+                    "RETURN q { .*, date: q.quarantined_at } AS q"
+            items = await session.execute_read(
+                lambda tx: [record.data()["q"] for record in tx.run(query)]
+            )
+            return web.json_response(items)
 
     async def handle_accept_quarantine_document(self, request):
         uid = request.match_info.get("uid")
         try:
             target_tenant = await self._get_tenant_from_request(request)
-            with locked_tenant_context(target_tenant):
+            async with get_shared_driver().session() as session:
                 orchestrator = NodePersistenceOrchestrator()
-                with self.runner.ontology_manager.driver.session() as session:
-                    # 1. Fetch item
-                    q_fetch = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) RETURN q"
-                    res = session.run(q_fetch, uid=uid).single()
-                    if not res:
-                        return web.json_response({"error": "NotFound"}, status=404)
-                    
-                    q_data = res.data()["q"]
-                    
-                    # 2. Map to Document
-                    new_doc = Document(
-                        uid=str(uuid.uuid4()),
-                        project=target_tenant,
-                        sha256=q_data["file_hash"],
-                        name=q_data["name"],
-                        source=f"Promoted from quarantine {uid}",
-                        origin="UPLOAD",
-                        status=DocumentStatus.PENDING
-                    )
-                    new_doc.metadata = {
-                        "suggested_client": q_data.get("suggested_client"),
-                        "document_type": q_data.get("document_type"),
-                        "confidence": q_data.get("confidence"),
-                        "language": q_data.get("language")
-                    }
-                    
-                    # 3. Persist
-                    persisted_uid = await orchestrator.persist(new_doc, session)
-                    
-                    # 4. Mark Accepted
-                    q_mark = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) SET q.status = 'ACCEPTED'"
-                    session.run(q_mark, uid=uid)
+                # 1. Fetch item
+                q_fetch = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) RETURN q"
+                res = await session.execute_read(
+                    lambda tx: tx.run(q_fetch, uid=uid).single()
+                )
+                if not res:
+                    return web.json_response({"error": "NotFound"}, status=404)
+                
+                q_data = res.data()["q"]
+                
+                # 2. Map to Document
+                new_doc = Document(
+                    uid=str(uuid.uuid4()),
+                    project=target_tenant,
+                    sha256=q_data["file_hash"],
+                    name=q_data["name"],
+                    source=f"Promoted from quarantine {uid}",
+                    origin="UPLOAD",
+                    status=DocumentStatus.PENDING
+                )
+                new_doc.metadata = {
+                    "suggested_client": q_data.get("suggested_client"),
+                    "document_type": q_data.get("document_type"),
+                    "confidence": q_data.get("confidence"),
+                    "language": q_data.get("language")
+                }
+                
+                # 3. Persist
+                persisted_uid = await orchestrator.persist(new_doc, session)
+                
+                # 4. Mark Accepted
+                q_mark = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) SET q.status = 'ACCEPTED'"
+                await session.execute_write(
+                    lambda tx: tx.run(q_mark, uid=uid)
+                )
                     
             return web.json_response({"status": "ACCEPTED", "promoted_uid": persisted_uid})
         except Exception as e:
@@ -746,45 +795,123 @@ class MenirSynapse:
                  return web.json_response({"error": "Missing client_name"}, status=400)
 
             target_tenant = await self._get_tenant_from_request(request)
-            with locked_tenant_context(target_tenant):
+            async with get_shared_driver().session() as session:
                 orchestrator = NodePersistenceOrchestrator()
-                with self.runner.ontology_manager.driver.session() as session:
-                    # 1. Fetch item
-                    q_fetch = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) RETURN q"
-                    res = session.run(q_fetch, uid=uid).single()
-                    if not res:
-                        return web.json_response({"error": "NotFound"}, status=404)
-                    
-                    q_data = res.data()["q"]
-                    
-                    # 2. Map to Document with correction
-                    new_doc = Document(
-                        uid=str(uuid.uuid4()),
-                        project=target_tenant,
-                        sha256=q_data["file_hash"],
-                        name=q_data["name"],
-                        source=f"Corrected from quarantine {uid}",
-                        origin="UPLOAD",
-                        status=DocumentStatus.PENDING
-                    )
-                    new_doc.metadata = {
-                        "suggested_client": corrected_client, # OVERRIDDEN
-                        "document_type": q_data.get("document_type"),
-                        "confidence": 1.0, # Now high trust because human corrected it
-                        "language": q_data.get("language")
-                    }
-                    
-                    # 3. Persist
-                    persisted_uid = await orchestrator.persist(new_doc, session)
-                    
-                    # 4. Mark Accepted (Fixed/Corrected)
-                    q_mark = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) SET q.status = 'CORRECTED'"
-                    session.run(q_mark, uid=uid)
+                # 1. Fetch item
+                q_fetch = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) RETURN q"
+                res = await session.execute_read(
+                    lambda tx: tx.run(q_fetch, uid=uid).single()
+                )
+                if not res:
+                    return web.json_response({"error": "NotFound"}, status=404)
+                
+                q_data = res.data()["q"]
+                
+                # 2. Map to Document with correction
+                new_doc = Document(
+                    uid=str(uuid.uuid4()),
+                    project=target_tenant,
+                    sha256=q_data["file_hash"],
+                    name=q_data["name"],
+                    source=f"Corrected from quarantine {uid}",
+                    origin="UPLOAD",
+                    status=DocumentStatus.PENDING
+                )
+                new_doc.metadata = {
+                    "suggested_client": corrected_client, # OVERRIDDEN
+                    "document_type": q_data.get("document_type"),
+                    "confidence": 1.0, # Now high trust because human corrected it
+                    "language": q_data.get("language")
+                }
+                
+                # 3. Persist
+                persisted_uid = await orchestrator.persist(new_doc, session)
+                
+                # 4. Mark Accepted (Fixed/Corrected)
+                q_mark = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) SET q.status = 'CORRECTED'"
+                await session.execute_write(
+                    lambda tx: tx.run(q_mark, uid=uid)
+                )
                     
             return web.json_response({"status": "CORRECTED", "promoted_uid": persisted_uid})
         except Exception as e:
             logger.exception(f"Erro ao corrigir documento {uid}")
             return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_companion_sse(self, request):
+        """
+        Server-Sent Events stream for the Menir Companion.
+        Emits quarantine updates for the active tenant.
+        """
+        target_tenant = await self._get_tenant_from_request(request)
+        
+        response = web.StreamResponse(
+            status=200,
+            reason='OK',
+            headers={
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            }
+        )
+        await response.prepare(request)
+        
+        # Initial connection event
+        await response.write(f"data: {json.dumps({'event': 'connected', 'tenant': target_tenant, 'timestamp': time.time()})}\n\n".encode('utf-8'))
+        
+        from src.v3.core.neo4j_pool import get_shared_driver
+        driver = get_shared_driver()
+        
+        try:
+            while True:
+                # Poll for pending items (minimal payload)
+                async with driver.session() as session:
+                    query = f"MATCH (q:QuarantineItem:`{target_tenant}` {{status: 'PENDING'}}) RETURN count(q) as cnt"
+                    count = await session.execute_read(lambda tx: tx.run(query).single()["cnt"])
+                    
+                payload = {
+                    "event": "quarantine_update",
+                    "tenant": target_tenant,
+                    "timestamp": time.time(),
+                    "pending_count": count
+                }
+                await response.write(f"data: {json.dumps(payload)}\n\n".encode('utf-8'))
+                
+                # Sleep between polls.
+                await asyncio.sleep(5)
+        except asyncio.CancelledError:
+            logger.info(f"SSE connection closed for tenant {target_tenant}")
+        return response
+
+    async def handle_companion_command(self, request):
+        """
+        REST POST command for Companion actions.
+        Isolated via ContextVar/JWT.
+        """
+        target_tenant = await self._get_tenant_from_request(request)
+        try:
+            data = await request.json()
+            action = data.get("action")
+            uid = data.get("uid")
+            
+            if not action or not uid:
+                return web.json_response({"error": "Missing action or uid"}, status=400)
+            
+            if action == "ACCEPT":
+                request.match_info['uid'] = uid
+                return await self.handle_accept_quarantine_document(request)
+            elif action == "REJECT":
+                from src.v3.core.neo4j_pool import get_shared_driver
+                async with get_shared_driver().session() as session:
+                    query = f"MATCH (q:QuarantineItem:`{target_tenant}` {{uid: $uid}}) SET q.status = 'REJECTED'"
+                    await session.execute_write(lambda tx: tx.run(query, uid=uid))
+                return web.json_response({"status": "REJECTED"})
+            
+            return web.json_response({"error": "Unknown action"}, status=400)
+        except Exception as e:
+            logger.exception("Companion command failed")
+            return web.json_response({"error": str(e)}, status=500)
+
     async def start_servers(self, http_port=8080, socket_port=8081):
         """Inicializa as frentes Bimodais e retorna controle ao Event Loop"""
         # 1. Boot HTTP

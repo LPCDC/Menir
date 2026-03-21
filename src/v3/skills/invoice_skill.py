@@ -8,6 +8,7 @@ import os
 from typing import Any
 
 from src.v3.core.menir_runner import SkillResult
+from src.v3.core.concurrency import run_in_custom_executor, cpu_pool, io_pool
 from src.v3.core.compressor import PayloadCompressor
 from google.genai import types as genai_types
 from src.v3.core.schemas import InvoiceData
@@ -47,7 +48,7 @@ class InvoiceSkill:
             with self.ontology_manager.driver.session() as s:
                 return s.run(cache_query, ide=ide_number, name=name).single()
                 
-        cached = await asyncio.to_thread(_check_db)
+        cached = await run_in_custom_executor(io_pool, _check_db)
         if cached:
             return cached["zefix_match"], cached["zefix_status"]
 
@@ -104,7 +105,7 @@ class InvoiceSkill:
                 with s.begin_transaction() as tx:
                     tx.run(persist_query, name=name, ide=ide_number, zefix_match=zefix_match, zefix_status=zefix_status, safe_tenant=safe_tenant)
         try:
-            await asyncio.to_thread(_save_vendor)
+            await run_in_custom_executor(io_pool, _save_vendor)
         except Exception as e:
             logger.error(f"Failed to persist Vendor cache: {e}")
 
@@ -233,8 +234,8 @@ OBSERVACAO: O campo extraction_confidence deve ser um numero decimal de 0.0 a 1.
                     compressor = PayloadCompressor()
                     logger.info("🐢 SLOW_LANE: Redimensionando e enviando arquivo para Gemini Vision.")
                     try:
-                        optimized_path = await asyncio.to_thread(
-                            compressor.compress_for_vision, file_path
+                        optimized_path = await run_in_custom_executor(
+                            cpu_pool, compressor.compress_for_vision, file_path
                         )
                         prompt = EXTRACTION_PROMPT
                         img_path = optimized_path

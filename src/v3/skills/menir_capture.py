@@ -251,7 +251,7 @@ class MenirCapture:
                 res = session.run(query, tenant=tenant_id).single()
                 return res["uid"] if res else "system"
         
-        return await asyncio.to_thread(_sync_fetch)
+        return await run_in_custom_executor(io_pool, _sync_fetch)
 
     async def resolve_hitl(self, hitl_context: dict, approved: bool, current_tenant: str):
         actions_to_take = []
@@ -279,11 +279,12 @@ class MenirCapture:
         """
         Persistência orquestrada com I/O Não-Bloqueante (Rule 4).
         """
+        from src.v3.core.concurrency import run_in_custom_executor, io_pool
         with locked_tenant_context(current_tenant):
             driver = get_shared_driver()
-            session = await asyncio.to_thread(driver.session)
+            session = await run_in_custom_executor(io_pool, driver.session)
             try:
-                tx = await asyncio.to_thread(session.begin_transaction)
+                tx = await run_in_custom_executor(io_pool, session.begin_transaction)
                 try:
                     for act in actions_to_take:
                         ent = act["entity"]
@@ -313,7 +314,7 @@ class MenirCapture:
                         elif act["action"] == "CREATE":
                             print(f"✅ CREATE ({ent.entity_type}: {ent.name_or_title}) -> [{current_tenant}]")
                             
-                        # Await the persistence (Orchestrator already wraps Cypher in to_thread)
+                        # Await the persistence (Orchestrator already wraps Cypher in pools)
                         await self.orchestrator.persist(node_obj, tx)
                         
                         # Generate Embedding for the newly created/merged node
@@ -322,16 +323,17 @@ class MenirCapture:
                             EmbeddingService.embed_and_persist(node_obj.uid, node_text_for_embed, f"{ent.entity_type}Node", current_tenant)
                         )
                     
-                    await asyncio.to_thread(tx.commit)
+                    await run_in_custom_executor(io_pool, tx.commit)
                 except Exception as e:
-                    await asyncio.to_thread(tx.rollback)
+                    await run_in_custom_executor(io_pool, tx.rollback)
                     logger.error(f"Erro na transação de persistência: {e}")
                     raise
             finally:
-                await asyncio.to_thread(session.close)
+                await run_in_custom_executor(io_pool, session.close)
 
 async def _cli_loop():
     import os
+    from src.v3.core.concurrency import run_in_custom_executor, io_pool
     tenant_name = os.getenv("MENIR_PERSONAL_TENANT_NAME", "PESSOAL")
     intel = MenirIntel()
     orch = NodePersistenceOrchestrator()
@@ -341,7 +343,7 @@ async def _cli_loop():
     while True:
         try:
             await asyncio.sleep(1.0) # wait for background embedding tasks
-            line = await asyncio.to_thread(input, "\n[User] > ")
+            line = await run_in_custom_executor(io_pool, input, "\n[User] > ")
             if not line.strip():
                 continue
             if line.strip().lower() in ['exit', 'quit']:
@@ -351,7 +353,7 @@ async def _cli_loop():
             if res and res.get("hitl"):
                 hc = res["hitl"]
                 t_name = hc["target_name"]
-                ans = await asyncio.to_thread(input, f"❓ Você está se referindo a '{t_name}'? [Y/N]: ")
+                ans = await run_in_custom_executor(io_pool, input, f"❓ Você está se referindo a '{t_name}'? [Y/N]: ")
                 approved = ans.strip().lower() == 'y'
                 await capture.resolve_hitl(hc, approved, tenant_name)
             elif res and res.get("follow_up_question"):

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-memory-mcp": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "417f0df4469e6587535b25ddbc33437c85a85cc7352942a30e62484b4e73f657"
+    },
+    "async-python-patterns": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "d3168d94fd89a08ea1eb9c69249c64a41e7a959bdf10c466feedc28182326875"
+    },
+    "billing-automation": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "d73df1c07932168399a17e89ed8a5fb052b3bab0c3fb60f85ff8f736e506b809"
+    }
+  }
+}

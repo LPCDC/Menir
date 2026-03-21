@@ -11,6 +11,7 @@ from src.v3.core.schemas.operational import (
 from src.v3.core.schemas.personal import (
     PersonNode, ProjectNode, LifeEventNode, GoalNode
 )
+from src.v3.core.concurrency import run_in_custom_executor, io_pool
 from src.v3.core.schemas.santos import (
     SignalInput, InsightInput, DecisionHubEntry
 )
@@ -44,7 +45,7 @@ class NodePersistenceOrchestrator:
                     q = f"MATCH (d:Document:`{safe_tenant}` {{uid: $uid}}) RETURN d"
                     return tx.run(q, uid=origin_uid).single()
                     
-                doc_record = await asyncio.to_thread(_check_doc)
+                doc_record = await run_in_custom_executor(io_pool, _check_doc)
                 if not doc_record:
                     raise OrphanNodeError(f"Origem fantasma! DocumentNode com uid '{origin_uid}' não existe no grafo.")
 
@@ -75,7 +76,7 @@ class NodePersistenceOrchestrator:
                     """
                     tx.run(derived_q, n_uid=node.uid, doc_uid=origin_uid)
                     
-            await asyncio.to_thread(_apply_governance)
+            await run_in_custom_executor(io_pool, _apply_governance)
 
             return node.uid
         except (ValueError, OrphanNodeError) as e:
@@ -93,31 +94,31 @@ class NodePersistenceOrchestrator:
                 n.status = $status,
                 n.project = $project
             """
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, sha256=node.sha256, name=node.name, source=node.source, status=node.status.value, project=safe_tenant))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, sha256=node.sha256, name=node.name, source=node.source, status=node.status.value, project=safe_tenant))
 
         elif isinstance(node, ClientNode):
             q = f"MERGE (n:ClientNode:`{safe_tenant}` {{uid: $uid}}) SET n.name = $name, n.client_type = $client_type, n.ide_number = $ide_number, n.address = $address, n.project = $project"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, name=node.name, client_type=node.client_type, ide_number=node.ide_number, address=node.address, project=safe_tenant))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, name=node.name, client_type=node.client_type, ide_number=node.ide_number, address=node.address, project=safe_tenant))
 
         elif isinstance(node, EmployeeNode):
             q = f"MERGE (n:EmployeeNode:`{safe_tenant}` {{uid: $uid}}) SET n.full_name = $full_name, n.avs_number = $avs_number, n.role = $role, n.hiring_date = $hiring_date, n.project = $project"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, full_name=node.full_name, avs_number=node.avs_number, role=node.role, hiring_date=node.hiring_date, project=safe_tenant))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, full_name=node.full_name, avs_number=node.avs_number, role=node.role, hiring_date=node.hiring_date, project=safe_tenant))
 
         elif isinstance(node, TaxDossierNode):
             q = f"MERGE (n:TaxDossierNode:`{safe_tenant}` {{uid: $uid}}) SET n.year = $year, n.tax_authority = $tax_authority, n.status = $status, n.project = $project"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, year=node.year, tax_authority=node.tax_authority, status=node.status, project=safe_tenant))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, year=node.year, tax_authority=node.tax_authority, status=node.status, project=safe_tenant))
 
         elif isinstance(node, InsuranceNode):
             q = f"MERGE (n:InsuranceNode:`{safe_tenant}` {{uid: $uid}}) SET n.policy_number = $policy_number, n.provider_name = $provider_name, n.insurance_type = $insurance_type, n.project = $project"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, policy_number=node.policy_number, provider_name=node.provider_name, insurance_type=node.insurance_type, project=safe_tenant))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, policy_number=node.policy_number, provider_name=node.provider_name, insurance_type=node.insurance_type, project=safe_tenant))
 
         elif isinstance(node, SalarySlipNode):
             q = f"MERGE (n:SalarySlipNode:`{safe_tenant}` {{uid: $uid}}) SET n.period = $period, n.gross_salary = $gross_salary, n.net_salary = $net_salary, n.avs_deduction = $avs_deduction, n.lpp_deduction = $lpp_deduction, n.project = $project"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, period=node.period, gross_salary=node.gross_salary, net_salary=node.net_salary, avs_deduction=node.avs_deduction, lpp_deduction=node.lpp_deduction, project=safe_tenant))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, period=node.period, gross_salary=node.gross_salary, net_salary=node.net_salary, avs_deduction=node.avs_deduction, lpp_deduction=node.lpp_deduction, project=safe_tenant))
 
         elif isinstance(node, TVADeclarationNode):
             q = f"MERGE (n:TVADeclarationNode:`{safe_tenant}` {{uid: $uid}}) SET n.period = $period, n.total_sales = $total_sales, n.tva_collected = $tva_collected, n.tva_deductible = $tva_deductible, n.amount_due = $amount_due, n.project = $project"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, period=node.period, total_sales=node.total_sales, tva_collected=node.tva_collected, tva_deductible=node.tva_deductible, amount_due=node.amount_due, project=safe_tenant))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, period=node.period, total_sales=node.total_sales, tva_collected=node.tva_collected, tva_deductible=node.tva_deductible, amount_due=node.amount_due, project=safe_tenant))
 
         elif isinstance(node, InvoiceData):
             q = f"""
@@ -157,7 +158,7 @@ class NodePersistenceOrchestrator:
                             tips=node.tip_or_unregulated_amount, total_amount=node.total_amount,
                             requires_justification=node.requires_manual_justification, project=safe_tenant)
                 tx.run(q_items, uid=node.uid, items_list=items_list, project=safe_tenant)
-            await asyncio.to_thread(_run_inv)
+            await run_in_custom_executor(io_pool, _run_inv)
         elif isinstance(node, PersonNode):
             if node.is_virtual and node.referenced_uid:
                 q = f"""
@@ -167,18 +168,18 @@ class NodePersistenceOrchestrator:
                 MERGE (ref:PersonNode:`{node.referenced_tenant}` {{uid: $referenced_uid}})
                 MERGE (n)-[:REFERENCED_FROM]->(ref)
                 """
-                await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, name=node.name, referenced_tenant=node.referenced_tenant, referenced_uid=node.referenced_uid))
+                await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, name=node.name, referenced_tenant=node.referenced_tenant, referenced_uid=node.referenced_uid))
             else:
                 q = f"MERGE (n:PersonNode:`{safe_tenant}` {{uid: $uid}}) SET n.name = $name, n.role_or_context = $role_or_context, n.trust_score = $trust_score"
-                await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, name=node.name, role_or_context=node.role_or_context, trust_score=node.trust_score))
+                await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, name=node.name, role_or_context=node.role_or_context, trust_score=node.trust_score))
 
         elif isinstance(node, ProjectNode):
             q = f"MERGE (n:ProjectNode:`{safe_tenant}` {{uid: $uid}}) SET n.name = $name, n.description = $description, n.status = $status"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, name=node.name, description=node.description, status=node.status))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, name=node.name, description=node.description, status=node.status))
 
         elif isinstance(node, LifeEventNode):
             q = f"MERGE (n:LifeEventNode:`{safe_tenant}` {{uid: $uid}}) SET n.title = $title, n.date = $date, n.impact_level = $impact_level"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, title=node.title, date=node.date, impact_level=node.impact_level))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, title=node.title, date=node.date, impact_level=node.impact_level))
 
         elif isinstance(node, InsightInput):
             q = f"""
@@ -189,7 +190,7 @@ class NodePersistenceOrchestrator:
                 n.decay_lambda = $decay_lambda,
                 n.created_at = datetime($created_at)
             """
-            await asyncio.to_thread(lambda: tx.run(
+            await run_in_custom_executor(io_pool, lambda: tx.run(
                 q, 
                 uid=node.uid, 
                 content=node.content, 
@@ -210,7 +211,7 @@ class NodePersistenceOrchestrator:
                 n.decay_lambda = $decay_lambda,
                 n.created_at = datetime($created_at)
             """
-            await asyncio.to_thread(lambda: tx.run(
+            await run_in_custom_executor(io_pool, lambda: tx.run(
                 q, 
                 uid=node.uid, 
                 signal_type=node.signal_type, 
@@ -224,11 +225,11 @@ class NodePersistenceOrchestrator:
 
         elif isinstance(node, DecisionHubEntry):
             q = f"MERGE (n:DecisionHub:`{safe_tenant}` {{uid: $uid}}) SET n.last_update = datetime()"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid))
 
         elif isinstance(node, GoalNode):
             q = f"MERGE (n:GoalNode:`{safe_tenant}` {{uid: $uid}}) SET n.title = $title, n.deadline = $deadline, n.status = $status"
-            await asyncio.to_thread(lambda: tx.run(q, uid=node.uid, title=node.title, deadline=node.deadline, status=node.status))
+            await run_in_custom_executor(io_pool, lambda: tx.run(q, uid=node.uid, title=node.title, deadline=node.deadline, status=node.status))
 
         else:
             raise ValueError(f"Orquestrador não sabe persistir o nó do tipo: {type(node).__name__}")

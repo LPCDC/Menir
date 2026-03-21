@@ -28,7 +28,7 @@ class DocumentClassifierSkill:
     def __init__(self, intel: MenirIntel):
         self.intel = intel
 
-    async def classify_document(self, file_path: str) -> tuple[DocumentClassification, str]:
+    async def classify_document(self, file_path: str) -> tuple[DocumentClassification, float, str]:
         """
         Classifica um documento usando Gemini Vision com lista estrita de tipos
         e determina o roteamento baseado no Trust Score.
@@ -50,9 +50,11 @@ class DocumentClassifierSkill:
             "DOCUMENTO:\n"
         )
 
+        from src.v3.core.concurrency import run_in_custom_executor, cpu_pool, pdf_mem_semaphore
         try:
-            # Detecta se é PDF e extrai as partes
-            pdf_type, raw_parts = classify_pdf_type(file_path)
+            # Detecta se é PDF e extrai as partes - CPU BOUND
+            async with pdf_mem_semaphore:
+                pdf_type, raw_parts = await run_in_custom_executor(cpu_pool, classify_pdf_type, file_path)
             
             result = await self.intel.structured_inference(
                 prompt=prompt,

@@ -21,6 +21,10 @@ class TenantAwareDriver:
 
     def session(self, **kwargs):
         kwargs.setdefault("database", self._db)
+        # For AsyncDriver, driver.session() returns a context manager that must be awaited or used in async with.
+        # But wait, the standard neo4j-python-driver for async actually returns a context manager.
+        # The issue in test was 'Session' object does not support async context manager.
+        # This usually means it's a synchronous session object.
         return self._driver.session(**kwargs)
 
     def close(self):
