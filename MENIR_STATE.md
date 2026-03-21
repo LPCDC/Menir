@@ -31,24 +31,34 @@ MENIR-P47-20260321-HARDENING-SEMGREP-ISOLATION
 - [x] **Fase 47 - Etapa 6**: Priority Gateway (SANTOS < 200ms) implementado e validado (15ms).
 - [x] **Hardening Final**: Regras Semgrep para `session.run()` e `shutil.move()` (Pre-Fase 48).
 - [x] **Auditoria**: Mapeamento de Deadlock Risk entre Synapse e OntologyManager.
+- [ ] **MOMENTO 2 (PENDENTE)**: Iniciar Etapa 7 - Menir Companion Tauri.
 
 ---
 
-## ✅ CONCLUÍDO (Momento 1 - Fase 47)
-- [x] Neo4j AsyncDriver Migration (Complete)
-- [x] MenirBridge Async Conversion (Complete)
-- [x] Priority Gateway & Latency Benchmark (Complete)
-- [x] ImportBatch Canonical Cypher (Complete)
-- [x] Security: Strict 401 Auth (Complete)
-- [x] PDF Memory Semaphore & Cleanup (Complete)
+## 🚨 DÍVIDA TÉCNICA (ZONA VERMELHA)
+- **ID-47-01**: Risco de Deadlock no `synapse.py`. O `handle_get_quarantine_documents` consome o pool síncrono do `OntologyManager` em contexto async saturado. Mitigar como Tarefa 1 do Momento 2.
 
 ---
 
 ## 🏗️ VERDADES IMUTÁVEIS
+
 1. ContextVar é única fonte de verdade de tenant — jamais parâmetro de função
-2. **NOVO:** Proibido `session.run()` direto em fluxos financeiros (Use execute_write).
-3. **NOVO:** Proibido `shutil.move()` para arquivamento Synology (Use FastArchiveWorker).
-4. asyncio.to_thread() para todo I/O síncrono em contexto async.
-5. BECO é prioridade de receita — SANTOS é domínio pessoal.
+2. extra="forbid" em schemas de ENTRADA de LLM
+3. extra="allow" SOMENTE em OGM de saída do grafo
+4. asyncio.to_thread() para todo I/O síncrono em contexto async
+5. Todo nó DEVE ter [:BELONGS_TO_TENANT]
+6. BECO = fiduciária suíça | SANTOS = domínio pessoal de Luiz
+7. Confiar no repo quando contradizer documentação
+8. BECO é prioridade de receita — runway limitado
+9. (:Menir) e (:User) são os dois nós raiz — meta-camada acima dos tenants
+10. menir_capture: nunca mais de UMA pergunta por input
+11. menir_capture: a pergunta usa o grafo — nunca é genérica
+12. Grafo pessoal (V0): Luiz decide o que entra. AG nunca escreve sozinho.
+13. AG is reactive, not a daemon — it runs when called, not in the background.
+14. Velocidade 1: AG notifica depois. Velocidade 2: AG propõe antes.
+15. Hooks sempre em Python — nunca Bash puro no Windows
+16. Postbox é append-only — nunca sobrescrever, purgar para Neo4j no flip de fingerprint
+17. **NOVO:** Proibido `session.run()` direto em fluxos financeiros (Use execute_write).
+18. **NOVO:** Proibido `shutil.move()` para arquivamento Synology (Use FastArchiveWorker).
 
 *Gerado por: AG (Executor) | 21/03/2026*
